@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <qcd_arg_parse.h>
 #include <latan/hadron.h>
 #include <latan/io.h>
 #include <latan/mat.h>
@@ -23,21 +24,15 @@ int main(int argc, char* argv[])
 	/*				parsing arguments			*/
 	/********************************************/
 	int source,sink;
+	qcd_options opt;
 	stringbuf spec_name,part_name,manf_name;
-	
-	if (argc != 6)
-	{
-		fprintf(stderr,														\
-				"usage: %s (qcd|qcdqed) particle source sink manifest\n",	\
-				argv[0]);
-		return EXIT_FAILURE;
-	}
-	
-	strcpy(spec_name,A_SPEC_NAME);
-	strcpy(part_name,A_PART_NAME);
-	source	= atoi(A_SOURCE);
-	sink	= atoi(A_SINK);
-	strcpy(manf_name,A_MANF_NAME);
+	 
+	opt = qcd_arg_parse(argc,argv);
+	strcpy(spec_name,opt->spec_name);
+	strcpy(part_name,opt->part_name);
+	strcpy(manf_name,opt->manf_name);
+	source = opt->source;
+	sink = opt->sink;
 	
 	/*			identifying particle			*/
 	/********************************************/
@@ -103,32 +98,41 @@ int main(int argc, char* argv[])
 	
 	maxt = (h->parity == EVEN) ? (nt/2) : (nt-1);
 	printf("\nt\tprop\t\terror\n");
-	for (t=0;t<maxt;t++)
+	for (t=0;t<=maxt;t++)
 	{
 		printf("%d\t%e\t%e\n",(int)t,mat_get(mprop,t,0),mat_get(sig,t,0));
 	}
 	printf("\n");
+	if (opt->do_save_rs_sample)
+	{
+		rs_sample_save(s_mprop,s_mprop->name);
+	}
 	
 	/*					plot					*/
 	/********************************************/
-	plot p;
-	stringbuf key;
-	const double dmaxt = (double)maxt;
-	
-	p = plot_create();
-	
-	sprintf(key,"%s propagator",h->name);
-	plot_set_scale_ylog(p);
-	plot_set_scale_xmanual(p,0.0,dmaxt);
-	plot_add_daterr(p,mprop,sig,0.0,1.0,key);
-	plot_disp(p);
+	if (opt->do_plot)
+	{
+		plot p;
+		stringbuf key;
+		const double dmaxt = (double)maxt;
+		
+		p = plot_create();
+		
+		sprintf(key,"%s propagator",h->name);
+		plot_set_scale_ylog(p);
+		plot_set_scale_xmanual(p,0.0,dmaxt);
+		plot_add_daterr(p,mprop,sig,0.0,1.0,key);
+		plot_disp(p);	
+		
+		plot_destroy(p);
+	}
 	
 	/*				desallocation				*/
 	/********************************************/
+	free(opt);
 	spectrum_destroy(s);
 	mat_destroy_ar(prop,ndat);
 	rs_sample_destroy(s_mprop);
-	plot_destroy(p);
 	
 	return EXIT_SUCCESS;
 }
