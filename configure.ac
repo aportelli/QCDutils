@@ -2,7 +2,7 @@
 
 # Initialization
 AC_PREREQ([2.64])
-AC_INIT([QCD utils],[1.0],[antonin.portelli@gmail.com],[qcd-utils])
+AC_INIT([QCDutils],[1.0],[antonin.portelli@gmail.com],[qcdutils])
 AC_CONFIG_AUX_DIR([.buildutils])
 AC_CONFIG_SRCDIR([prop.c])
 AC_CONFIG_MACRO_DIR([.buildutils/m4])
@@ -21,6 +21,13 @@ AC_ARG_WITH([latan],
 	[AM_LDFLAGS="$AM_LDFLAGS -L$with_latan/lib"],
 	[]
 )
+AC_ARG_WITH([argtable],
+    [AS_HELP_STRING([--with-argtable=prefix],
+	[try this for a non-standard install prefix of the argtable library])],
+    [AM_CFLAGS="$AM_CFLAGS -I$with_argtable/include"]
+	[AM_LDFLAGS="$AM_LDFLAGS -L$with_argtable/lib"],
+	[]
+)
 
 CFLAGS="$AM_CFLAGS $CFLAGS"
 LDFLAGS="$AM_LDFLAGS $LDFLAGS"
@@ -28,6 +35,7 @@ LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 # Checks for libraries.
 AC_CHECK_LIB([m],[cos],[],[AC_MSG_ERROR([libm library not found])])
 AC_CHECK_LIB([latan],[latan_binomial],[],[AC_MSG_ERROR([LatAnalyze library not found])])
+AC_CHECK_LIB([argtable2],[arg_parse],[LIBS="$LIBS $with_argtable/lib/libargtable2.a"],[AC_MSG_ERROR([argtable library not found])])
 
 # Checks for header files.
 AC_HEADER_STDC
