@@ -1,0 +1,33 @@
+# gitignore - dev branch
+
+# binaries
+*.o
+qcd_prop
+
+# Apple stuffs
+*.xcodeproj
+build/*
+.DS_Store
+
+# VIM
+*.swp
+
+# debug
+*.dSYM
+
+# autotools
+autom4te.cache/*
+config.h*
+Makefile.in
+Makefile
+configure
+configure.scan
+libtool
+.deps/*
+.buildutils/m4/*
+.buildutils/*
+aclocal.m4
+autoscan.log
+config.log
+config.status
+stamp-h1
