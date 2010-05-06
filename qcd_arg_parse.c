@@ -8,7 +8,6 @@
 #include <latan/latan_nunits.h>
 
 #define A_MAX_NERROR 20
-#define A_TABLE_DEF_SIZE 8
 
 qcd_options qcd_arg_parse(int argc, char* argv[], int argset_flag)
 {
@@ -16,18 +15,18 @@ qcd_options qcd_arg_parse(int argc, char* argv[], int argset_flag)
 	/********************************************/
 	void** a_table;
 	size_t a_table_size,i;
-	struct arg_lit*	a_help;
-	struct arg_lit* a_ver;
-	struct arg_lit* a_save;
-	struct arg_lit* a_noplot;
-	struct arg_dbl* a_latspac_fm;
-	struct arg_str* a_qcomp;
-	struct arg_str* a_spec;
-	struct arg_str* a_part;
-	struct arg_int* a_source;
-	struct arg_int* a_sink;
-	struct arg_file* a_manf;
-	struct arg_end* a_end;
+	struct arg_lit*	a_help			= NULL;
+	struct arg_lit* a_ver			= NULL;
+	struct arg_lit* a_save			= NULL;
+	struct arg_lit* a_noplot		= NULL;
+	struct arg_dbl* a_latspac_fm	= NULL;
+	struct arg_str* a_qcomp			= NULL;
+	struct arg_str* a_spec			= NULL;
+	struct arg_str* a_part			= NULL;
+	struct arg_int* a_source		= NULL;
+	struct arg_int* a_sink			= NULL;
+	struct arg_file* a_manf			= NULL;
+	struct arg_end* a_end			= NULL;
 	stringbuf help_msg,ver_msg,save_msg,noplot_msg,latspac_fm_msg,qcomp_msg,\
 	spec_msg,part_msg,source_msg,sink_msg,manf_msg;
 	
@@ -47,16 +46,25 @@ qcd_options qcd_arg_parse(int argc, char* argv[], int argset_flag)
 	a_ver			= arg_lit0(NULL,"version",ver_msg);
 	a_save			= arg_lit0(NULL,"save",save_msg);
 	a_noplot		= arg_lit0(NULL,"noplot",noplot_msg);
-	a_latspac_fm	= arg_dbl0("L","latspac",NULL,latspac_fm_msg);
-	a_qcomp			= arg_str1(NULL,"qcomp","q1q2",qcomp_msg);
-	a_spec			= arg_str0("s","spectrum","{qcd|qcdqed}",spec_msg);
-	a_part			= arg_str1("p","particle","NAME",part_msg);
+	if (argset_flag & A_LATSPAC)
+	{
+		a_latspac_fm	= arg_dbl0("L","latspac",NULL,latspac_fm_msg);
+	}
+	if (argset_flag & A_QCOMP)
+	{
+		a_qcomp			= arg_str1(NULL,"qcomp","q1q2",qcomp_msg);
+	}
+	if (argset_flag & A_PARTICLE)
+	{
+		a_spec			= arg_str0("s","spectrum","{qcd|qcdqed}",spec_msg);
+		a_part			= arg_str1("p","particle","NAME",part_msg);
+	}
 	a_source		= arg_int1("A","source",NULL,source_msg);
 	a_sink			= arg_int1("B","sink",NULL,sink_msg);
 	a_manf			= arg_file1(NULL,NULL,"<manifest file>",manf_msg);
 	a_end			= arg_end(A_MAX_NERROR);
 	
-	a_table_size = A_TABLE_DEF_SIZE;
+	a_table_size = 4;
 	MALLOC_ERRVAL(a_table,void**,a_table_size,NULL);
 	a_table[0] = a_help;
 	a_table[1] = a_ver;
@@ -85,6 +93,8 @@ qcd_options qcd_arg_parse(int argc, char* argv[], int argset_flag)
 		a_table[i+1] = a_part;
 		i += 2;
 	}
+	a_table_size += 4;
+	REALLOC_ERRVAL(a_table,a_table,void**,a_table_size,NULL);
 	a_table[i] = a_source;
 	a_table[i+1] = a_sink;
 	a_table[i+2] = a_manf;
@@ -100,7 +110,10 @@ qcd_options qcd_arg_parse(int argc, char* argv[], int argset_flag)
 	
 	/*			set default options				*/
 	/********************************************/
-	a_spec->sval[0] = "qcd";
+	if (argset_flag & A_PARTICLE)
+	{
+		a_spec->sval[0] = "qcd";
+	}
 	
 	/*			argument parsing				*/
 	/********************************************/
