@@ -116,11 +116,14 @@ int main(int argc, char* argv[])
 	if (opt->do_plot)
 	{
 		plot p;
-		stringbuf key;
+		stringbuf key,ylabel;
 		
 		p = plot_create();
 		
 		sprintf(key,"PCAC %s effective mass",opt->qcomp);
+		sprintf(ylabel,"mass%s",unit);
+		plot_set_xlabel(p,"time");
+		plot_set_ylabel(p,ylabel);
 		plot_set_scale_xmanual(p,0.0,nt/2);
 		plot_add_daterr(p,effmass_pcac,sig,1.0,1.0,key);
 		plot_disp(p);	
@@ -132,6 +135,7 @@ int main(int argc, char* argv[])
 	/********************************************/
 	FREE(opt);
 	hadron_destroy(h_AP);
+	hadron_destroy(h_PP);
 	mat_ar_destroy(prop,2*ndat);
 	rs_sample_destroy(s_effmass_pcac);
 	
