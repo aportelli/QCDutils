@@ -3,6 +3,7 @@
 # binaries
 *.o
 qcd_prop
+qcd_pcac
 
 # Apple stuffs
 *.xcodeproj
