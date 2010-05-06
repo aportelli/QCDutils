@@ -3,19 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <qcd_arg_parse.h>
-#include <latan/hadron.h>
-#include <latan/io.h>
-#include <latan/mat.h>
-#include <latan/plot.h>
-#include <latan/rand.h>
-#include <latan/spectrum.h>
-#include <latan/statistics.h>
-
-#define A_SPEC_NAME argv[1]
-#define A_PART_NAME argv[2]
-#define A_SOURCE argv[3]
-#define A_SINK argv[4]
-#define A_MANF_NAME argv[5]
+#include <latan/latan_hadron.h>
+#include <latan/latan_io.h>
+#include <latan/latan_mat.h>
+#include <latan/latan_plot.h>
+#include <latan/latan_rand.h>
+#include <latan/latan_statistics.h>
 
 #define NBOOT 2000
 
@@ -27,7 +20,7 @@ int main(int argc, char* argv[])
 	qcd_options opt;
 	stringbuf spec_name,part_name,manf_name;
 	 
-	opt = qcd_arg_parse(argc,argv);
+	opt = qcd_arg_parse(argc,argv,A_PARTICLE);
 	strcpy(spec_name,opt->spec_name);
 	strcpy(part_name,opt->part_name);
 	strcpy(manf_name,opt->manf_name);
@@ -51,7 +44,7 @@ int main(int argc, char* argv[])
 	{
 		s = NULL;
 		fprintf(stderr,"error: spectrum %s unknown\n",spec_name);
-		abort();
+		return EXIT_FAILURE;
 	}
 	h = spectrum_get(s,part_name);
 	
@@ -63,7 +56,7 @@ int main(int argc, char* argv[])
 	ndat	= (size_t)get_nfile(manf_name);
 	nt		= (size_t)hadron_getnt(h,source,sink,manf_name);
 	
-	prop = mat_create_ar(ndat,nt,1);
+	prop = mat_ar_create(ndat,nt,1);
 	
 	printf("-- loading %s datas from %s...\n",h->name,manf_name);
 	hadron_prop(prop,h,source,sink,manf_name);
@@ -79,7 +72,7 @@ int main(int argc, char* argv[])
 	
 	printf("-- resampling %s mean propagator...\n",h->name);
 	randgen_init_from_time();
-	resample(s_mprop,prop,ndat,&rs_mean,NULL);
+	resample(s_mprop,prop,ndat,1,&rs_mean,NULL);
 	mprop = rs_sample_get_cent_val(s_mprop);
 	
 	/*	computing error on mean propagator		*/
@@ -129,9 +122,9 @@ int main(int argc, char* argv[])
 	
 	/*				desallocation				*/
 	/********************************************/
-	free(opt);
+	FREE(opt);
 	spectrum_destroy(s);
-	mat_destroy_ar(prop,ndat);
+	mat_ar_destroy(prop,ndat);
 	rs_sample_destroy(s_mprop);
 	
 	return EXIT_SUCCESS;
