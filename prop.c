@@ -16,16 +16,25 @@ int main(int argc, char* argv[])
 {
 	/*				parsing arguments			*/
 	/********************************************/
-	int source,sink;
+	ss_no source,sink;
+	channel_no ch;
 	qcd_options opt;
 	stringbuf spec_name,part_name,manf_name;
+	size_t binsize;
 	 
-	opt = qcd_arg_parse(argc,argv,A_PARTICLE);
+	opt = qcd_arg_parse(argc,argv,A_PARTICLE|A_PROP_LOAD|A_SAVE_RS\
+						|A_CHANNEL|A_LOAD_RG);
 	strcpy(spec_name,opt->spec_name);
 	strcpy(part_name,opt->part_name);
 	strcpy(manf_name,opt->manf_name);
 	source = opt->source;
 	sink = opt->sink;
+	binsize = opt->binsize;
+	for (ch=0;ch<NCHANNEL;ch++)
+	{
+		channel_id_set(ch,opt->channel_id[ch]);
+	}
+	latan_set_verb(opt->latan_verb);
 	
 	/*			identifying particle			*/
 	/********************************************/
@@ -59,7 +68,7 @@ int main(int argc, char* argv[])
 	prop = mat_ar_create(ndat,nt,1);
 	
 	printf("-- loading %s datas from %s...\n",h->name,manf_name);
-	hadron_prop(prop,h,source,sink,manf_name);
+	hadron_propbin(prop,h,source,sink,manf_name,binsize);
 	
 	/*		resampling mean propagator			*/
 	/********************************************/
@@ -71,9 +80,9 @@ int main(int argc, char* argv[])
 	s_mprop = rs_sample_create_boot(nt,NBOOT,sample_name);
 	
 	printf("-- resampling %s mean propagator...\n",h->name);
-	randgen_init_from_time();
+	randgen_set_state(opt->state);
 	resample(s_mprop,prop,ndat,1,&rs_mean,NULL);
-	mprop = rs_sample_get_cent_val(s_mprop);
+	mprop = rs_sample_pt_cent_val(s_mprop);
 	
 	/*	computing error on mean propagator		*/
 	/********************************************/
@@ -81,7 +90,7 @@ int main(int argc, char* argv[])
 	
 	sig = mat_create(nt,1);
 	
-	printf("-- computing %s mean propagator error...\n",h->name);
+	printf("-- estimating %s mean propagator error...\n",h->name);
 	rs_sample_varp(sig,s_mprop);
 	mat_eqsqrt(sig);
 	
@@ -101,8 +110,10 @@ int main(int argc, char* argv[])
 		rs_sample_save(s_mprop,s_mprop->name);
 	}
 	
+	
 	/*					plot					*/
 	/********************************************/
+	/*
 	if (opt->do_plot)
 	{
 		plot p;
@@ -119,6 +130,7 @@ int main(int argc, char* argv[])
 		
 		plot_destroy(p);
 	}
+	*/
 	
 	/*				desallocation				*/
 	/********************************************/
@@ -126,6 +138,7 @@ int main(int argc, char* argv[])
 	spectrum_destroy(s);
 	mat_ar_destroy(prop,ndat);
 	rs_sample_destroy(s_mprop);
+	mat_destroy(sig);
 	
 	return EXIT_SUCCESS;
 }
