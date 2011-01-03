@@ -17,196 +17,199 @@
 
 int main(int argc, char* argv[])
 {
-	/*				parsing arguments			*/
-	/********************************************/
-	ss_no source,sink;
-	double latspac_nu;
-	quark_no q1,q2;
-	channel_no ch;
-	qcd_options opt;
-	stringbuf manf_name,unit;
-	size_t binsize;
-	
-	opt = qcd_arg_parse(argc,argv,A_QCOMP|A_LATSPAC|A_CHANNEL|A_PROP_LOAD\
-						|A_SAVE_RS|A_PLOT|A_LOAD_RG);
-	strcpy(manf_name,opt->manf_name);
-	source = opt->source;
-	sink = opt->sink;
-	binsize = opt->binsize;
-	q1 = quark_no_get(opt->qcomp[0]);
-	q2 = quark_no_get(opt->qcomp[1]);
-	latspac_nu = opt->latspac_nu;
-	if (opt->have_latspac)
-	{
-		strcpy(unit," (MeV)");
-	}
-	else
-	{
-		strcpy(unit,"");
-	}
-	latan_set_verb(opt->latan_verb);
-	for (ch=0;ch<NCHANNEL;ch++)
-	{
-		channel_id_set(ch,opt->channel_id[ch]);
-	}
-	
-	/*			creating PCAC "particle"		*/
-	/********************************************/
-	hadron h_AP,h_PP;
-	
-	h_AP = hadron_create();
-	h_PP = hadron_create();
-	
-	hadron_set_2q_nomix(h_AP,"AP",ODD,ch_AP,q1,q2);
-	hadron_set_2q_nomix(h_PP,"PP",ODD,ch_PP,q1,q2);
-	
-	/*				loading datas				*/
-	/********************************************/
-	size_t ndat,nt;
-	mat* prop;
-	mat* prop_AP;
-	mat* prop_PP;
-	
-	ndat	= (size_t)get_nfile(manf_name);
-	nt		= (size_t)hadron_getnt(h_AP,source,sink,manf_name);
-	
-	prop = mat_ar_create(2*ndat,nt,1);
-	prop_AP = prop;
-	prop_PP = prop + ndat;
-	
-	qcd_printf(opt,"-- loading %s datas from %s...\n",h_AP->name,manf_name);
-	hadron_propbin(prop_AP,h_AP,source,sink,manf_name,binsize);
-	qcd_printf(opt,"-- loading %s datas from %s...\n",h_PP->name,manf_name);
-	hadron_propbin(prop_PP,h_PP,source,sink,manf_name,binsize);
-	
-	
-	/*		resampling PCAC effective mass		*/
-	/********************************************/
-	rs_sample s_effmass_pcac;
-	stringbuf sample_name;
-	mat effmass_pcac;
-	
-	sprintf(sample_name,"%s_effmass_PCAC_%s",opt->qcomp,manf_name);
-	s_effmass_pcac = rs_sample_create_boot(nt-2,NBOOT,sample_name);
-	
-	qcd_printf(opt,"-- resampling %s PCAC effective mass...\n",opt->qcomp);
-	randgen_set_state(opt->state);
-	resample(s_effmass_pcac,prop,ndat,2,&rs_effmass_PCAC,NULL);
-	effmass_pcac = rs_sample_pt_cent_val(s_effmass_pcac);
-	
-	/* computing variance on PCAC effective mass*/
-	/********************************************/
-	mat sigem;
-	
-	sigem = mat_create(nt-2,1);
-	
-	qcd_printf(opt,"-- estimating %s PCAC effective mass variance...\n",\
-			   opt->qcomp);
-	rs_sample_varp(sigem,s_effmass_pcac);
-	
-	/*				fit mass					*/
-	/********************************************/
-	
-	fit_data d;
-	size_t t,i;
-	rs_sample s_mass_pcac;
-	mat mass_pcac;
-	
-	d = fit_data_create(nt-2,1);
-	sprintf(sample_name,"%s_massfit_PCAC_%s",opt->qcomp,manf_name);
-	s_mass_pcac = rs_sample_create(1,NBOOT,sample_name);
-	
-	qcd_printf(opt,"-- fitting and resampling %s PCAC mass...\n",opt->qcomp);
-	fit_data_fit_all_points(d,false);
-	for (t=0;t<nt-2;t++)
-	{
-		fit_data_set_x(d,t,0,(double)(t+1));
-		if ((t>=nt/8-1)&&(t<=3*nt/8-1))
-		{
-			fit_data_fit_point(d,t,true);
-		}
-	}
-	fit_data_set_model(d,&fm_const);
-	mat_set(rs_sample_pt_cent_val(s_mass_pcac),0,0,\
-			mat_get(effmass_pcac,nt/4-1,0));
-	for (i=0;i<rs_sample_get_nsample(s_mass_pcac);i++)
-	{
-		mat_cp(rs_sample_pt_sample(s_mass_pcac,i),\
-			   rs_sample_pt_cent_val(s_mass_pcac));
-	}
-	rs_sample_fit(s_mass_pcac,s_effmass_pcac,d);
-	mass_pcac = rs_sample_pt_cent_val(s_mass_pcac);
-	if (opt->do_save_rs_sample)
-	{
-		rs_sample_save(s_mass_pcac,s_mass_pcac->name);
-	}
-	
-	/*		computing variance on PCAC mass		*/
-	/********************************************/
-	mat sigmass;
-	
-	sigmass = mat_create(1,1);
-	
-	qcd_printf(opt,"-- estimating %s PCAC mass variance...\n",opt->qcomp);
-	rs_sample_varp(sigmass,s_mass_pcac);
-	mat_eqsqrt(sigmass);
-	mat_eqsqrt(sigem);
+    /*              parsing arguments           */
+    /********************************************/
+    ss_no source,sink;
+    double latspac_nu;
+    quark_no q1,q2;
+    channel_no ch;
+    qcd_options *opt;
+    strbuf manf_name,unit;
+    size_t binsize;
+    
+    opt = qcd_arg_parse(argc,argv,A_QCOMP|A_LATSPAC|A_CHANNEL|A_PROP_LOAD\
+                        |A_SAVE_RS|A_PLOT|A_LOAD_RG|A_FIT);
+    strcpy(manf_name,opt->manf_name);
+    source = opt->source;
+    sink = opt->sink;
+    binsize = opt->binsize;
+    q1 = opt->qcomp[0];
+    q2 = opt->qcomp[1];
+    latspac_nu = opt->latspac_nu;
+    if (opt->have_latspac)
+    {
+        strcpy(unit," (MeV)");
+    }
+    else
+    {
+        strcpy(unit,"");
+    }
+    latan_set_verb(opt->latan_verb);
+    for (ch=0;ch<NCHANNEL;ch++)
+    {
+        channel_id_set(ch,opt->channel_id[ch]);
+    }
+    minimizer_set_alg(opt->minimizer);
+    
+    /*          creating PCAC "particle"        */
+    /********************************************/
+    hadron *h_AP,*h_PP;
+    
+    h_AP = hadron_create();
+    h_PP = hadron_create();
+    
+    hadron_set_2q_nomix(h_AP,"AP",ODD,ch_AP,q1,q2);
+    hadron_set_2q_nomix(h_PP,"PP",ODD,ch_PP,q1,q2);
+    
+    /*              loading datas               */
+    /********************************************/
+    size_t ndat,nt;
+    mat **prop;
+    mat **prop_AP;
+    mat **prop_PP;
+    
+    ndat    = (size_t)get_nfile(manf_name);
+    hadron_prop_load_nt(&nt,h_AP,source,sink,manf_name);
+    
+    prop    = mat_ar_create(2*ndat,nt,1);
+    prop_AP = prop;
+    prop_PP = prop + ndat;
+    
+    qcd_printf(opt,"-- loading %s datas from %s...\n",h_AP->name,manf_name);
+    hadron_prop_load_bin(prop_AP,h_AP,source,sink,manf_name,binsize);
+    qcd_printf(opt,"-- loading %s datas from %s...\n",h_PP->name,manf_name);
+    hadron_prop_load_bin(prop_PP,h_PP,source,sink,manf_name,binsize);
+    
+    
+    /*      resampling PCAC effective mass      */
+    /********************************************/
+    rs_sample *s_effmass_pcac;
+    strbuf sample_name;
+    mat *effmass_pcac;
+    
+    s_effmass_pcac = rs_sample_create(nt-2,NBOOT);
+    
+    sprintf(sample_name,"%s_effmass_PCAC_%s",opt->qcomp_str,manf_name);
+    rs_sample_set_name(s_effmass_pcac,sample_name);
+    qcd_printf(opt,"-- resampling %s PCAC effective mass...\n",opt->qcomp_str);
+    randgen_set_state(opt->state);
+    resample(s_effmass_pcac,prop,ndat,2,&rs_effmass_PCAC,BOOT,NULL);
+    effmass_pcac = rs_sample_pt_cent_val(s_effmass_pcac);
+    
+    /* computing variance on PCAC effective mass*/
+    /********************************************/
+    mat *sigem;
+    
+    sigem = mat_create(nt-2,1);
+    
+    qcd_printf(opt,"-- estimating %s PCAC effective mass variance...\n",\
+               opt->qcomp);
+    rs_sample_varp(sigem,s_effmass_pcac);
+    
+    /*              fit mass                    */
+    /********************************************/
+    
+    fit_data *d;
+    size_t t,i;
+    rs_sample *s_mass_pcac;
+    mat *mass_pcac;
+    
+    d = fit_data_create(nt-2,1);
+    s_mass_pcac = rs_sample_create(1,NBOOT);
+    
+    sprintf(sample_name,"%s_massfit_PCAC_%s",opt->qcomp_str,manf_name);
+    rs_sample_set_name(s_mass_pcac,sample_name);
+    qcd_printf(opt,"-- fitting and resampling %s PCAC mass...\n",opt->qcomp_str);
+    fit_data_fit_all_points(d,false);
+    for (t=0;t<nt-2;t++)
+    {
+        fit_data_set_x(d,t,0,(double)(t+1));
+        if ((t>=nt/8-1)&&(t<=3*nt/8-1))
+        {
+            fit_data_fit_point(d,t,true);
+        }
+    }
+    fit_data_set_model(d,&fm_const);
+    mat_set(rs_sample_pt_cent_val(s_mass_pcac),0,0,\
+            mat_get(effmass_pcac,nt/4-1,0));
+    for (i=0;i<rs_sample_get_nsample(s_mass_pcac);i++)
+    {
+        mat_cp(rs_sample_pt_sample(s_mass_pcac,i),\
+               rs_sample_pt_cent_val(s_mass_pcac));
+    }
+    rs_data_fit(s_mass_pcac,s_effmass_pcac,d);
+    mass_pcac = rs_sample_pt_cent_val(s_mass_pcac);
+    if (opt->do_save_rs_sample)
+    {
+        rs_sample_save(s_mass_pcac,s_mass_pcac->name);
+    }
+    
+    /*      computing variance on PCAC mass     */
+    /********************************************/
+    mat *sigmass;
+    
+    sigmass = mat_create(1,1);
+    
+    qcd_printf(opt,"-- estimating %s PCAC mass variance...\n",opt->qcomp);
+    rs_sample_varp(sigmass,s_mass_pcac);
+    mat_eqsqrt(sigmass);
+    mat_eqsqrt(sigem);
 
-	/*		switching to right units			*/
-	/********************************************/
-	mat_eqmuls(effmass_pcac,1.0/latspac_nu);
-	mat_eqmuls(sigem,1.0/latspac_nu);
-	mat_eqmuls(mass_pcac,1.0/latspac_nu);
-	mat_eqmuls(sigmass,1.0/latspac_nu);
-	
-	/*				result output				*/
-	/********************************************/
-	if (opt->qcomp[0] == opt->qcomp[1])
-	{
-		qcd_printf(opt,"m_%c\t\t",opt->qcomp[0]);
-	}
-	else
-	{
-		qcd_printf(opt,"m_%s\t\t",opt->qcomp);
-	}
-	qcd_printf(opt,"= %.8f +/- %.8e %s\n",mat_get(mass_pcac,0,0),\
-			   mat_get(sigmass,0,0),unit);
-	qcd_printf(opt,"dof\t\t= %d\n",fit_data_get_dof(d));
-	qcd_printf(opt,"chi^2/dof\t= %e\n",fit_data_get_chi2pdof(d));
-	
-	/*					plot					*/
-	/********************************************/
-	if (opt->do_plot)
-	{
-		plot p;
-		stringbuf key,ylabel;
-		
-		p = plot_create();
-		
-		sprintf(key,"%s PCAC effective mass",opt->qcomp);
-		sprintf(ylabel,"mass%s",unit);
-		plot_set_xlabel(p,"time");
-		plot_set_ylabel(p,ylabel);
-		plot_set_scale_xmanual(p,0.0,nt/2);
-		plot_add_hlineerr(p,mat_get(mass_pcac,0,0),mat_get(sigmass,0,0),"0",\
-						  "rgb \"red\"","rgb \"light-red\"");
-		plot_add_daterr(p,fit_data_pt_x(d),effmass_pcac,sigem,key);
-		plot_disp(p);	
-		
-		plot_destroy(p);
-	}
-	
-	/*				desallocation				*/
-	/********************************************/
-	FREE(opt);
-	hadron_destroy(h_AP);
-	hadron_destroy(h_PP);
-	mat_ar_destroy(prop,2*ndat);
-	rs_sample_destroy(s_effmass_pcac);
-	mat_destroy(sigem);
-	fit_data_destroy(d);
-	rs_sample_destroy(s_mass_pcac);
-	mat_destroy(sigmass);
-	
-	return EXIT_SUCCESS;
+    /*      switching to right units            */
+    /********************************************/
+    mat_eqmuls(effmass_pcac,1.0/latspac_nu);
+    mat_eqmuls(sigem,1.0/latspac_nu);
+    mat_eqmuls(mass_pcac,1.0/latspac_nu);
+    mat_eqmuls(sigmass,1.0/latspac_nu);
+    
+    /*              result output               */
+    /********************************************/
+    if (opt->qcomp[0] == opt->qcomp[1])
+    {
+        qcd_printf(opt,"m_%c\t\t",opt->qcomp[0]);
+    }
+    else
+    {
+        qcd_printf(opt,"m_%s\t\t",opt->qcomp);
+    }
+    qcd_printf(opt,"= %.8f +/- %.8e %s\n",mat_get(mass_pcac,0,0),\
+               mat_get(sigmass,0,0),unit);
+    qcd_printf(opt,"dof\t\t= %d\n",fit_data_get_dof(d));
+    qcd_printf(opt,"chi^2/dof\t= %e\n",fit_data_get_chi2pdof(d));
+    
+    /*                  plot                    */
+    /********************************************/
+    if (opt->do_plot)
+    {
+        plot *p;
+        strbuf key,ylabel;
+        
+        p = plot_create();
+        
+        sprintf(key,"%s PCAC effective mass",opt->qcomp_str);
+        sprintf(ylabel,"mass%s",unit);
+        plot_set_xlabel(p,"time");
+        plot_set_ylabel(p,ylabel);
+        plot_set_scale_xmanual(p,0.0,nt/2);
+        plot_add_hlineerr(p,mat_get(mass_pcac,0,0),mat_get(sigmass,0,0),"0",\
+                          "rgb 'red'","rgb 'light-red'");
+        plot_add_dat_yerr(p,fit_data_pt_x(d),effmass_pcac,sigem,key,"rgb 'blue'");
+        plot_disp(p);   
+        
+        plot_destroy(p);
+    }
+    
+    /*              desallocation               */
+    /********************************************/
+    FREE(opt);
+    hadron_destroy(h_AP);
+    hadron_destroy(h_PP);
+    mat_ar_destroy(prop,2*ndat);
+    rs_sample_destroy(s_effmass_pcac);
+    mat_destroy(sigem);
+    fit_data_destroy(d);
+    rs_sample_destroy(s_mass_pcac);
+    mat_destroy(sigmass);
+    
+    return EXIT_SUCCESS;
 }
