@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#include <sys/types.h>
 #include "config.h"
 #include "qcd_arg_parse.h"
 #include <argtable2.h>
@@ -302,7 +301,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
         if (a_load_rg->count > 0)
         {
             opt->have_randgen_state = true;
-            randgen_load_state(opt->state,a_load_rg->sval[0]);
+            randgen_load_state(opt->state,a_load_rg->sval[0],"");
         }
         else
         {

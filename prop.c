@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <qcd_arg_parse.h>
 #include <latan/latan_hadron.h>
 #include <latan/latan_io.h>
@@ -66,7 +67,8 @@ int main(int argc, char* argv[])
     hadron_prop_load_nt(&nt,h,source,sink,manf_name);
     
     prop = mat_ar_create(ndat,nt,1);
-    
+
+    io_init();
     qcd_printf(opt,"-- loading %s datas from %s...\n",h->name,manf_name);
     hadron_prop_load_bin(prop,h,source,sink,manf_name,binsize);
     
@@ -108,35 +110,14 @@ int main(int argc, char* argv[])
     qcd_printf(opt,"\n");
     if (opt->do_save_rs_sample)
     {
-        rs_sample_save(s_mprop,s_mprop->name);
+        rs_sample_save(s_mprop->name,'w',s_mprop);
     }
-    
-    
-    /*                  plot                    */
-    /********************************************/
-    /*
-    if (opt->do_plot)
-    {
-        plot *p;
-        strbuf key;
-        const double dmaxt = (double)maxt;
-        
-        p = plot_create();
-        
-        sprintf(key,"%s propagator",h->name);
-        plot_set_scale_ylog(p);
-        plot_set_scale_xmanual(p,0.0,dmaxt);
-        plot_add_dat_yerr(p,mprop,sig,0.0,1.0,key);
-        plot_disp(p);   
-        
-        plot_destroy(p);
-    }
-    */
     
     /*              desallocation               */
     /********************************************/
     FREE(opt);
     spectrum_destroy(s);
+    /* io_finish(); */ /* unknown memory leak here */
     mat_ar_destroy(prop,ndat);
     rs_sample_destroy(s_mprop);
     mat_destroy(sig);
