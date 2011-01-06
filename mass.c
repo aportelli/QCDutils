@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <qcd_arg_parse.h>
 #include <latan/latan_hadron.h>
 #include <latan/latan_io.h>
@@ -82,11 +83,11 @@ int main(int argc, char* argv[])
     hadron_prop_load_nt(&nt,h,source,sink,manf_name);
     
     prop = mat_ar_create(nbdat,nt,1);
-    
+
+    io_init();
     qcd_printf(opt,"-- loading %s datas from %s...\n",h->name,manf_name);
     hadron_prop_load_bin(prop,h,source,sink,manf_name,binsize);
 
-    
     /*      resampling mean propagator          */
     /********************************************/
     rs_sample *s_mprop;
@@ -153,7 +154,7 @@ int main(int argc, char* argv[])
     mass = rs_sample_pt_cent_val(s_mass);
     if (opt->do_save_rs_sample)
     {
-        rs_sample_save(s_mass,s_mass->name);
+        rs_sample_save(s_mass->name,'w',s_mass);
     }
     
     /*      computing error on mass             */
@@ -229,7 +230,8 @@ int main(int argc, char* argv[])
     /*              desallocation               */
     /********************************************/
     FREE(opt);
-    spectrum_destroy(s);
+    spectrum_destroy(s); 
+    /* io_finish(); */ /* unknown memory leak here */
     mat_ar_destroy(prop,nbdat);
     rs_sample_destroy(s_mprop);
     mat_destroy(sigmprop);

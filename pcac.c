@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <qcd_arg_parse.h>
 #include <latan/latan_hadron.h>
 #include <latan/latan_io.h>
@@ -74,12 +75,12 @@ int main(int argc, char* argv[])
     prop    = mat_ar_create(2*ndat,nt,1);
     prop_AP = prop;
     prop_PP = prop + ndat;
-    
+
+    io_init();
     qcd_printf(opt,"-- loading %s datas from %s...\n",h_AP->name,manf_name);
     hadron_prop_load_bin(prop_AP,h_AP,source,sink,manf_name,binsize);
     qcd_printf(opt,"-- loading %s datas from %s...\n",h_PP->name,manf_name);
     hadron_prop_load_bin(prop_PP,h_PP,source,sink,manf_name,binsize);
-    
     
     /*      resampling PCAC effective mass      */
     /********************************************/
@@ -141,7 +142,7 @@ int main(int argc, char* argv[])
     mass_pcac = rs_sample_pt_cent_val(s_mass_pcac);
     if (opt->do_save_rs_sample)
     {
-        rs_sample_save(s_mass_pcac,s_mass_pcac->name);
+        rs_sample_save(s_mass_pcac->name,'w',s_mass_pcac);
     }
     
     /*      computing variance on PCAC mass     */
@@ -150,7 +151,7 @@ int main(int argc, char* argv[])
     
     sigmass = mat_create(1,1);
     
-    qcd_printf(opt,"-- estimating %s PCAC mass variance...\n",opt->qcomp);
+    qcd_printf(opt,"-- estimating %s PCAC mass variance...\n",opt->qcomp_str);
     rs_sample_varp(sigmass,s_mass_pcac);
     mat_eqsqrt(sigmass);
     mat_eqsqrt(sigem);
@@ -164,13 +165,13 @@ int main(int argc, char* argv[])
     
     /*              result output               */
     /********************************************/
-    if (opt->qcomp[0] == opt->qcomp[1])
+    if (opt->qcomp_str[0] == opt->qcomp_str[1])
     {
-        qcd_printf(opt,"m_%c\t\t",opt->qcomp[0]);
+        qcd_printf(opt,"m_%c\t\t",opt->qcomp_str[0]);
     }
     else
     {
-        qcd_printf(opt,"m_%s\t\t",opt->qcomp);
+        qcd_printf(opt,"m_%s\t\t",opt->qcomp_str);
     }
     qcd_printf(opt,"= %.8f +/- %.8e %s\n",mat_get(mass_pcac,0,0),\
                mat_get(sigmass,0,0),unit);
@@ -204,6 +205,7 @@ int main(int argc, char* argv[])
     FREE(opt);
     hadron_destroy(h_AP);
     hadron_destroy(h_PP);
+    /* io_finish(); */ /* unknown memory leak here */
     mat_ar_destroy(prop,2*ndat);
     rs_sample_destroy(s_effmass_pcac);
     mat_destroy(sigem);

@@ -1,6 +1,7 @@
 #ifndef QCD_ARG_PARSE_H_
 #define QCD_ARG_PARSE_H_
 
+#include <sys/types.h>
 #include <latan/latan_hadron.h>
 #include <latan/latan_minimizer.h>
 #include <latan/latan_rand.h>
