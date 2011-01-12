@@ -64,17 +64,18 @@ int main(int argc, char* argv[])
     
     /*              loading datas               */
     /********************************************/
-    size_t ndat,nt;
+    size_t ndat,nbdat,nt;
     mat **prop;
     mat **prop_AP;
     mat **prop_PP;
     
-    ndat    = (size_t)get_nfile(manf_name);
+    ndat  = (size_t)get_nfile(manf_name);
+    nbdat = ndat/binsize;
     hadron_prop_load_nt(&nt,h_AP,source,sink,manf_name);
     
-    prop    = mat_ar_create(2*ndat,nt,1);
+    prop    = mat_ar_create(2*nbdat,nt,1);
     prop_AP = prop;
-    prop_PP = prop + ndat;
+    prop_PP = prop + nbdat;
 
     io_init();
     qcd_printf(opt,"-- loading %s datas from %s...\n",h_AP->name,manf_name);
@@ -94,7 +95,7 @@ int main(int argc, char* argv[])
     rs_sample_set_name(s_effmass_pcac,sample_name);
     qcd_printf(opt,"-- resampling %s PCAC effective mass...\n",opt->qcomp_str);
     randgen_set_state(opt->state);
-    resample(s_effmass_pcac,prop,ndat,2,&rs_effmass_PCAC,BOOT,NULL);
+    resample(s_effmass_pcac,prop,nbdat,2,&rs_effmass_PCAC,BOOT,NULL);
     effmass_pcac = rs_sample_pt_cent_val(s_effmass_pcac);
     
     /* computing variance on PCAC effective mass*/
@@ -206,7 +207,7 @@ int main(int argc, char* argv[])
     hadron_destroy(h_AP);
     hadron_destroy(h_PP);
     /* io_finish(); */ /* unknown memory leak here */
-    mat_ar_destroy(prop,2*ndat);
+    mat_ar_destroy(prop,2*nbdat);
     rs_sample_destroy(s_effmass_pcac);
     mat_destroy(sigem);
     fit_data_destroy(d);
