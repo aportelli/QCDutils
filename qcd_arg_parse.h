@@ -3,8 +3,33 @@
 
 #include <sys/types.h>
 #include <latan/latan_hadron.h>
+#include <latan/latan_io.h>
 #include <latan/latan_minimizer.h>
 #include <latan/latan_rand.h>
+
+#define MAX_RANGES 4
+
+#define QCD_MALLOC(pt,typ,size)\
+{\
+    pt = (typ)(malloc((size_t)(size)*sizeof(*pt)));\
+    if (pt == NULL)\
+    {\
+        fprintf(stderr,"error: memory allocation failed (%s:%d)\n",__FILE__,\
+                __LINE__);\
+        abort();\
+    }\
+}
+
+#define QCD_REALLOC(pt,pt_old,typ,size)\
+{\
+    pt = (typ)(realloc(pt_old,(size_t)(size)*sizeof(*pt)));\
+    if (pt == NULL)\
+    {\
+        fprintf(stderr,"error: memory reallocation failed (%s:%d)\n",__FILE__,\
+                __LINE__);\
+        abort();\
+    }\
+}
 
 enum
 {
@@ -22,8 +47,9 @@ enum
 
 typedef struct
 {
-    int qcd_verb;
+    bool qcd_verb;
     int latan_verb;
+    io_fmt_no latan_fmt;
     double latspac_fm;
     double latspac_nu;
     bool have_latspac;
@@ -42,6 +68,8 @@ typedef struct
     bool do_save_rs_sample;
     bool have_randgen_state;
     minalg_no minimizer;
+    unsigned int range[4][2];
+    size_t nmanrange;
 } qcd_options;
 
 qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag);
