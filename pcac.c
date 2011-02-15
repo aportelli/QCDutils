@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
     
     opt = qcd_arg_parse(argc,argv,A_QCOMP|A_LATSPAC|A_CHANNEL|A_PROP_LOAD\
                         |A_SAVE_RS|A_PLOT|A_LOAD_RG|A_FIT);
-    strcpy(manf_name,opt->manf_name);
+    strbufcpy(manf_name,opt->manf_name);
     source = opt->source;
     sink = opt->sink;
     binsize = opt->binsize;
@@ -39,11 +39,11 @@ int main(int argc, char* argv[])
     latspac_nu = opt->latspac_nu;
     if (opt->have_latspac)
     {
-        strcpy(unit," (MeV)");
+        strbufcpy(unit," (MeV)");
     }
     else
     {
-        strcpy(unit,"");
+        strbufcpy(unit,"");
     }
     latan_set_verb(opt->latan_verb);
     for (ch=0;ch<NCHANNEL;ch++)
