@@ -25,9 +25,9 @@ int main(int argc, char* argv[])
      
     opt = qcd_arg_parse(argc,argv,A_PARTICLE|A_PROP_LOAD|A_SAVE_RS\
                         |A_CHANNEL|A_LOAD_RG);
-    strcpy(spec_name,opt->spec_name);
-    strcpy(part_name,opt->part_name);
-    strcpy(manf_name,opt->manf_name);
+    strbufcpy(spec_name,opt->spec_name);
+    strbufcpy(part_name,opt->part_name);
+    strbufcpy(manf_name,opt->manf_name);
     source = opt->source;
     sink = opt->sink;
     binsize = opt->binsize;
