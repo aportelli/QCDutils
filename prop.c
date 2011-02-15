@@ -36,6 +36,8 @@ int main(int argc, char* argv[])
         channel_id_set(ch,opt->channel_id[ch]);
     }
     latan_set_verb(opt->latan_verb);
+    io_set_fmt(opt->latan_fmt);
+    io_init();
     
     /*          identifying particle            */
     /********************************************/
@@ -80,7 +82,7 @@ int main(int argc, char* argv[])
     
     s_mprop = rs_sample_create(nt,NBOOT);
     
-    sprintf(sample_name,"%s_prop_%s",h->name,manf_name);
+    sprintf(sample_name,"%s_prop_%s.boot",h->name,manf_name);
     rs_sample_set_name(s_mprop,sample_name);
     qcd_printf(opt,"-- resampling %s mean propagator...\n",h->name);
     randgen_set_state(opt->state);
@@ -101,7 +103,7 @@ int main(int argc, char* argv[])
     /********************************************/
     size_t t,maxt;
     
-    maxt = (h->parity == EVEN) ? (nt/2) : (nt-1);
+    maxt = nt - 1;
     qcd_printf(opt,"\nt\tprop\t\terror\n");
     for (t=0;t<=maxt;t++)
     {
@@ -117,7 +119,7 @@ int main(int argc, char* argv[])
     /********************************************/
     FREE(opt);
     spectrum_destroy(s);
-    /* io_finish(); */ /* unknown memory leak here */
+    io_finish();
     mat_ar_destroy(prop,ndat);
     rs_sample_destroy(s_mprop);
     mat_destroy(sig);

@@ -51,6 +51,8 @@ int main(int argc, char* argv[])
         channel_id_set(ch,opt->channel_id[ch]);
     }
     minimizer_set_alg(opt->minimizer);
+    io_set_fmt(opt->latan_fmt);
+    io_init();
     
     /*          creating PCAC "particle"        */
     /********************************************/
@@ -119,7 +121,7 @@ int main(int argc, char* argv[])
     d = fit_data_create(nt-2,1);
     s_mass_pcac = rs_sample_create(1,NBOOT);
     
-    sprintf(sample_name,"%s_massfit_PCAC_%s",opt->qcomp_str,manf_name);
+    sprintf(sample_name,"%s_massfit_PCAC_%s.boot",opt->qcomp_str,manf_name);
     rs_sample_set_name(s_mass_pcac,sample_name);
     qcd_printf(opt,"-- fitting and resampling %s PCAC mass...\n",opt->qcomp_str);
     fit_data_fit_all_points(d,false);
@@ -206,7 +208,7 @@ int main(int argc, char* argv[])
     FREE(opt);
     hadron_destroy(h_AP);
     hadron_destroy(h_PP);
-    /* io_finish(); */ /* unknown memory leak here */
+    io_finish();
     mat_ar_destroy(prop,2*nbdat);
     rs_sample_destroy(s_effmass_pcac);
     mat_destroy(sigem);
