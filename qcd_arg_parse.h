@@ -42,7 +42,7 @@ enum
     A_PARTICLE  = 0x20,
     A_CHANNEL   = 0x40,
     A_QCOMP     = 0x80,
-    A_FIT       = 0x100,
+    A_FIT       = 0x100
 };
 
 typedef struct

@@ -16,6 +16,8 @@ static ss_no ss_no_get(const char c);
 static quark_no quark_no_get(const char c)
 {
     quark_no res;
+    
+    res = 0;
 
     switch (c)
     {
@@ -43,6 +45,8 @@ static ss_no ss_no_get(const char c)
 {
     ss_no res;
 
+    res = 0;
+    
     switch (c)
     {
         case 'P':
@@ -384,20 +388,20 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
         strbuf label;
         strbuf new_id;
         size_t col_ind;
-        int i;
+        int j;
         
-        for(i=0;i<a_channel->count;i++)
+        for(j=0;j<a_channel->count;j++)
         {
-            pch = strchr(a_channel->sval[i],':');
+            pch = strchr(a_channel->sval[j],':');
             if (pch == NULL)
             {
                 fprintf(stderr,"error: channel option %s invalid\n",\
-                        a_channel->sval[i]);
+                        a_channel->sval[j]);
                 exit(EXIT_FAILURE);
             }
-            col_ind = (size_t)(pch-a_channel->sval[i]);
-            strncpy(label,a_channel->sval[i],col_ind);
-            strbufcpy(new_id,a_channel->sval[i]+col_ind+1);
+            col_ind = (size_t)(pch-a_channel->sval[j]);
+            strncpy(label,a_channel->sval[j],col_ind);
+            strbufcpy(new_id,a_channel->sval[j]+col_ind+1);
             strbufcpy(opt->channel_id[channel_get_no_from_label(label)],new_id);
         }
     }
