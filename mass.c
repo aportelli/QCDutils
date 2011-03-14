@@ -198,7 +198,7 @@ int main(int argc, char* argv[])
     {
         qcd_printf(opt,"\n");
     }
-    rs_data_fit(s_mass,s_mprop,d);
+    rs_data_fit(s_mass,s_mprop,d,NO_COR);
     mass = rs_sample_pt_cent_val(s_mass);
     if (opt->do_save_rs_sample)
     {
@@ -232,7 +232,7 @@ int main(int argc, char* argv[])
     /********************************************/
     if (opt->do_plot)
     {
-        mat *em_t;
+        mat *em_t,*pr_t;
         plot *p;
         strbuf key,plotcmd;
         size_t maxt;
@@ -243,15 +243,17 @@ int main(int argc, char* argv[])
         shift = (h->parity == EVEN) ? 0.0 : -DRATIO(nt,2.0);
         
         em_t = mat_create(nt-2,1);
+        pr_t = mat_create(nt,1);
         
         /* propagator plot */
         p = plot_create();
 
         plot_set_scale_ylog(p);
-        plot_set_scale_xmanual(p,shift,dmaxt+shift);
+        plot_set_scale_xmanual(p,0,dmaxt);
         sprintf(key,"%s propagator",h->name);
         mat_eqabs(mprop);
-        plot_add_dat_yerr(p,fit_data_pt_x(d),mprop,sigmprop,key,"rgb 'red'");
+        mat_set_step(pr_t,0.0,1.0);
+        plot_add_dat_yerr(p,pr_t,mprop,sigmprop,key,"rgb 'red'");
         switch (h->parity)
         {
             case EVEN:
@@ -259,8 +261,8 @@ int main(int argc, char* argv[])
                         mat_get(mass,1,0),mat_get(mass,0,0));
                 break;
             case ODD:
-                sprintf(plotcmd,"cosh(%e*x)*%e",             \
-                        mat_get(mass,0,0),mat_get(mass,1,0));
+                sprintf(plotcmd,"cosh(%e*(x-%e))*%e",                   \
+                        mat_get(mass,0,0),DRATIO(nt,2),mat_get(mass,1,0));
                 break;
         }
 
@@ -285,6 +287,7 @@ int main(int argc, char* argv[])
         plot_destroy(p);
 
         mat_destroy(em_t);
+        mat_destroy(pr_t);
     }
     
     /*              desallocation               */

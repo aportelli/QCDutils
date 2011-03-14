@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
             fit_data_fit_point(d,t,true);
         }
     }
-    fit_data_set_model(d,&fm_const);
+    fit_data_set_model(d,&fm_const,NULL);
     mat_set(rs_sample_pt_cent_val(s_mass_pcac),0,0,\
             mat_get(effmass_pcac,nt/4-1,0));
     for (i=0;i<rs_sample_get_nsample(s_mass_pcac);i++)
@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
         mat_cp(rs_sample_pt_sample(s_mass_pcac,i),\
                rs_sample_pt_cent_val(s_mass_pcac));
     }
-    rs_data_fit(s_mass_pcac,s_effmass_pcac,d);
+    rs_data_fit(s_mass_pcac,s_effmass_pcac,d,NO_COR);
     mass_pcac = rs_sample_pt_cent_val(s_mass_pcac);
     if (opt->do_save_rs_sample)
     {
