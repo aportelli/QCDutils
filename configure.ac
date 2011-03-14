@@ -26,7 +26,7 @@ AC_ARG_WITH([argtable],
 	[try this for a non-standard install prefix of the argtable library])],
     [AM_CFLAGS="$AM_CFLAGS -I$with_argtable/include"]
 	[AM_LDFLAGS="$AM_LDFLAGS -L$with_argtable/lib"],
-	[]
+	[AC_MSG_ERROR([please specify the full prefix of libargtable2.a using --with-argtable=<prefix> for static linking])]
 )
 
 CFLAGS="$AM_CFLAGS $CFLAGS"
@@ -35,7 +35,7 @@ LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 # Checks for libraries.
 AC_CHECK_LIB([m],[cos],[],[AC_MSG_ERROR([libm library not found])])
 AC_CHECK_LIB([latan],[latan_get_version],[],[AC_MSG_ERROR([LatAnalyze library not found])])
-AC_CHECK_LIB([argtable2],[arg_parse],[LIBS="$LIBS $with_argtable/lib/libargtable2.a"],[AC_MSG_ERROR([argtable library not found])])
+AC_CHECK_LIB([argtable2],[arg_parse],[ARGTABLE_LDFLAGS="$with_argtable/lib/libargtable2.a"],[AC_MSG_ERROR([argtable library not found])])
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -47,6 +47,7 @@ AC_TYPE_SIZE_T
 AC_SUBST([LIBS])
 AC_SUBST([AM_CFLAGS])
 AC_SUBST([AM_LDFLAGS])
+AC_SUBST([ARGTABLE_LDFLAGS])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
