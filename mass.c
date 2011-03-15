@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
     rs_sample_set_name(s_mprop,sample_name);
     qcd_printf(opt,"-- resampling %s mean propagator...\n",h->name);
     randgen_set_state(opt->state);
-    resample(s_mprop,prop,nbdat,1,&rs_mean,BOOT,NULL);
+    resample(s_mprop,prop,nbdat,&rs_mean,BOOT,NULL);
     mprop = rs_sample_pt_cent_val(s_mprop);
     
     /*  computing error on mean propagator      */
@@ -125,8 +125,7 @@ int main(int argc, char* argv[])
     sprintf(sample_name,"%s_effmass_%s",h->name,manf_name);
     rs_sample_set_name(s_effmass,sample_name);
     qcd_printf(opt,"-- resampling %s effective mass...\n",h->name);
-    randgen_set_state(opt->state);
-    resample(s_effmass,prop,nbdat,1,&rs_effmass,BOOT,&(h->parity));
+    rs_sample_effmass(s_effmass, s_mprop,h->parity);
     em = rs_sample_pt_cent_val(s_effmass);
     
     /*  computing error on effective mass       */

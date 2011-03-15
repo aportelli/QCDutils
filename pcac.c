@@ -8,6 +8,7 @@
 #include <latan/latan_io.h>
 #include <latan/latan_mat.h>
 #include <latan/latan_math.h>
+#include <latan/latan_mass.h>
 #include <latan/latan_minimizer.h>
 #include <latan/latan_models.h>
 #include <latan/latan_plot.h>
@@ -61,13 +62,12 @@ int main(int argc, char* argv[])
     h_AP = hadron_create();
     h_PP = hadron_create();
     
-    hadron_set_2q_nomix(h_AP,"AP",ODD,ch_AP,q1,q2);
+    hadron_set_2q_nomix(h_AP,"AP",EVEN,ch_AP,q1,q2);
     hadron_set_2q_nomix(h_PP,"PP",ODD,ch_PP,q1,q2);
     
     /*              loading datas               */
     /********************************************/
     size_t ndat,nbdat,nt;
-    mat **prop;
     mat **prop_AP;
     mat **prop_PP;
     
@@ -75,20 +75,36 @@ int main(int argc, char* argv[])
     nbdat = ndat/binsize;
     hadron_prop_load_nt(&nt,h_AP,source,sink,manf_name);
     
-    prop    = mat_ar_create(2*nbdat,nt,1);
-    prop_AP = prop;
-    prop_PP = prop + nbdat;
+    prop_AP = mat_ar_create(nbdat,nt,1);
+    prop_PP = mat_ar_create(nbdat,nt,1);
 
-    io_init();
     qcd_printf(opt,"-- loading %s datas from %s...\n",h_AP->name,manf_name);
     hadron_prop_load_bin(prop_AP,h_AP,source,sink,manf_name,binsize);
     qcd_printf(opt,"-- loading %s datas from %s...\n",h_PP->name,manf_name);
     hadron_prop_load_bin(prop_PP,h_PP,source,sink,manf_name,binsize);
     
+    /*      resampling mean propagator          */
+    /********************************************/
+    rs_sample *s_mprop_AP, *s_mprop_PP;
+    strbuf sample_name;
+    
+    s_mprop_AP = rs_sample_create(nt,NBOOT);
+    s_mprop_PP = rs_sample_create(nt,NBOOT);
+    
+    sprintf(sample_name,"%s_prop_AP_%s",opt->qcomp_str,manf_name);
+    rs_sample_set_name(s_mprop_AP,sample_name);
+    qcd_printf(opt,"-- resampling AP %s mean propagator...\n",opt->qcomp_str);
+    randgen_set_state(opt->state);
+    resample(s_mprop_AP,prop_AP,nbdat,&rs_mean,BOOT,NULL);
+    sprintf(sample_name,"%s_prop_PP_%s",opt->qcomp_str,manf_name);
+    rs_sample_set_name(s_mprop_AP,sample_name);
+    qcd_printf(opt,"-- resampling PP %s mean propagator...\n",opt->qcomp_str);
+    randgen_set_state(opt->state);
+    resample(s_mprop_PP,prop_PP,nbdat,&rs_mean,BOOT,NULL);
+    
     /*      resampling PCAC effective mass      */
     /********************************************/
     rs_sample *s_effmass_pcac;
-    strbuf sample_name;
     mat *effmass_pcac;
     
     s_effmass_pcac = rs_sample_create(nt-2,NBOOT);
@@ -96,8 +112,7 @@ int main(int argc, char* argv[])
     sprintf(sample_name,"%s_effmass_PCAC_%s",opt->qcomp_str,manf_name);
     rs_sample_set_name(s_effmass_pcac,sample_name);
     qcd_printf(opt,"-- resampling %s PCAC effective mass...\n",opt->qcomp_str);
-    randgen_set_state(opt->state);
-    resample(s_effmass_pcac,prop,nbdat,2,&rs_effmass_PCAC,BOOT,NULL);
+    rs_sample_effmass_PCAC(s_effmass_pcac,s_mprop_AP,s_mprop_PP);
     effmass_pcac = rs_sample_pt_cent_val(s_effmass_pcac);
     
     /* computing variance on PCAC effective mass*/
@@ -128,7 +143,7 @@ int main(int argc, char* argv[])
     for (t=0;t<nt-2;t++)
     {
         fit_data_set_x(d,t,0,(double)(t+1));
-        if ((t>=nt/8-1)&&(t<=3*nt/8-1))
+        if ((t>=nt/4-1)&&(t<=3*nt/4-1))
         {
             fit_data_fit_point(d,t,true);
         }
@@ -186,21 +201,25 @@ int main(int argc, char* argv[])
     if (opt->do_plot)
     {
         plot *p;
+        mat *pr_t;
         strbuf key,ylabel;
         
-        p = plot_create();
+        p    = plot_create();
+        pr_t = mat_create(nt-2,1);
         
         sprintf(key,"%s PCAC effective mass",opt->qcomp_str);
         sprintf(ylabel,"mass%s",unit);
         plot_set_xlabel(p,"time");
         plot_set_ylabel(p,ylabel);
-        plot_set_scale_xmanual(p,0.0,nt/2);
+        plot_set_scale_xmanual(p,2.0,nt-1);
         plot_add_hlineerr(p,mat_get(mass_pcac,0,0),mat_get(sigmass,0,0),"0",\
                           "rgb 'red'","rgb 'light-red'");
-        plot_add_dat_yerr(p,fit_data_pt_x(d),effmass_pcac,sigem,key,"rgb 'blue'");
+        mat_set_step(pr_t,1.0,1.0);
+        plot_add_dat_yerr(p,pr_t,effmass_pcac,sigem,key,"rgb 'blue'");
         plot_disp(p);   
         
         plot_destroy(p);
+        mat_destroy(pr_t);
     }
     
     /*              desallocation               */
@@ -209,7 +228,10 @@ int main(int argc, char* argv[])
     hadron_destroy(h_AP);
     hadron_destroy(h_PP);
     io_finish();
-    mat_ar_destroy(prop,2*nbdat);
+    mat_ar_destroy(prop_AP,nbdat);
+    mat_ar_destroy(prop_PP,nbdat);
+    rs_sample_destroy(s_mprop_AP);
+    rs_sample_destroy(s_mprop_PP);
     rs_sample_destroy(s_effmass_pcac);
     mat_destroy(sigem);
     fit_data_destroy(d);
