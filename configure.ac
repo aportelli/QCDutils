@@ -37,17 +37,14 @@ AC_CHECK_LIB([m],[cos],[],[AC_MSG_ERROR([libm library not found])])
 AC_CHECK_LIB([latan],[latan_get_version],[],[AC_MSG_ERROR([LatAnalyze library not found])])
 AC_CHECK_LIB([argtable2],[arg_parse],[ARGTABLE_LDFLAGS="$with_argtable/lib/libargtable2.a"],[AC_MSG_ERROR([argtable library not found])])
 
+LDFLAGS="$LDFLAGS $ARGTABLE_LDFLAGS"
+
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([string.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
-
-AC_SUBST([LIBS])
-AC_SUBST([AM_CFLAGS])
-AC_SUBST([AM_LDFLAGS])
-AC_SUBST([ARGTABLE_LDFLAGS])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
