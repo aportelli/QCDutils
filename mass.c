@@ -143,10 +143,11 @@ int main(int argc, char* argv[])
     fit_data *d;
     rs_sample *s_mass;
     mat *mass;
-    size_t npar,rmin,rmax;
+    size_t npar,inrmin,rmin,inrmax,rmax;
     size_t i;
     bool first_elim;
     strbuf buf,range_info;
+    double rerr;
 
     npar       = 2;
     d          = fit_data_create(nt,1);
@@ -166,11 +167,42 @@ int main(int argc, char* argv[])
         fit_data_fit_all_points(d,false);
         for (i=0;i<opt->nmanrange;i++)
         {
-            rmin = (size_t)opt->range[i][0];
-            rmax = (size_t)opt->range[i][1];
-            qcd_printf(opt,"[%d,%d] ",(int)rmin,(int)rmax);
+            
+            inrmin = (size_t)opt->range[i][0];
+            inrmax = (size_t)opt->range[i][1];
+            if (inrmin <= nt/2)
+            {
+                rmin = inrmin;
+                strbufcpy(buf,"");
+                for (rmax=rmin;rmax<=inrmax;rmax++)
+                {
+                    rerr = mat_get(sigmprop,rmax,0)/fabs(mat_get(mprop,rmax,0));
+                    if (rerr > MAX_REL_ERR)
+                    {
+                        strbufcpy(buf," (rcut)");
+                        break;
+                    }
+                }
+                rmax--;
+            }
+            else if (inrmin >= nt/2)
+            {
+                rmax = inrmax;
+                strbufcpy(buf,"");
+                for (rmin=rmax;rmin>=inrmin;rmin--)
+                {
+                    rerr = mat_get(sigmprop,rmin,0)/fabs(mat_get(mprop,rmin,0));
+                    if (rerr > MAX_REL_ERR)
+                    {
+                        strbufcpy(buf," (lcut)");
+                        break;
+                    }
+                }
+                rmin++;
+            }
+            qcd_printf(opt,"[%d,%d]%s ",(int)rmin,(int)rmax,buf);
             fit_data_fit_range(d,rmin,rmax,true);
-            sprintf(buf,"_%d_%d",(int)rmin,(int)rmax);
+            sprintf(buf,"_%d_%d",(int)inrmin,(int)inrmax);
             strcat(range_info,buf);
         }
         printf("\n");
@@ -178,25 +210,6 @@ int main(int argc, char* argv[])
 
     sprintf(sample_name,"%s_mass_fit%s_%s.boot",h->name,range_info,manf_name);
     rs_sample_set_name(s_mass,sample_name);
-    for (i=0;i<nt;i++)
-    {
-        if (fit_data_is_fit_point(d,i)&&                                  \
-            (mat_get(sigmprop,i,0)/fabs(mat_get(mprop,i,0)) > MAX_REL_ERR))
-        {
-            if (first_elim)
-            {
-                qcd_printf(opt,"point(s) eliminated from fit (relative error > %.2f%%) : ",\
-                           MAX_REL_ERR*100);
-                first_elim = false;
-            }
-            qcd_printf(opt,"%d ",(int)i);
-            fit_data_fit_point(d,i,false);
-        }
-    }
-    if (!first_elim)
-    {
-        qcd_printf(opt,"\n");
-    }
     rs_data_fit(s_mass,s_mprop,d,NO_COR);
     mass = rs_sample_pt_cent_val(s_mass);
     if (opt->do_save_rs_sample)
@@ -268,7 +281,7 @@ int main(int argc, char* argv[])
         strcat(plotcmd," t 'fit' lc rgb 'red'");
         plot_add_plot(p,plotcmd);
         plot_disp(p);   
-        
+    
         plot_destroy(p);
         
         /* effective mass plot */
