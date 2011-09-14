@@ -9,6 +9,9 @@ AC_CONFIG_MACRO_DIR([.buildutils/m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 AM_CONFIG_HEADER([config.h])
 
+# Check for OpenMP
+AC_OPENMP
+
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -35,7 +38,7 @@ LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 # Checks for libraries.
 AC_CHECK_LIB([m],[cos],[],[AC_MSG_ERROR([libm library not found])])
 AC_CHECK_LIB([latan],[latan_get_version],[],[AC_MSG_ERROR([LatAnalyze library not found])])
-AC_CHECK_LIB([argtable2],[arg_parse],[ARGTABLE_LDFLAGS="$with_argtable/lib/libargtable2.a"],[AC_MSG_ERROR([argtable library not found])])
+AC_CHECK_LIB([argtable2],[arg_parse],[$LIBS="$LIBS $with_argtable/lib/libargtable2.a"],[AC_MSG_ERROR([argtable library not found])])
 
 LDFLAGS="$LDFLAGS $ARGTABLE_LDFLAGS"
 
