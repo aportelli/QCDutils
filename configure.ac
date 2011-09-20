@@ -38,7 +38,7 @@ LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 # Checks for libraries.
 AC_CHECK_LIB([m],[cos],[],[AC_MSG_ERROR([libm library not found])])
 AC_CHECK_LIB([latan],[latan_get_version],[],[AC_MSG_ERROR([LatAnalyze library not found])])
-AC_CHECK_LIB([argtable2],[arg_parse],[$LIBS="$LIBS $with_argtable/lib/libargtable2.a"],[AC_MSG_ERROR([argtable library not found])])
+AC_CHECK_LIB([argtable2],[arg_parse],[LIBS="$LIBS $with_argtable/lib/libargtable2.a"],[AC_MSG_ERROR([argtable library not found])])
 
 LDFLAGS="$LDFLAGS $ARGTABLE_LDFLAGS"
 
