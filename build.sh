@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# PREFIX definition work with an autotool generated Makefile
-PREFIX=`cat Makefile | grep '^prefix =' | awk '{print $3}'`
-
 case $1 in
     '')
         echo '-- building...'
