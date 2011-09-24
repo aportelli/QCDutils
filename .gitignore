@@ -18,7 +18,6 @@ build/*
 *.dSYM
 
 # autotools
-qcdutils*.tar.gz
 autom4te.cache/*
 config.h*
 Makefile.in
