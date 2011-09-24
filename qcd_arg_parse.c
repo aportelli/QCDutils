@@ -72,27 +72,28 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     /********************************************/
     void** a_table;
     size_t a_table_size,i;
-    struct arg_lit* a_help          = NULL;
-    struct arg_lit* a_ver           = NULL;
-    struct arg_int* a_verb          = NULL;
-    struct arg_str* a_fmt           = NULL;
-    struct arg_lit* a_save_rs       = NULL;
-    struct arg_str* a_load_rg       = NULL;
-    struct arg_lit* a_noplot        = NULL;
-    struct arg_dbl* a_latspac_fm    = NULL;
-    struct arg_str* a_qcomp         = NULL;
-    struct arg_str* a_spec          = NULL;
-    struct arg_str* a_part          = NULL;
-    struct arg_str* a_channel       = NULL;
-    struct arg_str* a_ss            = NULL;
-    struct arg_int* a_binsize       = NULL;
-    struct arg_str* a_minimizer     = NULL;
-    struct arg_str* a_range         = NULL;
-    struct arg_file* a_manf         = NULL;
-    struct arg_end* a_end           = NULL;
+    struct arg_lit*  a_help          = NULL;
+    struct arg_lit*  a_ver           = NULL;
+    struct arg_int*  a_verb          = NULL;
+    struct arg_str*  a_fmt           = NULL;
+    struct arg_lit*  a_save_rs       = NULL;
+    struct arg_str*  a_load_rg       = NULL;
+    struct arg_lit*  a_noplot        = NULL;
+    struct arg_dbl*  a_latspac_fm    = NULL;
+    struct arg_str*  a_qcomp         = NULL;
+    struct arg_str*  a_spec          = NULL;
+    struct arg_str*  a_part          = NULL;
+    struct arg_str*  a_channel       = NULL;
+    struct arg_str*  a_ss            = NULL;
+    struct arg_int*  a_binsize       = NULL;
+    struct arg_str*  a_minimizer     = NULL;
+    struct arg_str*  a_range         = NULL;
+    struct arg_int*  a_rscan         = NULL;
+    struct arg_file* a_manf          = NULL;
+    struct arg_end*  a_end           = NULL;
     strbuf help_msg,ver_msg,verb_msg,fmt_msg,save_rs_msg,load_rg_msg,          \
     noplot_msg,latspac_fm_msg,qcomp_msg,spec_msg,part_msg,channel_msg,ss_msg,  \
-    binsize_msg,minimizer_msg,range_msg,manf_msg;
+    binsize_msg,minimizer_msg,range_msg,rscan_msg,manf_msg;
     strbuf defmin;
     
     minalg_id_get(defmin,minimizer_get_alg());
@@ -113,8 +114,9 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     sprintf(binsize_msg     ,"data binning size (default: 1)"               );
     sprintf(minimizer_msg   ,"minimizer (default: %s)",defmin               );
     sprintf(range_msg       ,"manual fit range"                             );
-    sprintf(manf_msg        ,"particle LatAnalyze data manifest"            );
-    
+    sprintf(rscan_msg       ,"perform fit range scan"                       );
+    sprintf(manf_msg        ,"LatAnalyze data manifest"                     );
+
     a_help  = arg_lit0(NULL,"help",help_msg);
     a_ver   = arg_lit0(NULL,"version",ver_msg);
     a_verb  = arg_int0("v","verb",NULL,verb_msg);
@@ -161,6 +163,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
         a_minimizer     = arg_str0("M","minimizer","ID",minimizer_msg);
         a_range         = arg_strn("R","range","[min,max]",0,MAX_RANGES,\
                                    range_msg);
+        a_rscan         = arg_int0("f","range-scan",NULL,rscan_msg);
     }
     a_end   = arg_end(A_MAX_NERROR);
     
@@ -234,11 +237,12 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     }
     if (argset_flag & A_FIT)
     {
-        a_table_size += 2;
+        a_table_size += 3;
         QCD_REALLOC(a_table,a_table,void**,a_table_size);
         a_table[i]   = a_minimizer;
         a_table[i+1] = a_range;
-        i += 2;
+        a_table[i+2] = a_rscan;
+        i += 3;
     }
     a_table_size++;
     QCD_REALLOC(a_table,a_table,void**,a_table_size);
@@ -292,6 +296,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     if (argset_flag & A_FIT)
     {
         opt->minimizer = minalg_no_get(defmin);
+        opt->rscan_begin = -1;
     }
     opt->latan_verb = QUIET;
     opt->qcd_verb   = true;
@@ -299,7 +304,6 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     
     /*          argument parsing                */
     /********************************************/
-    
     int nerror;
     
     nerror = arg_parse(argc,argv,a_table);
@@ -408,7 +412,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     if (argset_flag & A_PROP_LOAD)
     {
         opt->source = ss_no_get(a_ss->sval[0][0]);
-        opt->sink = ss_no_get(a_ss->sval[0][1]);
+        opt->sink   = ss_no_get(a_ss->sval[0][1]);
         if (a_binsize->count)
         {
             opt->binsize = (size_t)(a_binsize->ival[0]);
@@ -431,6 +435,10 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
                         a_range->sval[i]);
                 exit(EXIT_FAILURE);
             }
+        }
+        if (a_rscan->count > 0)
+        {
+            opt->rscan_begin = a_rscan->ival[0];
         }
     }
     

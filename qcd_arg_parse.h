@@ -70,6 +70,7 @@ typedef struct
     minalg_no minimizer;
     unsigned int range[4][2];
     size_t nmanrange;
+    int rscan_begin;
 } qcd_options;
 
 qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag);
