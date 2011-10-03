@@ -2,7 +2,7 @@
 
 # Initialization
 AC_PREREQ([2.64])
-AC_INIT([QCDutils],[1.0],[antonin.portelli@gmail.com],[qcdutils])
+AC_INIT([QCDutils],[2.0alpha1],[antonin.portelli@gmail.com],[qcdutils])
 AC_CONFIG_AUX_DIR([.buildutils])
 AC_CONFIG_SRCDIR([prop.c])
 AC_CONFIG_MACRO_DIR([.buildutils/m4])
@@ -11,6 +11,8 @@ AM_CONFIG_HEADER([config.h])
 
 # Check for OpenMP
 AC_OPENMP
+AM_CFLAGS="$AM_CFLAGS $OPENMP_CFLAGS"
+CFLAGS="$AM_CFLAGS $CFLAGS"
 
 # Checks for programs.
 AC_PROG_CC
