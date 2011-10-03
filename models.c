@@ -185,12 +185,9 @@ static double fm_scaleset_ex_taylor_func(const mat *X, const mat *p,\
     bind    = (size_t)(mat_get(X,i_bind,0));
     M_scale = param->M_scale[0];
     Linv    = mat_get(X,i_Linv,0);
-    Msq_pi  = (mat_get(X,i_pi,0)+mat_get(p,ST_fv_I(0,param),0)*SQ(Linv))\
-              /mat_get(p,bind,0) - SQ(NU_M_pi_p)/SQ(M_scale);
-    Msq_K   = mat_get(X,i_K,0)/mat_get(p,bind,0)  \
-              - SQ_NU_M_Kchi/SQ(M_scale);
+    Msq_pi  = mat_get(X,i_pi,0)/mat_get(p,bind,0) - SQ(NU_M_pi_p)/SQ(M_scale);
+    Msq_K   = mat_get(X,i_K,0)/mat_get(p,bind,0) - SQ_NU_M_Kchi/SQ(M_scale);
     umd     = mat_get(X,i_umd,0);
-    
     
     res += 1.0;
     if (param->Msq_pi_deg > 0)
@@ -217,14 +214,9 @@ static double fm_scaleset_ex_taylor_func(const mat *X, const mat *p,\
     }
     if (param->with_fvol > 0)
     {
-        /*res += mat_get(p,ST_fv_I(0,param),0)*SQ(Linv);*/
+        res += mat_get(p,ST_fv_I(0,param),0)*SQ(Linv)/mat_get(p,bind,0);
         
     }
-    /*if (param->with_fvol > 0)
-    {
-        res += mat_get(p,ST_fv_I(0,param),0)*mat_get(p,ST_pi_I(0,param),0)*SQ(Linv)/mat_get(p,bind,0);
-        
-    }*/
     res *= mat_get(p,bind,0);
     
     return res;
