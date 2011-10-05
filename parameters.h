@@ -11,23 +11,23 @@ typedef struct
 
 typedef struct
 {
-    int Msq_pi_deg;
-    int Msq_K_deg;
+    int M_ud_deg;
+    int M_s_deg;
     int a_deg;
     int with_umd;
-    int with_fvol;
+    int with_qed_fvol;
     int verb;
     int ex_dim;
     int q_dim;
     fit_param *init_param;
+    double M_ud[2];
+    double M_s[2];
     double M_scale[2];
-    double Mpi_cut;
-    double MpiL_cut;
     strbuf analyze;
     strbuf q_name;
     strbuf scale_part;
-    strbuf pi_name;
-    strbuf K_name;
+    strbuf ud_name;
+    strbuf s_name;
     strbuf suffix;
     strbuf manifest;
     strbuf *beta;
