@@ -17,13 +17,13 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param);
 void print_param(const rs_sample *s_fit, ex_param *param);
 
 #define ADD_PLOT(obj,title,color)\
-if (param->Msq_pi_deg > 0)\
+if (param->M_ud_deg > 0)\
 {\
-    plot_add_fit(p[i_pi],d,i_pi,phy_pt,fit,true,obj,title,"",color,color);\
+    plot_add_fit(p[i_ud],d,i_ud,phy_pt,fit,true,obj,title,"",color,color);\
 }\
-if (param->Msq_K_deg > 0)\
+if (param->M_s_deg > 0)\
 {\
-    plot_add_fit(p[i_K],d,i_K,phy_pt,fit,true,obj,title,"",color,color);\
+    plot_add_fit(p[i_s],d,i_s,phy_pt,fit,true,obj,title,"",color,color);\
 }\
 if (param->a_deg > 0)\
 {\
@@ -33,7 +33,7 @@ if (param->with_umd)\
 {\
     plot_add_fit(p[i_umd],d,i_umd,phy_pt,fit,true,obj,title,"",color,color);\
 }\
-if (param->with_fvol)\
+if (param->with_qed_fvol)\
 {\
     plot_add_fit(p[i_Linv],d,i_Linv,phy_pt,fit,true,obj,title,"",color,color);\
 }
@@ -41,7 +41,7 @@ if (param->with_fvol)\
 void plot_fit(const mat *fit, fit_data *d, ex_param *param)
 {
     plot *p[N_EX_VAR];
-    double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+    double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL};
     double b_int[2],dbind,M_scale;
     size_t bind,k;
     strbuf color,title,xlabel,ylabel;
@@ -57,11 +57,10 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
     mat_set(phy_pt,i_ainv,0,0.0);
     mat_set(phy_pt,i_umd,0,0.0);
     mat_set(phy_pt,i_Linv,0,0.0);
-    mat_set(phy_pt,i_MpiL,0,0.0);
     if (strcmp(param->analyze,"phypt") == 0)
     {
-        mat_set(phy_pt,i_pi,0,SQ(NU_M_pi_p));
-        mat_set(phy_pt,i_K,0,SQ_NU_M_Kchi);
+        mat_set(phy_pt,i_ud,0,SQ(param->M_ud[0]));
+        mat_set(phy_pt,i_s,0,SQ(param->M_s[0]));
         for (bind=0;bind<param->nbeta;bind++)
         {
             dbind      = (double)(bind);
@@ -99,10 +98,10 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
             xb[i_bind] = b_int;
             M_scale    = param->M_scale[0];
             fit_data_fit_region(d,xb);
-            mat_set(phy_pt,i_pi,0,\
-                    SQ(NU_M_pi_0)*mat_get(fit,bind,0)/SQ(M_scale));
-            mat_set(phy_pt,i_K,0,\
-                    SQ_NU_M_Kchi*mat_get(fit,bind,0)/SQ(M_scale));
+            mat_set(phy_pt,i_ud,0,\
+                    SQ(param->M_ud[0])*mat_get(fit,bind,0)/SQ(M_scale));
+            mat_set(phy_pt,i_s,0,\
+                    SQ(param->M_s[0])*mat_get(fit,bind,0)/SQ(M_scale));
             mat_set(phy_pt,i_bind,0,bind);
             sprintf(color,"%d",1+(int)bind);
             sprintf(title,"beta = %s",param->beta[bind]);
@@ -115,43 +114,43 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
     {
         
     }
-    if (param->Msq_pi_deg > 0)
+    if (param->M_ud_deg > 0)
     {
         switch (param->ex_dim) 
         {
             case 0:
-                sprintf(xlabel,"(a*M_%s)^2",param->pi_name);
+                sprintf(xlabel,"(a*M_%s)^2",param->ud_name);
                 break;
             case 1:
-                sprintf(xlabel,"M_%s (MeV)",param->pi_name);
+                sprintf(xlabel,"M_%s (MeV)",param->ud_name);
                 break;
             default:
-                sprintf(xlabel,"M_%s^%d (MeV^%d)",param->pi_name,param->ex_dim,\
+                sprintf(xlabel,"M_%s^%d (MeV^%d)",param->ud_name,param->ex_dim,\
                         param->ex_dim);
                 break;
         }
-        plot_set_xlabel(p[i_pi],xlabel);
-        plot_set_ylabel(p[i_pi],ylabel);
-        plot_disp(p[i_pi]);
+        plot_set_xlabel(p[i_ud],xlabel);
+        plot_set_ylabel(p[i_ud],ylabel);
+        plot_disp(p[i_ud]);
     }
-    if (param->Msq_K_deg > 0)
+    if (param->M_s_deg > 0)
     {
         switch (param->ex_dim) 
         {
             case 0:
-                sprintf(xlabel,"(a*M_%s)^2",param->K_name);
+                sprintf(xlabel,"(a*M_%s)^2",param->s_name);
                 break;
             case 1:
-                sprintf(xlabel,"M_%s (MeV)",param->K_name);
+                sprintf(xlabel,"M_%s (MeV)",param->s_name);
                 break;
             default:
-                sprintf(xlabel,"M_%s^%d (MeV^%d)",param->K_name,param->ex_dim,\
+                sprintf(xlabel,"M_%s^%d (MeV^%d)",param->s_name,param->ex_dim,\
                         param->ex_dim);
                 break;
         }
-        plot_set_xlabel(p[i_K],xlabel);
-        plot_set_ylabel(p[i_K],ylabel);
-        plot_disp(p[i_K]);
+        plot_set_xlabel(p[i_s],xlabel);
+        plot_set_ylabel(p[i_s],ylabel);
+        plot_disp(p[i_s]);
     }
     if (param->a_deg > 0)
     {
@@ -164,7 +163,7 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
     {
         plot_disp(p[i_umd]);
     }
-    if (param->with_fvol)
+    if (param->with_qed_fvol)
     {
         plot_disp(p[i_Linv]);
     }
@@ -197,7 +196,7 @@ void print_param(const rs_sample *s_fit, ex_param *param)
     
     rs_sample_varp(fit_var,s_fit);
     printf("\nfit parameters (pi:%d K:%d a:%d m_u-m_d:%d) :\n",     \
-           param->Msq_pi_deg,param->Msq_K_deg,param->a_deg,param->with_umd);
+           param->M_ud_deg,param->M_s_deg,param->a_deg,param->with_umd);
     if (strcmp(param->analyze,"phypt") == 0)
     {
         PRINT_PAR(param->q_name);
@@ -210,35 +209,31 @@ void print_param(const rs_sample *s_fit, ex_param *param)
             PRINT_PAR(buf);
         }
     }
-    if (param->Msq_pi_deg > 0)
+    if (param->M_ud_deg > 0)
     {
-        for (j=0;j<param->Msq_pi_deg;j++)
+        for (j=0;j<param->M_ud_deg;j++)
         {
-            sprintf(buf,"p_pi_%d",j+1);
+            sprintf(buf,"p_ud_%d",j+1);
             PRINT_PAR(buf);
         }
     }
-    if (param->Msq_K_deg > 0)
+    if (param->M_s_deg > 0)
     {
-        for (j=0;j<param->Msq_K_deg;j++)
+        for (j=0;j<param->M_s_deg;j++)
         {
-            sprintf(buf,"p_K_%d",j+1);
+            sprintf(buf,"p_s_%d",j+1);
             PRINT_PAR(buf);
         }
     }
     if (param->a_deg > 0)
     {
-        for (j=0;j<param->a_deg;j++)
-        {
-            sprintf(buf,"p_a_%d",j+1);
-            PRINT_PAR(buf);
-        }
+        PRINT_PAR("p_a");
     }
     if (param->with_umd)
     {
         PRINT_PAR("p_miso");
     }
-    if (param->with_fvol)
+    if (param->with_qed_fvol)
     {
         PRINT_PAR("p_fvol_L");
     }
@@ -295,13 +290,13 @@ int main(int argc, char *argv[])
     rs_sample *s_fit;
     mat *fit,*fit_var;
     strbuf resf_name, chi2f_name;
-    bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false,false};
+    bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false};
     FILE *chi2f;
     
-    d           = fit_data_create(nset,N_EX_VAR);
-    npar        = fit_model_get_npar(param.model,&param);
-    s_fit       = rs_sample_create(npar,(size_t)nsample);
-    fit_var     = mat_create(npar,1);
+    d       = fit_data_create(nset,N_EX_VAR);
+    npar    = fit_model_get_npar(param.model,&param);
+    s_fit   = rs_sample_create(npar,(size_t)nsample);
+    fit_var = mat_create(npar,1);
     
     if (strcmp(param.analyze,"phypt") == 0)
     {
@@ -331,8 +326,8 @@ int main(int argc, char *argv[])
     rs_sample_varp(fit_var,s_fit);
     print_param(s_fit,&param);
     printf("-- fitting and resampling %s...\n",param.q_name);
-    use_x_var[i_pi]   = (param.Msq_pi_deg != 0);
-    use_x_var[i_K]    = (param.Msq_K_deg  != 0);
+    use_x_var[i_ud]   = (param.M_ud_deg != 0);
+    use_x_var[i_s]    = (param.M_s_deg  != 0);
     use_x_var[i_umd]  = (param.with_umd   != 0);
     use_x_var[i_ainv] = (param.ex_dim      > 0);
     rs_x_data_fit(s_fit,s_x,s_q,d,X_COR|XDATA_COR,use_x_var);
