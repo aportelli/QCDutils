@@ -26,14 +26,19 @@ void parse_ex_param(ex_param *param, const strbuf fname)
 {
     strbuf *field;
     int nf,lc;
+    double dbuf[2];
     
     field = NULL;
     
     param->M_ud_deg      = 0;
+    param->M_ud          = -1.0;
     param->M_s_deg       = 0;
+    param->M_s           = -1.0;
+    param->M_scale       = -1.0;
     param->a_deg         = 0;
     param->with_umd      = 0;
     param->with_qed_fvol = 0;
+    param->with_ext_a    = 0;
     param->q_dim         = 0;
     param->verb          = 0;
     param->beta          = NULL;
@@ -53,10 +58,14 @@ void parse_ex_param(ex_param *param, const strbuf fname)
         if (field[0][0] != '#')
         {
             GET_PARAM_I(param,M_ud_deg);
+            GET_PARAM_D(param,M_ud);
             GET_PARAM_I(param,M_s_deg);
+            GET_PARAM_D(param,M_s);
+            GET_PARAM_D(param,M_scale);
             GET_PARAM_I(param,a_deg);
             GET_PARAM_I(param,with_umd);
             GET_PARAM_I(param,with_qed_fvol);
+            GET_PARAM_I(param,with_ext_a);
             GET_PARAM_I(param,q_dim);
             GET_PARAM_I(param,verb);
             GET_PARAM_S(param,analyze);
@@ -84,29 +93,37 @@ void parse_ex_param(ex_param *param, const strbuf fname)
         param->nens++;
     }
     END_FOR_LINE_TOK(field);
-    if (strcmp(param->analyze,"phypt") == 0)
+    if (IS_ANALYZE(param,"phypt"))
     {
-        param->ex_dim  = 2;
-        param->model   = &fm_phyptfit_taylor;
-        get_mass(param->M_ud,param->ud_name);
-        get_mass(param->M_s,param->s_name);
+        param->model   = &fm_phypt_a_taylor;
     }
-    }
-    else if (strcmp(param->analyze,"scaleset") == 0)
+    else if (IS_ANALYZE(param,"scaleset"))
     {
-        param->ex_dim  = 0;
-        param->q_dim   = 0;
-        param->a_deg   = 0;
-        param->model   = &fm_scaleset_taylor;
+        param->q_dim      = 0;
+        param->a_deg      = 0;
+        param->with_ext_a = 0;
+        param->model      = &fm_scaleset_taylor;
         sprintf(param->q_name,"Msq_%s",param->scale_part);
-        get_mass(param->M_ud,param->ud_name);
-        get_mass(param->M_s,param->s_name);
-        get_mass(param->M_scale,param->scale_part);
     }
     else
     {
         fprintf(stderr,"error: analysis program %s unknown\n",param->analyze);
         abort();
+    }
+    if (param->M_ud < 0)
+    {
+        get_mass(dbuf,param->ud_name);
+        param->M_ud = dbuf[0];
+    }
+    if (param->M_s < 0)
+    {
+        get_mass(dbuf,param->s_name);
+        param->M_s = dbuf[0];
+    }
+    if (param->M_scale < 0)
+    {
+        get_mass(dbuf,param->scale_part);
+        param->M_scale = dbuf[0];
     }
 }
 

@@ -14,7 +14,7 @@
 #include <latan/latan_plot.h>
 
 void plot_fit(const mat *fit, fit_data *d, ex_param *param);
-void print_param(const rs_sample *s_fit, ex_param *param);
+void print_result(const rs_sample *s_fit, ex_param *param);
 
 #define ADD_PLOT(obj,title,color)\
 if (param->M_ud_deg > 0)\
@@ -57,10 +57,10 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
     mat_set(phy_pt,i_ainv,0,0.0);
     mat_set(phy_pt,i_umd,0,0.0);
     mat_set(phy_pt,i_Linv,0,0.0);
-    if (strcmp(param->analyze,"phypt") == 0)
+    if (IS_ANALYZE(param,"phypt"))
     {
-        mat_set(phy_pt,i_ud,0,SQ(param->M_ud[0]));
-        mat_set(phy_pt,i_s,0,SQ(param->M_s[0]));
+        mat_set(phy_pt,i_ud,0,SQ(param->M_ud));
+        mat_set(phy_pt,i_s,0,SQ(param->M_s));
         for (bind=0;bind<param->nbeta;bind++)
         {
             dbind      = (double)(bind);
@@ -88,7 +88,7 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
                 break;
         }
     }
-    else if (strcmp(param->analyze,"scaleset") == 0)
+    else if (IS_ANALYZE(param,"scaleset"))
     {
         for (bind=0;bind<param->nbeta;bind++)
         {
@@ -96,12 +96,12 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
             b_int[0]   = dbind - 0.1;
             b_int[1]   = dbind + 0.1;
             xb[i_bind] = b_int;
-            M_scale    = param->M_scale[0];
+            M_scale    = param->M_scale;
             fit_data_fit_region(d,xb);
             mat_set(phy_pt,i_ud,0,\
-                    SQ(param->M_ud[0])*mat_get(fit,bind,0)/SQ(M_scale));
+                    SQ(param->M_ud)*mat_get(fit,bind,0)/SQ(M_scale));
             mat_set(phy_pt,i_s,0,\
-                    SQ(param->M_s[0])*mat_get(fit,bind,0)/SQ(M_scale));
+                    SQ(param->M_s)*mat_get(fit,bind,0)/SQ(M_scale));
             mat_set(phy_pt,i_bind,0,bind);
             sprintf(color,"%d",1+(int)bind);
             sprintf(title,"beta = %s",param->beta[bind]);
@@ -110,43 +110,30 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
         }
         sprintf(ylabel,"a*%s",param->q_name);
     }
-    if (strcmp(param->analyze,"phypt") == 0)
-    {
-        
-    }
     if (param->M_ud_deg > 0)
     {
-        switch (param->ex_dim) 
+        if (IS_ANALYZE(param,"phypt"))
         {
-            case 0:
-                sprintf(xlabel,"(a*M_%s)^2",param->ud_name);
-                break;
-            case 1:
-                sprintf(xlabel,"M_%s (MeV)",param->ud_name);
-                break;
-            default:
-                sprintf(xlabel,"M_%s^%d (MeV^%d)",param->ud_name,param->ex_dim,\
-                        param->ex_dim);
-                break;
+            sprintf(xlabel,"M_%s^2 (MeV^2)",param->ud_name);
+        }
+        else if (IS_ANALYZE(param,"scaleset"))
+        {
+            sprintf(xlabel,"(a*M_%s)^2",param->ud_name);
         }
         plot_set_xlabel(p[i_ud],xlabel);
         plot_set_ylabel(p[i_ud],ylabel);
         plot_disp(p[i_ud]);
+
     }
     if (param->M_s_deg > 0)
     {
-        switch (param->ex_dim) 
+        if (IS_ANALYZE(param,"phypt"))
         {
-            case 0:
-                sprintf(xlabel,"(a*M_%s)^2",param->s_name);
-                break;
-            case 1:
-                sprintf(xlabel,"M_%s (MeV)",param->s_name);
-                break;
-            default:
-                sprintf(xlabel,"M_%s^%d (MeV^%d)",param->s_name,param->ex_dim,\
-                        param->ex_dim);
-                break;
+            sprintf(xlabel,"M_%s^2 (MeV^2)",param->s_name);
+        }
+        else if (IS_ANALYZE(param,"scaleset"))
+        {
+            sprintf(xlabel,"(a*M_%s)^2",param->s_name);
         }
         plot_set_xlabel(p[i_s],xlabel);
         plot_set_ylabel(p[i_s],ylabel);
@@ -154,17 +141,23 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
     }
     if (param->a_deg > 0)
     {
-        strbufcpy(xlabel,"a^-1 (MeV)");
+        sprintf(xlabel,"a^-%d (MeV)",param->a_deg);
         plot_set_xlabel(p[i_ainv],xlabel);
         plot_set_ylabel(p[i_ainv],ylabel);
         plot_disp(p[i_ainv]);
     }
     if (param->with_umd)
     {
+        strbufcpy(xlabel,"m_u-m_d(PCAC) (MeV)");
+        plot_set_xlabel(p[i_umd],xlabel);
+        plot_set_ylabel(p[i_umd],ylabel);
         plot_disp(p[i_umd]);
     }
     if (param->with_qed_fvol)
     {
+        strbufcpy(xlabel,"L^-1 (MeV)");
+        plot_set_xlabel(p[i_Linv],xlabel);
+        plot_set_ylabel(p[i_Linv],ylabel);
         plot_disp(p[i_Linv]);
     }
     mat_destroy(phy_pt);
@@ -182,7 +175,7 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
            sqrt(mat_get(fit_var,i,0))/fabs(mat_get(fit,i,0))*100.0);\
     i++;\
 }
-void print_param(const rs_sample *s_fit, ex_param *param)
+void print_result(const rs_sample *s_fit, ex_param *param)
 {
     size_t i;
     int j;
@@ -197,11 +190,11 @@ void print_param(const rs_sample *s_fit, ex_param *param)
     rs_sample_varp(fit_var,s_fit);
     printf("\nfit parameters (pi:%d K:%d a:%d m_u-m_d:%d) :\n",     \
            param->M_ud_deg,param->M_s_deg,param->a_deg,param->with_umd);
-    if (strcmp(param->analyze,"phypt") == 0)
+    if (IS_ANALYZE(param,"phypt"))
     {
         PRINT_PAR(param->q_name);
     }
-    else if (strcmp(param->analyze,"scaleset") == 0)
+    else if (IS_ANALYZE(param,"scaleset"))
     {
         for(j=0;j<(int)param->nbeta;j++)
         {
@@ -248,18 +241,20 @@ int main(int argc, char *argv[])
 {
     /*              argument parsing            */
     /********************************************/
-    ex_param param;
+    ex_param *param;
+    
+    param = (ex_param *)malloc(sizeof(ex_param));
     
     if (argc != 2)
     {
         fprintf(stderr,"usage: %s <parameter file>\n",argv[0]);
         return EXIT_FAILURE;
     }
-    parse_ex_param(&param,argv[1]);
+    parse_ex_param(param,argv[1]);
     
     /*              global settings             */
     /********************************************/
-    latan_set_verb(param.verb);
+    latan_set_verb(param->verb);
     
     /*              data loading                */
     /********************************************/
@@ -268,10 +263,10 @@ int main(int argc, char *argv[])
     size_t nset,nsample;
     size_t i;
     
-    nset = (size_t)get_nfile(param.manifest);
+    nset = (size_t)get_nfile(param->manifest);
 
-    get_firstfname(fset,param.manifest);
-    sprintf(sfname,"%s/%s%s.boot%s",fset,param.q_name,param.suffix,\
+    get_firstfname(fset,param->manifest);
+    sprintf(sfname,"%s/%s%s.boot%s",fset,param->q_name,param->suffix,\
             (io_get_fmt() == IO_XML) ? ".xml" : "");
     rs_sample_load_nsample(&nsample,sfname,"");
     for (i=0;i<N_EX_VAR;i++)
@@ -280,7 +275,7 @@ int main(int argc, char *argv[])
     }
     s_q = rs_sample_create(nset,nsample);
     printf("-- loading data...\n");
-    data_load(s_x,s_q,beta,&param);
+    data_load(s_x,s_q,beta,param);
     
 
     /*              data fitting                */
@@ -294,28 +289,28 @@ int main(int argc, char *argv[])
     FILE *chi2f;
     
     d       = fit_data_create(nset,N_EX_VAR);
-    npar    = fit_model_get_npar(param.model,&param);
+    npar    = fit_model_get_npar(param->model,param);
     s_fit   = rs_sample_create(npar,(size_t)nsample);
     fit_var = mat_create(npar,1);
     
-    if (strcmp(param.analyze,"phypt") == 0)
+    if (IS_ANALYZE(param,"phypt"))
     {
-        sprintf(chi2f_name,"%s_%s%s.chi2",param.q_name,param.scale_part,\
-                param.suffix);
+        sprintf(chi2f_name,"%s_%s%s.chi2",param->q_name,param->scale_part,\
+                param->suffix);
     }
-    else if (strcmp(param.analyze,"scaleset") == 0)
+    else if (IS_ANALYZE(param,"scaleset"))
     {
-        sprintf(chi2f_name,"scale_%s%s.chi2",param.scale_part,param.suffix);
+        sprintf(chi2f_name,"scale_%s%s.chi2",param->scale_part,param->suffix);
     }
     chi2f = fopen(chi2f_name,"w");
     fit_data_fit_all_points(d,true);
-    fit_data_set_model(d,param.model,&param);
+    fit_data_set_model(d,param->model,param);
     mat_cst(rs_sample_pt_cent_val(s_fit),1.0);
     
-    for (i=0;i<param.ninit_param;i++)
+    for (i=0;i<param->ninit_param;i++)
     {
-        mat_set(rs_sample_pt_cent_val(s_fit),param.init_param[i].ind,0,\
-                param.init_param[i].value);
+        mat_set(rs_sample_pt_cent_val(s_fit),param->init_param[i].ind,0,\
+                param->init_param[i].value);
     }
     minimizer_set_alg(MIN_MIGRAD);
     fit = rs_sample_pt_cent_val(s_fit);
@@ -324,16 +319,16 @@ int main(int argc, char *argv[])
     printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
     fprintf(chi2f,"uncorrelated : %e\n",fit_data_get_chi2pdof(d));
     rs_sample_varp(fit_var,s_fit);
-    print_param(s_fit,&param);
-    printf("-- fitting and resampling %s...\n",param.q_name);
-    use_x_var[i_ud]   = (param.M_ud_deg != 0);
-    use_x_var[i_s]    = (param.M_s_deg  != 0);
-    use_x_var[i_umd]  = (param.with_umd   != 0);
-    use_x_var[i_ainv] = (param.ex_dim      > 0);
+    print_result(s_fit,param);
+    printf("-- fitting and resampling %s...\n",param->q_name);
+    use_x_var[i_ud]   = (param->M_ud_deg != 0);
+    use_x_var[i_s]    = (param->M_s_deg  != 0);
+    use_x_var[i_umd]  = (param->with_umd != 0);
+    use_x_var[i_ainv] = (IS_ANALYZE(param,"phypt"));
     rs_x_data_fit(s_fit,s_x,s_q,d,X_COR|XDATA_COR,use_x_var);
     rs_sample_varp(fit_var,s_fit);
     mat_cp(fit_data_pt_data(d),rs_sample_pt_cent_val(s_q));
-    plot_fit(fit,d,&param);
+    plot_fit(fit,d,param);
     
     /*              result output               */
     /********************************************/
@@ -343,31 +338,31 @@ int main(int argc, char *argv[])
     fprintf(chi2f,"correlated   : %e\n",fit_data_get_chi2pdof(d));
     
     /*** parameters ***/
-    print_param(s_fit,&param);
+    print_result(s_fit,param);
 
     /*** extrapolation ***/
-    if (strcmp(param.analyze,"phypt") == 0)
+    if (IS_ANALYZE(param,"phypt"))
     {
         printf("extrapolation :\n");
-        printf("%10s = %f +/- %e MeV^%d\n",param.q_name,mat_get(fit,0,0),\
-               sqrt(mat_get(fit_var,0,0)),param.q_dim);
-        sprintf(resf_name,"%s_%s%s.boot",param.q_name,param.scale_part,\
-                param.suffix);
+        printf("%10s = %f +/- %e MeV^%d\n",param->q_name,mat_get(fit,0,0),\
+               sqrt(mat_get(fit_var,0,0)),param->q_dim);
+        sprintf(resf_name,"%s_%s%s.boot",param->q_name,param->scale_part,\
+                param->suffix);
         rs_sample_save_subsamp(resf_name,'w',s_fit,0,0);
     }
-    else if (strcmp(param.analyze,"scaleset") == 0)
+    else if (IS_ANALYZE(param,"scaleset"))
     {
         size_t j;
         
-        sprintf(resf_name,"scale_%s%s",param.scale_part,param.suffix);
+        sprintf(resf_name,"scale_%s%s",param->scale_part,param->suffix);
         rs_sample_set_name(s_fit,resf_name);
-        rs_sample_eqmuls(s_fit,1.0/SQ(param.M_scale[0]));
+        rs_sample_eqmuls(s_fit,1.0/SQ(param->M_scale));
         rs_sample_eqsqrt(s_fit);
         printf("scales :\n\n");
-        for (j=0;j<param.nbeta;j++)
+        for (j=0;j<param->nbeta;j++)
         {
             rs_sample_varp(fit_var,s_fit);
-            printf("beta = %s\n",param.beta[j]);
+            printf("beta = %s\n",param->beta[j]);
             printf("a    = %f +/- %e fm\n",mat_get(fit,j,0)/NU_FM,\
                    sqrt(mat_get(fit_var,j,0))/NU_FM);
             rs_sample_eqinvp(s_fit);
@@ -375,8 +370,8 @@ int main(int argc, char *argv[])
             printf("a^-1 = %f +/- %e MeV\n",mat_get(fit,j,0),\
                    sqrt(mat_get(fit_var,j,0)));
             printf("\n");
-            sprintf(resf_name,"scale_%s_%s%s.boot",param.beta[j],\
-                    param.scale_part,param.suffix);
+            sprintf(resf_name,"scale_%s_%s%s.boot",param->beta[j],\
+                    param->scale_part,param->suffix);
             rs_sample_save_subsamp(resf_name,'w',s_fit,j,j);
             rs_sample_eqinvp(s_fit);
         }
@@ -393,8 +388,9 @@ int main(int argc, char *argv[])
     rs_sample_destroy(s_fit);
     mat_destroy(fit_var);
     fclose(chi2f);
-    free(param.beta);
-    free(param.init_param);
+    free(param->beta);
+    free(param->init_param);
+    free(param);
     
     return EXIT_SUCCESS;
 }
