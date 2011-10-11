@@ -16,13 +16,15 @@ typedef struct
     int a_deg;
     int with_umd;
     int with_qed_fvol;
+    int with_ext_a;
     int verb;
-    int ex_dim;
     int q_dim;
     fit_param *init_param;
-    double M_ud[2];
-    double M_s[2];
-    double M_scale[2];
+    double M_ud;
+    double M_ud_ex;
+    double M_s;
+    double M_s_ex;
+    double M_scale;
     strbuf analyze;
     strbuf q_name;
     strbuf scale_part;
@@ -36,6 +38,8 @@ typedef struct
     size_t ninit_param;
     const fit_model *model;
 } ex_param;
+
+#define IS_ANALYZE(param,prog) (strcmp((param)->analyze,prog)==0)
 
 void parse_ex_param(ex_param *param, const strbuf fname);
 void add_beta(ex_param *param, const strbuf new_beta);

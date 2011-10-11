@@ -64,8 +64,7 @@
 #define ST_umd_I(i,param) (ST_a_I(i,param)+(((param)->a_deg > 0) ? 1 : 0))
 #define ST_qedfv_I(i,param)  (ST_umd_I(i,param)+((param)->with_umd ? 1 : 0))
 
-static double fm_phyptfit_taylor_func(const mat *X, const mat *p,\
-                                         void *vparam)
+static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
 {
     double res,M_ud,M_s,a,umd,Linv;
     ex_param *param;
@@ -73,8 +72,8 @@ static double fm_phyptfit_taylor_func(const mat *X, const mat *p,\
     param = (ex_param *)vparam;
     res   = 0.0;
     a     = mat_get(X,i_ainv,0);
-    M_ud  = mat_get(X,i_ud,0) - SQ(param->M_ud[0]);
-    M_s   = mat_get(X,i_s,0) - SQ(param->M_s[0]);
+    M_ud  = mat_get(X,i_ud,0) - SQ(param->M_ud);
+    M_s   = mat_get(X,i_s,0) - SQ(param->M_s);
     umd   = mat_get(X,i_umd,0);
     Linv  = mat_get(X,i_Linv,0); 
     
@@ -88,7 +87,7 @@ static double fm_phyptfit_taylor_func(const mat *X, const mat *p,\
     {
         res += mat_get(p,ST_umd_I(0,param),0)*umd;
     }
-    if (param->with_qed_fvol > 0)
+    if (param->with_qed_fvol)
     {
         res += mat_get(p,ST_qedfv_I(0,param),0)*SQ(Linv);
     }
@@ -96,7 +95,7 @@ static double fm_phyptfit_taylor_func(const mat *X, const mat *p,\
     return res;
 }
 
-static size_t fm_phyptfit_taylor_npar(void* vparam)
+static size_t fm_phypt_a_taylor_npar(void* vparam)
 {
     ex_param *param;
     size_t npar;
@@ -122,9 +121,9 @@ static size_t fm_phyptfit_taylor_npar(void* vparam)
     return npar;
 }
 
-static void fm_phyptfit_taylor_pstr(strbuf str, const size_t i,   \
-                                       const mat *x_ex, const mat *p,\
-                                       void *vparam)
+static void fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
+                                   const mat *x_ex, const mat *p,\
+                                   void *vparam)
 {
     ex_param *param;
     strbuf buf,x_str[N_EX_VAR];
@@ -132,8 +131,8 @@ static void fm_phyptfit_taylor_pstr(strbuf str, const size_t i,   \
     size_t j;
     
     param    = (ex_param *)vparam;
-    M_ud_phi = SQ(param->M_ud[0]);
-    M_s_phi  = SQ(param->M_s[0]);
+    M_ud_phi = SQ(param->M_ud);
+    M_s_phi  = SQ(param->M_s);
     
     for (j=0;j<N_EX_VAR;j++)
     {
@@ -166,12 +165,12 @@ static void fm_phyptfit_taylor_pstr(strbuf str, const size_t i,   \
     }
 }
 
-const fit_model fm_phyptfit_taylor =
+const fit_model fm_phypt_a_taylor =
 {
     "physical point Taylor expansion",
-    &fm_phyptfit_taylor_func,
-    &fm_phyptfit_taylor_npar,
-    &fm_phyptfit_taylor_pstr,
+    &fm_phypt_a_taylor_func,
+    &fm_phypt_a_taylor_npar,
+    &fm_phypt_a_taylor_pstr,
     N_EX_VAR
 };
 
@@ -188,12 +187,10 @@ static double fm_scaleset_taylor_func(const mat *X, const mat *p,\
     param   = (ex_param *)vparam;
     res     = 0.0;
     bind    = (size_t)(mat_get(X,i_bind,0));
-    M_scale = param->M_scale[0];
+    M_scale = param->M_scale;
     Linv    = mat_get(X,i_Linv,0);
-    M_ud    = mat_get(X,i_ud,0)/mat_get(p,bind,0)\
-                - SQ(param->M_ud[0])/SQ(M_scale);
-    M_s     = mat_get(X,i_s,0)/mat_get(p,bind,0) \
-                - SQ(param->M_s[0])/SQ(M_scale);
+    M_ud    = mat_get(X,i_ud,0)/mat_get(p,bind,0)-SQ(param->M_ud)/SQ(M_scale);
+    M_s     = mat_get(X,i_s,0)/mat_get(p,bind,0)-SQ(param->M_s)/SQ(M_scale);
     umd     = mat_get(X,i_umd,0);
     
     res += 1.0;
@@ -246,9 +243,9 @@ static void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
     
     param    = (ex_param *)vparam;
     bind     = (size_t)(mat_get(x_ex,i_bind,0));
-    M_scale  = param->M_scale[0];
-    M_ud_phi = SQ(param->M_ud[0])/SQ(M_scale);
-    M_s_phi  = SQ(param->M_s[0])/SQ(M_scale);
+    M_scale  = param->M_scale;
+    M_ud_phi = SQ(param->M_ud)/SQ(M_scale);
+    M_s_phi  = SQ(param->M_s)/SQ(M_scale);
     
     for (j=0;j<N_EX_VAR;j++)
     {
