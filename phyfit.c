@@ -10,7 +10,6 @@
 #include <latan/latan_io.h>
 #include <latan/latan_math.h>
 #include <latan/latan_minimizer.h>
-#include <latan/latan_nunits.h>
 #include <latan/latan_plot.h>
 
 void plot_fit(const mat *fit, fit_data *d, ex_param *param);
@@ -55,7 +54,7 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
     
     mat_set(phy_pt,i_bind,0,0.0);
     mat_set(phy_pt,i_ainv,0,0.0);
-    mat_set(phy_pt,i_umd,0,0.0);
+    mat_set(phy_pt,i_umd,0,DMSQ_K);
     mat_set(phy_pt,i_Linv,0,0.0);
     if (IS_ANALYZE(param,"phypt"))
     {
@@ -328,7 +327,6 @@ int main(int argc, char *argv[])
     use_x_var[i_ainv] = (IS_ANALYZE(param,"phypt"));
     rs_x_data_fit(s_fit,s_x,s_q,d,X_COR|XDATA_COR,use_x_var);
     rs_sample_varp(fit_var,s_fit);
-    mat_cp(fit_data_pt_data(d),rs_sample_pt_cent_val(s_q));
     plot_fit(fit,d,param);
     
     /*              result output               */
