@@ -21,9 +21,7 @@ typedef struct
     int q_dim;
     fit_param *init_param;
     double M_ud;
-    double M_ud_ex;
     double M_s;
-    double M_s_ex;
     double M_scale;
     strbuf analyze;
     strbuf q_name;

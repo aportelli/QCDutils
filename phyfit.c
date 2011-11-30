@@ -320,6 +320,7 @@ int main(int argc, char *argv[])
     fprintf(chi2f,"uncorrelated : %e\n",fit_data_get_chi2pdof(d));
     rs_sample_varp(fit_var,s_fit);
     print_result(s_fit,param);
+    plot_fit(fit,d,param);
     printf("-- fitting and resampling %s...\n",param->q_name);
     use_x_var[i_ud]   = (param->M_ud_deg != 0);
     use_x_var[i_s]    = (param->M_s_deg  != 0);
