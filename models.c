@@ -74,7 +74,7 @@ static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     a     = mat_get(X,i_ainv,0);
     M_ud  = mat_get(X,i_ud,0) - SQ(param->M_ud);
     M_s   = mat_get(X,i_s,0) - SQ(param->M_s);
-    umd   = mat_get(X,i_umd,0);
+    umd   = mat_get(X,i_umd,0) - DMSQ_K;
     Linv  = mat_get(X,i_Linv,0); 
     
     res += mat_get(p,0,0);
@@ -155,7 +155,7 @@ static void fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
     }
     if (param->with_umd)
     {
-        sprintf(buf,"+%e*%s",mat_get(p,ST_umd_I(0,param),0),x_str[i_umd]);
+        sprintf(buf,"+%e*(%s-%e)",mat_get(p,ST_umd_I(0,param),0),x_str[i_umd],DMSQ_K);
         strcat(str,buf);
     }
     if (param->with_qed_fvol > 0)
@@ -191,7 +191,7 @@ static double fm_scaleset_taylor_func(const mat *X, const mat *p,\
     Linv    = mat_get(X,i_Linv,0);
     M_ud    = mat_get(X,i_ud,0)/mat_get(p,bind,0)-SQ(param->M_ud)/SQ(M_scale);
     M_s     = mat_get(X,i_s,0)/mat_get(p,bind,0)-SQ(param->M_s)/SQ(M_scale);
-    umd     = mat_get(X,i_umd,0);
+    umd     = mat_get(X,i_umd,0)-DMSQ_K/SQ(M_scale);
     
     res += 1.0;
     ud_s_taylor(res,p,M_ud,M_s,param);
@@ -263,7 +263,7 @@ static void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
     ud_s_taylor_pstr(str,p,x_str,M_ud_phi,M_s_phi,param);
     if (param->with_umd)
     {
-        sprintf(buf,"+%e*%s",mat_get(p,ST_umd_I(0,param),0),x_str[i_umd]);
+        sprintf(buf,"+%e*(%s-%e)",mat_get(p,ST_umd_I(0,param),0),x_str[i_umd],DMSQ_K);
         strcat(str,buf);
     }
     if (param->with_qed_fvol > 0)

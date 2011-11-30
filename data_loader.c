@@ -78,7 +78,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q, strbuf beta,\
         rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,ens_ind);
         if (param->with_umd)
         {
-            sprintf(sf_name,"%s/dm_ud%s.boot%s",*ens,param->suffix,ext);
+            sprintf(sf_name,"%s/dMsq_K%s.boot%s",*ens,param->suffix,ext);
             rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
             rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,ens_ind);
         }
@@ -124,6 +124,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q, strbuf beta,\
         rs_sample_eqmulp(s_x[i_ud],s_x[i_ainv]);
         rs_sample_eqmulp(s_x[i_s],s_x[i_ainv]);
         rs_sample_eqmulp(s_x[i_s],s_x[i_ainv]);
+        rs_sample_eqmulp(s_x[i_umd],s_x[i_ainv]);
         rs_sample_eqmulp(s_x[i_umd],s_x[i_ainv]);
         rs_sample_eqmulp(s_x[i_Linv],s_x[i_ainv]);
         for (i=1;i<=param->q_dim;i++)
