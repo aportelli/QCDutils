@@ -31,11 +31,9 @@ void parse_ex_param(ex_param *param, const strbuf fname)
     field = NULL;
     
     param->M_ud          = -1.0;
-    param->M_ud_dim      = 0;
     param->M_ud_deg      = 0;
     param->M_s           = -1.0;
     param->M_s_deg       = 0;
-    param->M_s_dim       = 0;
     param->M_scale       = -1.0;
     param->a_deg         = 0;
     param->with_umd      = 0;
