@@ -22,10 +22,75 @@ if (strcmp(field[0],#name) == 0)\
     strbufcpy((param)->name,field[1]);\
 }
 
+static int ind_dataset(const strbuf dataset, const fit_param *param);
+static void add_dataset(fit_param *param, const strbuf new_dataset);
+static void add_beta(fit_param *param, const strbuf new_beta);
+
+static int ind_dataset(const strbuf dataset, const fit_param *param)
+{
+    size_t i;
+    
+    for (i=0;i<param->ndataset;i++)
+    {
+        if (strcmp(dataset,param->dataset[i]) == 0)
+        {
+            return (int)i;
+        }
+    }
+    
+    return -1;
+}
+
+static void add_dataset(fit_param *param, const strbuf new_dataset)
+{
+    size_t max_len;
+    
+    if (ind_dataset(new_dataset,param) < 0)
+    {
+        param->ndataset++;
+        param->dataset = (strbuf *)realloc(param->dataset,               \
+                                        param->ndataset*sizeof(strbuf));
+        strbufcpy(param->dataset[param->ndataset-1],new_dataset);
+        if (strlen(param->dataset_cat) > 0)
+        {
+            strncat(param->dataset_cat,"_",1);
+        }
+        max_len = STRING_LENGTH - strlen(param->dataset_cat) - 1;
+        strncat(param->dataset_cat,new_dataset,max_len);
+    }
+}
+
+static void add_beta(fit_param *param, const strbuf new_beta)
+{
+    if (ind_beta(new_beta,param) < 0)
+    {
+        param->nbeta++;
+        param->beta = (strbuf *)realloc(param->beta,               \
+                                        param->nbeta*sizeof(strbuf));
+        strbufcpy(param->beta[param->nbeta-1],new_beta);
+    }
+}
+
+int ind_beta(const strbuf beta, const fit_param *param)
+{
+    size_t i;
+    
+    for (i=0;i<param->nbeta;i++)
+    {
+        if (strcmp(beta,param->beta[i]) == 0)
+        {
+            return (int)i;
+        }
+    }
+    
+    return -1;
+}
+
 void parse_fit_param(fit_param *param, const strbuf fname)
 {
     strbuf *field;
     int nf,lc;
+    int i;
     double dbuf[2];
     
     field = NULL;
@@ -41,6 +106,8 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     param->with_ext_a    = 0;
     param->q_dim         = 0;
     param->verb          = 0;
+    param->dataset       = NULL;
+    param->ndataset      = 0;
     param->beta          = NULL;
     param->nbeta         = 0;
     param->init_param    = NULL;
@@ -51,7 +118,6 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     strbufcpy(param->scale_part,"");
     strbufcpy(param->ud_name,"");
     strbufcpy(param->s_name,"");
-    strbufcpy(param->dataset,"");
     strbufcpy(param->manifest,"");
     BEGIN_FOR_LINE_TOK(field,fname," \t",nf,lc)
     {
@@ -73,8 +139,14 @@ void parse_fit_param(fit_param *param, const strbuf fname)
             GET_PARAM_S(param,scale_part);
             GET_PARAM_S(param,ud_name);
             GET_PARAM_S(param,s_name);
-            GET_PARAM_S(param,dataset);
             GET_PARAM_S(param,manifest);
+            if ((strcmp(field[0],"dataset") == 0)&&(nf >= 2))
+            {
+                for (i=1;i<nf;i++)
+                {
+                    add_dataset(param,field[i]);
+                }
+            }
             if ((strcmp(field[0],"init_param") == 0)&&(nf >= 3))
             {
                 param->ninit_param++;
@@ -96,6 +168,7 @@ void parse_fit_param(fit_param *param, const strbuf fname)
         }
     }
     END_FOR_LINE_TOK(field);
+    param->nens *= param->ndataset;
     if (IS_ANALYZE(param,"phypt"))
     {
         param->model   = &fm_phypt_a_taylor;
@@ -129,31 +202,3 @@ void parse_fit_param(fit_param *param, const strbuf fname)
         param->M_scale = dbuf[0];
     }
 }
-
-void add_beta(fit_param *param, const strbuf new_beta)
-{
-    if (ind_beta(new_beta,param) < 0)
-    {
-        param->nbeta++;
-        param->beta = (strbuf *)realloc(param->beta,               \
-                                        param->nbeta*sizeof(strbuf));
-        strbufcpy(param->beta[param->nbeta-1],new_beta);
-    }
-}
-
-int ind_beta(const strbuf beta, const fit_param *param)
-{
-    size_t i;
-    
-    for (i=0;i<param->nbeta;i++)
-    {
-        if (strcmp(beta,param->beta[i]) == 0)
-        {
-            return (int)i;
-        }
-    }
-    
-    return -1;
-}
-
-

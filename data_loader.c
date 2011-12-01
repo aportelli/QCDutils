@@ -15,7 +15,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q, strbuf beta,\
     strbuf *field,*ens,*ens_ar,M_str,ext,sf_name,ud_lbl,s_lbl;
     int lc,nf,i;
     size_t nsample,nens;
-    size_t ens_ind;
+    size_t ens_ind,d;
     int T_ens,L_ens;
     rs_sample *s_tmp;
     mat **x_err,*q_err;
@@ -60,54 +60,59 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q, strbuf beta,\
     BEGIN_FOR_LINE_TOK(field,param->manifest,"_",nf,lc)
     if (field[0][0] != '#')
     {
-        ens = ens_ar + ens_ind;
-        sprintf(*ens,"%s_%s_%s_%s_%s",field[0],field[1],field[2],field[3],\
-                field[4]);
-        T_ens = atoi(field[0]);
-        L_ens = atoi(field[1]);
-        strbufcpy(beta,field[2]);
-        sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->ud_name,\
-                param->dataset,ext);
-        rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-        rs_sample_set_subsamp(s_x[i_ud],s_tmp,ens_ind,ens_ind);
-        sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->s_name,\
-                param->dataset,ext);
-        rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-        rs_sample_set_subsamp(s_x[i_s],s_tmp,ens_ind,ens_ind);
-        rs_sample_cst(s_tmp,ind_beta(beta,param));
-        rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,ens_ind);
-        if (param->with_umd)
+        for (d=0;d<param->ndataset;d++)
         {
-            sprintf(sf_name,"%s/dMsq_K_%s.boot%s",*ens,param->dataset,ext);
+            ens = ens_ar + ens_ind;
+            sprintf(*ens,"%s_%s_%s_%s_%s",field[0],field[1],field[2],field[3],\
+                    field[4]);
+            T_ens = atoi(field[0]);
+            L_ens = atoi(field[1]);
+            strbufcpy(beta,field[2]);
+            sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->ud_name,\
+                    param->dataset[d],ext);
             rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-            rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,ens_ind);
-        }
-        if (param->with_qed_fvol)
-        {
-            rs_sample_cst(s_tmp,1.0/((double)L_ens));
-            rs_sample_set_subsamp(s_x[i_Linv],s_tmp,ens_ind,ens_ind);
-        }
-        if (IS_ANALYZE(param,"phypt"))
-        {
-            if (param->with_ext_a)
+            rs_sample_set_subsamp(s_x[i_ud],s_tmp,ens_ind,ens_ind);
+            sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->s_name,\
+                    param->dataset[d],ext);
+            rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+            rs_sample_set_subsamp(s_x[i_s],s_tmp,ens_ind,ens_ind);
+            rs_sample_cst(s_tmp,ind_beta(beta,param));
+            rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,ens_ind);
+            if (param->with_umd)
             {
-                sprintf(sf_name,"./scale_%s_%s_%s.boot%s",beta,\
-                        param->scale_part,param->dataset,ext);
+                sprintf(sf_name,"%s/dMsq_K_%s.boot%s",*ens,param->dataset[d],\
+                        ext);
                 rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
+                rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,ens_ind);
             }
-            else
+            if (param->with_qed_fvol)
             {
-                sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,\
-                        param->scale_part,param->dataset,ext);
-                rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
+                rs_sample_cst(s_tmp,1.0/((double)L_ens));
+                rs_sample_set_subsamp(s_x[i_Linv],s_tmp,ens_ind,ens_ind);
             }
+            if (IS_ANALYZE(param,"phypt"))
+            {
+                if (param->with_ext_a)
+                {
+                    sprintf(sf_name,"./scale_%s_%s_%s.boot%s",beta,\
+                            param->scale_part,param->dataset_cat,ext);
+                    rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                    rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
+                }
+                else
+                {
+                    sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,\
+                            param->scale_part,param->dataset[d],ext);
+                    rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                    rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
+                }
+            }
+            sprintf(sf_name,"%s/%s_%s.boot%s",*ens,param->q_name,\
+                    param->dataset[d],ext);
+            rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+            rs_sample_set_subsamp(s_q,s_tmp,ens_ind,ens_ind);
+            ens_ind++;
         }
-        sprintf(sf_name,"%s/%s_%s.boot%s",*ens,param->q_name,param->dataset,ext);
-        rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-        rs_sample_set_subsamp(s_q,s_tmp,ens_ind,ens_ind);
-        ens_ind++;
     }
     END_FOR_LINE_TOK(field);
 

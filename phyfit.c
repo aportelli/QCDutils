@@ -147,7 +147,7 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param)
     }
     if (param->with_umd)
     {
-        strbufcpy(xlabel,"m_u-m_d(PCAC) (MeV)");
+        strbufcpy(xlabel,"M_K_p^2 - M_K_0^2 (MeV^2)");
         plot_set_xlabel(p[i_umd],xlabel);
         plot_set_ylabel(p[i_umd],ylabel);
         plot_disp(p[i_umd]);
@@ -170,7 +170,7 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param)
 
 #define PRINT_PAR(name)\
 {\
-    printf("%20s = %e (%.4f%%)\n",name,mat_get(fit,i,0),            \
+    printf("%10s = %e (%.4f%%)\n",name,mat_get(fit,i,0),            \
            sqrt(mat_get(fit_var,i,0))/fabs(mat_get(fit,i,0))*100.0);\
     i++;\
 }
@@ -187,8 +187,8 @@ void print_result(const rs_sample *s_fit, fit_param *param)
     fit_var = mat_create(fit_model_get_npar(param->model,param),1);
     
     rs_sample_varp(fit_var,s_fit);
-    printf("\nfit parameters (pi:%d K:%d a:%d m_u-m_d:%d) :\n",     \
-           param->M_ud_deg,param->M_s_deg,param->a_deg,param->with_umd);
+    printf("\nfit parameters (m_ud:%d m_s:%d m_u-m_d:%d a:%d) :\n",     \
+           param->M_ud_deg,param->M_s_deg,param->with_umd,param->a_deg);
     if (IS_ANALYZE(param,"phypt"))
     {
         PRINT_PAR(param->q_name);
@@ -259,23 +259,25 @@ int main(int argc, char *argv[])
     /********************************************/
     rs_sample *s_x[N_EX_VAR],*s_q;
     strbuf fset,sfname,beta;
-    size_t nset,nsample;
+    size_t nsample;
     size_t i;
-    
-    nset = (size_t)get_nfile(param->manifest);
 
     get_firstfname(fset,param->manifest);
-    sprintf(sfname,"%s/%s_%s.boot%s",fset,param->q_name,param->dataset,\
+    sprintf(sfname,"%s/%s_%s.boot%s",fset,param->q_name,param->dataset[0],\
             (io_get_fmt() == IO_XML) ? ".xml" : "");
     rs_sample_load_nsample(&nsample,sfname,"");
     for (i=0;i<N_EX_VAR;i++)
     {
-        s_x[i] = rs_sample_create(nset,nsample);
+        s_x[i] = rs_sample_create(param->nens,nsample);
     }
-    s_q = rs_sample_create(nset,nsample);
+    s_q = rs_sample_create(param->nens,nsample);
     printf("-- loading data...\n");
     data_load(s_x,s_q,beta,param);
-    
+    printf("%-11s : %d\n","simulations",(int)(param->nens/param->ndataset));
+    printf("%-11s : %d\n","datasets",(int)param->ndataset);
+    printf("%-11s : %d\n","points",(int)param->nens);
+    printf("%-11s : %d\n","betas",(int)param->nbeta);
+    printf("\n");
 
     /*              data fitting                */
     /********************************************/
@@ -287,7 +289,7 @@ int main(int argc, char *argv[])
     bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false};
     FILE *chi2f;
     
-    d       = fit_data_create(nset,N_EX_VAR);
+    d       = fit_data_create(param->nens,N_EX_VAR);
     npar    = fit_model_get_npar(param->model,param);
     s_fit   = rs_sample_create(npar,(size_t)nsample);
     fit_var = mat_create(npar,1);
@@ -295,11 +297,12 @@ int main(int argc, char *argv[])
     if (IS_ANALYZE(param,"phypt"))
     {
         sprintf(chi2f_name,"%s_%s_%s.chi2",param->q_name,param->scale_part,\
-                param->dataset);
+                param->dataset_cat);
     }
     else if (IS_ANALYZE(param,"scaleset"))
     {
-        sprintf(chi2f_name,"scale_%s_%s.chi2",param->scale_part,param->dataset);
+        sprintf(chi2f_name,"scale_%s_%s.chi2",param->scale_part,\
+                param->dataset_cat);
     }
     chi2f = fopen(chi2f_name,"w");
     fit_data_fit_all_points(d,true);
@@ -346,14 +349,14 @@ int main(int argc, char *argv[])
         printf("%10s = %f +/- %e MeV^%d\n",param->q_name,mat_get(fit,0,0),\
                sqrt(mat_get(fit_var,0,0)),param->q_dim);
         sprintf(resf_name,"%s_%s%s.boot",param->q_name,param->scale_part,\
-                param->dataset);
+                param->dataset_cat);
         rs_sample_save_subsamp(resf_name,'w',s_fit,0,0);
     }
     else if (IS_ANALYZE(param,"scaleset"))
     {
         size_t j;
         
-        sprintf(resf_name,"scale_%s_%s",param->scale_part,param->dataset);
+        sprintf(resf_name,"scale_%s_%s",param->scale_part,param->dataset_cat);
         rs_sample_set_name(s_fit,resf_name);
         rs_sample_eqmuls(s_fit,1.0/SQ(param->M_scale));
         rs_sample_eqsqrt(s_fit);
@@ -370,7 +373,7 @@ int main(int argc, char *argv[])
                    sqrt(mat_get(fit_var,j,0)));
             printf("\n");
             sprintf(resf_name,"scale_%s_%s_%s.boot",param->beta[j],\
-                    param->scale_part,param->dataset);
+                    param->scale_part,param->dataset_cat);
             rs_sample_save_subsamp(resf_name,'w',s_fit,j,j);
             rs_sample_eqinvp(s_fit);
         }
