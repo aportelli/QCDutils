@@ -28,9 +28,11 @@ typedef struct
     strbuf scale_part;
     strbuf ud_name;
     strbuf s_name;
-    strbuf dataset;
+    strbuf *dataset;
+    strbuf dataset_cat;
     strbuf manifest;
     strbuf *beta;
+    size_t ndataset;
     size_t nbeta;
     size_t nens;
     size_t ninit_param;
@@ -39,8 +41,7 @@ typedef struct
 
 #define IS_ANALYZE(param,prog) (strcmp((param)->analyze,prog)==0)
 
-void parse_fit_param(fit_param *param, const strbuf fname);
-void add_beta(fit_param *param, const strbuf new_beta);
 int ind_beta(const strbuf beta, const fit_param *param);
+void parse_fit_param(fit_param *param, const strbuf fname);
 
 #endif
