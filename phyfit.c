@@ -12,8 +12,8 @@
 #include <latan/latan_minimizer.h>
 #include <latan/latan_plot.h>
 
-void plot_fit(const mat *fit, fit_data *d, ex_param *param);
-void print_result(const rs_sample *s_fit, ex_param *param);
+void plot_fit(const mat *fit, fit_data *d, fit_param *param);
+void print_result(const rs_sample *s_fit, fit_param *param);
 
 #define ADD_PLOT(obj,title,color)\
 if (param->M_ud_deg > 0)\
@@ -37,7 +37,7 @@ if (param->with_qed_fvol)\
     plot_add_fit(p[i_Linv],d,i_Linv,phy_pt,fit,true,obj,title,"",color,color);\
 }
 
-void plot_fit(const mat *fit, fit_data *d, ex_param *param)
+void plot_fit(const mat *fit, fit_data *d, fit_param *param)
 {
     plot *p[N_EX_VAR];
     double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL};
@@ -174,7 +174,7 @@ void plot_fit(const mat *fit, fit_data *d, ex_param *param)
            sqrt(mat_get(fit_var,i,0))/fabs(mat_get(fit,i,0))*100.0);\
     i++;\
 }
-void print_result(const rs_sample *s_fit, ex_param *param)
+void print_result(const rs_sample *s_fit, fit_param *param)
 {
     size_t i;
     int j;
@@ -240,16 +240,16 @@ int main(int argc, char *argv[])
 {
     /*              argument parsing            */
     /********************************************/
-    ex_param *param;
+    fit_param *param;
     
-    param = (ex_param *)malloc(sizeof(ex_param));
+    param = (fit_param *)malloc(sizeof(fit_param));
     
     if (argc != 2)
     {
         fprintf(stderr,"usage: %s <parameter file>\n",argv[0]);
         return EXIT_FAILURE;
     }
-    parse_ex_param(param,argv[1]);
+    parse_fit_param(param,argv[1]);
     
     /*              global settings             */
     /********************************************/
@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
     nset = (size_t)get_nfile(param->manifest);
 
     get_firstfname(fset,param->manifest);
-    sprintf(sfname,"%s/%s%s.boot%s",fset,param->q_name,param->suffix,\
+    sprintf(sfname,"%s/%s_%s.boot%s",fset,param->q_name,param->dataset,\
             (io_get_fmt() == IO_XML) ? ".xml" : "");
     rs_sample_load_nsample(&nsample,sfname,"");
     for (i=0;i<N_EX_VAR;i++)
@@ -294,12 +294,12 @@ int main(int argc, char *argv[])
     
     if (IS_ANALYZE(param,"phypt"))
     {
-        sprintf(chi2f_name,"%s_%s%s.chi2",param->q_name,param->scale_part,\
-                param->suffix);
+        sprintf(chi2f_name,"%s_%s_%s.chi2",param->q_name,param->scale_part,\
+                param->dataset);
     }
     else if (IS_ANALYZE(param,"scaleset"))
     {
-        sprintf(chi2f_name,"scale_%s%s.chi2",param->scale_part,param->suffix);
+        sprintf(chi2f_name,"scale_%s_%s.chi2",param->scale_part,param->dataset);
     }
     chi2f = fopen(chi2f_name,"w");
     fit_data_fit_all_points(d,true);
@@ -346,14 +346,14 @@ int main(int argc, char *argv[])
         printf("%10s = %f +/- %e MeV^%d\n",param->q_name,mat_get(fit,0,0),\
                sqrt(mat_get(fit_var,0,0)),param->q_dim);
         sprintf(resf_name,"%s_%s%s.boot",param->q_name,param->scale_part,\
-                param->suffix);
+                param->dataset);
         rs_sample_save_subsamp(resf_name,'w',s_fit,0,0);
     }
     else if (IS_ANALYZE(param,"scaleset"))
     {
         size_t j;
         
-        sprintf(resf_name,"scale_%s%s",param->scale_part,param->suffix);
+        sprintf(resf_name,"scale_%s_%s",param->scale_part,param->dataset);
         rs_sample_set_name(s_fit,resf_name);
         rs_sample_eqmuls(s_fit,1.0/SQ(param->M_scale));
         rs_sample_eqsqrt(s_fit);
@@ -369,8 +369,8 @@ int main(int argc, char *argv[])
             printf("a^-1 = %f +/- %e MeV\n",mat_get(fit,j,0),\
                    sqrt(mat_get(fit_var,j,0)));
             printf("\n");
-            sprintf(resf_name,"scale_%s_%s%s.boot",param->beta[j],\
-                    param->scale_part,param->suffix);
+            sprintf(resf_name,"scale_%s_%s_%s.boot",param->beta[j],\
+                    param->scale_part,param->dataset);
             rs_sample_save_subsamp(resf_name,'w',s_fit,j,j);
             rs_sample_eqinvp(s_fit);
         }
