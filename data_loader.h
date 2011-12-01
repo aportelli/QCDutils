@@ -18,6 +18,6 @@ enum
 
 /* functions */
 void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q, strbuf beta,\
-               const ex_param *param);
+               const fit_param *param);
 
 #endif

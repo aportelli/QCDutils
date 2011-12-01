@@ -7,7 +7,7 @@ typedef struct
 {
     size_t ind;
     double value;
-} fit_param;
+} fit_init;
 
 typedef struct
 {
@@ -19,7 +19,7 @@ typedef struct
     int with_ext_a;
     int verb;
     int q_dim;
-    fit_param *init_param;
+    fit_init *init_param;
     double M_ud;
     double M_s;
     double M_scale;
@@ -28,19 +28,19 @@ typedef struct
     strbuf scale_part;
     strbuf ud_name;
     strbuf s_name;
-    strbuf suffix;
+    strbuf dataset;
     strbuf manifest;
     strbuf *beta;
     size_t nbeta;
     size_t nens;
     size_t ninit_param;
     const fit_model *model;
-} ex_param;
+} fit_param;
 
 #define IS_ANALYZE(param,prog) (strcmp((param)->analyze,prog)==0)
 
-void parse_ex_param(ex_param *param, const strbuf fname);
-void add_beta(ex_param *param, const strbuf new_beta);
-int ind_beta(const strbuf beta, const ex_param *param);
+void parse_fit_param(fit_param *param, const strbuf fname);
+void add_beta(fit_param *param, const strbuf new_beta);
+int ind_beta(const strbuf beta, const fit_param *param);
 
 #endif

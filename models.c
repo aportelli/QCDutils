@@ -67,9 +67,9 @@
 static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
 {
     double res,M_ud,M_s,a,umd,Linv;
-    ex_param *param;
+    fit_param *param;
     
-    param = (ex_param *)vparam;
+    param = (fit_param *)vparam;
     res   = 0.0;
     a     = mat_get(X,i_ainv,0);
     M_ud  = mat_get(X,i_ud,0) - SQ(param->M_ud);
@@ -97,10 +97,10 @@ static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
 
 static size_t fm_phypt_a_taylor_npar(void* vparam)
 {
-    ex_param *param;
+    fit_param *param;
     size_t npar;
     
-    param = (ex_param *)vparam;
+    param = (fit_param *)vparam;
     
     npar  = 1;
     npar += param->M_ud_deg;
@@ -125,12 +125,12 @@ static void fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
                                    const mat *x_ex, const mat *p,\
                                    void *vparam)
 {
-    ex_param *param;
+    fit_param *param;
     strbuf buf,x_str[N_EX_VAR];
     double M_ud_phi,M_s_phi;
     size_t j;
     
-    param    = (ex_param *)vparam;
+    param    = (fit_param *)vparam;
     M_ud_phi = SQ(param->M_ud);
     M_s_phi  = SQ(param->M_s);
     
@@ -181,10 +181,10 @@ static double fm_scaleset_taylor_func(const mat *X, const mat *p,\
                                          void *vparam)
 {
     double res,M_ud,M_s,umd,M_scale,Linv;
-    ex_param *param;
+    fit_param *param;
     size_t bind;
     
-    param   = (ex_param *)vparam;
+    param   = (fit_param *)vparam;
     res     = 0.0;
     bind    = (size_t)(mat_get(X,i_bind,0));
     M_scale = param->M_scale;
@@ -211,10 +211,10 @@ static double fm_scaleset_taylor_func(const mat *X, const mat *p,\
 
 static size_t fm_scaleset_taylor_npar(void* vparam)
 {
-    ex_param *param;
+    fit_param *param;
     size_t npar;
     
-    param = (ex_param *)vparam;
+    param = (fit_param *)vparam;
     
     npar  = param->nbeta;
     npar += param->M_ud_deg;
@@ -235,13 +235,13 @@ static void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
                                        const mat *x_ex, const mat *p,\
                                        void *vparam)
 {
-    ex_param *param;
+    fit_param *param;
     strbuf buf,x_str[N_EX_VAR],fac_str;
     double M_ud_phi,M_s_phi,M_scale;
     size_t bind;
     size_t j;
     
-    param    = (ex_param *)vparam;
+    param    = (fit_param *)vparam;
     bind     = (size_t)(mat_get(x_ex,i_bind,0));
     M_scale  = param->M_scale;
     M_ud_phi = SQ(param->M_ud)/SQ(M_scale);

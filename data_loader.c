@@ -10,7 +10,7 @@
 #include <latan/latan_nunits.h>
 
 void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q, strbuf beta,\
-               const ex_param *param)
+               const fit_param *param)
 {
     strbuf *field,*ens,*ens_ar,M_str,ext,sf_name,ud_lbl,s_lbl;
     int lc,nf,i;
@@ -66,19 +66,19 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q, strbuf beta,\
         T_ens = atoi(field[0]);
         L_ens = atoi(field[1]);
         strbufcpy(beta,field[2]);
-        sprintf(sf_name,"%s/%s_%s%s.boot%s",*ens,M_str,param->ud_name,\
-                param->suffix,ext);
+        sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->ud_name,\
+                param->dataset,ext);
         rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
         rs_sample_set_subsamp(s_x[i_ud],s_tmp,ens_ind,ens_ind);
-        sprintf(sf_name,"%s/%s_%s%s.boot%s",*ens,M_str,param->s_name,\
-                param->suffix,ext);
+        sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->s_name,\
+                param->dataset,ext);
         rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
         rs_sample_set_subsamp(s_x[i_s],s_tmp,ens_ind,ens_ind);
         rs_sample_cst(s_tmp,ind_beta(beta,param));
         rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,ens_ind);
         if (param->with_umd)
         {
-            sprintf(sf_name,"%s/dMsq_K%s.boot%s",*ens,param->suffix,ext);
+            sprintf(sf_name,"%s/dMsq_K_%s.boot%s",*ens,param->dataset,ext);
             rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
             rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,ens_ind);
         }
@@ -91,20 +91,20 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q, strbuf beta,\
         {
             if (param->with_ext_a)
             {
-                sprintf(sf_name,"./scale_%s_%s%s.boot%s",beta,\
-                        param->scale_part,param->suffix,ext);
+                sprintf(sf_name,"./scale_%s_%s_%s.boot%s",beta,\
+                        param->scale_part,param->dataset,ext);
                 rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                 rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
             }
             else
             {
-                sprintf(sf_name,"%s/%s_%s%s.boot%s",*ens,M_str,\
-                        param->scale_part,param->suffix,ext);
+                sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,\
+                        param->scale_part,param->dataset,ext);
                 rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                 rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
             }
         }
-        sprintf(sf_name,"%s/%s%s.boot%s",*ens,param->q_name,param->suffix,ext);
+        sprintf(sf_name,"%s/%s_%s.boot%s",*ens,param->q_name,param->dataset,ext);
         rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
         rs_sample_set_subsamp(s_q,s_tmp,ens_ind,ens_ind);
         ens_ind++;

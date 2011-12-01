@@ -22,7 +22,7 @@ if (strcmp(field[0],#name) == 0)\
     strbufcpy((param)->name,field[1]);\
 }
 
-void parse_ex_param(ex_param *param, const strbuf fname)
+void parse_fit_param(fit_param *param, const strbuf fname)
 {
     strbuf *field;
     int nf,lc;
@@ -51,7 +51,7 @@ void parse_ex_param(ex_param *param, const strbuf fname)
     strbufcpy(param->scale_part,"");
     strbufcpy(param->ud_name,"");
     strbufcpy(param->s_name,"");
-    strbufcpy(param->suffix,"");
+    strbufcpy(param->dataset,"");
     strbufcpy(param->manifest,"");
     BEGIN_FOR_LINE_TOK(field,fname," \t",nf,lc)
     {
@@ -73,13 +73,13 @@ void parse_ex_param(ex_param *param, const strbuf fname)
             GET_PARAM_S(param,scale_part);
             GET_PARAM_S(param,ud_name);
             GET_PARAM_S(param,s_name);
-            GET_PARAM_S(param,suffix);
+            GET_PARAM_S(param,dataset);
             GET_PARAM_S(param,manifest);
             if ((strcmp(field[0],"init_param") == 0)&&(nf >= 3))
             {
                 param->ninit_param++;
-                param->init_param = (fit_param *)realloc(param->init_param,    \
-                                         param->ninit_param*sizeof(fit_param));
+                param->init_param = (fit_init *)realloc(param->init_param,    \
+                                         param->ninit_param*sizeof(fit_init));
                 param->init_param[param->ninit_param-1].ind   =\
                     (size_t)atoi(field[1]);
                 param->init_param[param->ninit_param-1].value = atof(field[2]);
@@ -130,7 +130,7 @@ void parse_ex_param(ex_param *param, const strbuf fname)
     }
 }
 
-void add_beta(ex_param *param, const strbuf new_beta)
+void add_beta(fit_param *param, const strbuf new_beta)
 {
     if (ind_beta(new_beta,param) < 0)
     {
@@ -141,7 +141,7 @@ void add_beta(ex_param *param, const strbuf new_beta)
     }
 }
 
-int ind_beta(const strbuf beta, const ex_param *param)
+int ind_beta(const strbuf beta, const fit_param *param)
 {
     size_t i;
     
