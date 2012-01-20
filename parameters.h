@@ -35,6 +35,7 @@ typedef struct
     size_t ndataset;
     size_t nbeta;
     size_t nens;
+    size_t nsample;
     size_t ninit_param;
     const fit_model *model;
 } fit_param;

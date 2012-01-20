@@ -72,10 +72,10 @@ static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     param = (fit_param *)vparam;
     res   = 0.0;
     a     = mat_get(X,i_ainv,0);
-    M_ud  = mat_get(X,i_ud,0) - SQ(param->M_ud);
-    M_s   = mat_get(X,i_s,0) - SQ(param->M_s);
-    umd   = mat_get(X,i_umd,0) - DMSQ_K;
-    Linv  = mat_get(X,i_Linv,0); 
+    M_ud  = mat_get(X,i_ud,0)/SQ(a) - SQ(param->M_ud);
+    M_s   = mat_get(X,i_s,0)/SQ(a) - SQ(param->M_s);
+    umd   = mat_get(X,i_umd,0)/SQ(a) - DMSQ_K;
+    Linv  = mat_get(X,i_Linv,0)/a; 
     
     res += mat_get(p,0,0);
     ud_s_taylor(res,p,M_ud,M_s,param);
@@ -115,7 +115,7 @@ static size_t fm_phypt_a_taylor_npar(void* vparam)
     }
     if (param->with_qed_fvol)
     {
-        npar ++;
+        npar++;
     }
     
     return npar;
@@ -176,6 +176,8 @@ const fit_model fm_phypt_a_taylor =
 
 #undef ST_pi_I
 #define ST_pi_I(i,param) (i+(param)->nbeta)
+#undef ST_umd_I
+#define ST_umd_I(i,param) ST_a_I(i,param)
 
 static double fm_scaleset_taylor_func(const mat *X, const mat *p,\
                                          void *vparam)
@@ -225,7 +227,7 @@ static size_t fm_scaleset_taylor_npar(void* vparam)
     }
     if (param->with_qed_fvol)
     {
-        npar += 1;
+        npar++;
     }
     
     return npar;

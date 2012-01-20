@@ -2,6 +2,7 @@
 #include "parameters.h"
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <latan/latan_io.h>
 #include <latan/latan_mass.h>
 
@@ -88,9 +89,10 @@ int ind_beta(const strbuf beta, const fit_param *param)
 
 void parse_fit_param(fit_param *param, const strbuf fname)
 {
-    strbuf *field;
+    strbuf *field,test_fname;
     int nf,lc;
     int i;
+    size_t j;
     double dbuf[2];
     
     field = NULL;
@@ -113,6 +115,7 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     param->init_param    = NULL;
     param->ninit_param   = 0;
     param->nens          = 0;
+    param->nsample       = 0;
     strbufcpy(param->analyze,"");
     strbufcpy(param->q_name,"");
     strbufcpy(param->scale_part,"");
@@ -159,16 +162,6 @@ void parse_fit_param(fit_param *param, const strbuf fname)
         }
     }
     END_FOR_LINE_TOK(field);
-    BEGIN_FOR_LINE_TOK(field,param->manifest,"_",nf,lc)
-    {
-        if ((nf>0)&&(field[0][0] != '#'))
-        {
-            add_beta(param,field[2]);
-            param->nens++;
-        }
-    }
-    END_FOR_LINE_TOK(field);
-    param->nens *= param->ndataset;
     if (IS_ANALYZE(param,"phypt"))
     {
         param->model   = &fm_phypt_a_taylor;
@@ -201,4 +194,37 @@ void parse_fit_param(fit_param *param, const strbuf fname)
         get_mass(dbuf,param->scale_part);
         param->M_scale = dbuf[0];
     }
+    BEGIN_FOR_LINE_TOK(field,param->manifest,"_",nf,lc)
+    {
+        if ((nf>0)&&(field[0][0] != '#'))
+        {
+            add_beta(param,field[2]);
+        }
+    }
+    END_FOR_LINE_TOK(field);
+    BEGIN_FOR_LINE_TOK(field,param->manifest," \t",nf,lc)
+    {
+        if ((nf>0)&&(field[0][0] != '#'))
+        {
+            for (j=0;j<param->ndataset;j++)
+            {
+                sprintf(test_fname,"%s/%s_%s.boot%s",field[0],param->q_name,\
+                        param->dataset[j],(io_get_fmt()==IO_XML)?".xml":"");
+                if (access(test_fname,R_OK) == 0)
+                {
+                    param->nens++;
+                    if (param->nsample == 0)
+                    {
+                        rs_sample_load_nsample(&(param->nsample),test_fname,"");
+                    }
+                }
+                else
+                {
+                    fprintf(stderr,"warning: no data found for dataset %s in ensemble %s (unable to read file %s)\n",
+                            param->dataset[j],field[0],test_fname);
+                }
+            }
+        }
+    }
+    END_FOR_LINE_TOK(field);
 }
