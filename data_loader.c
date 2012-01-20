@@ -68,76 +68,71 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q, strbuf beta,\
             T_ens = atoi(field[0]);
             L_ens = atoi(field[1]);
             strbufcpy(beta,field[2]);
-            sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->ud_name,\
-                    param->dataset[d],ext);
-            rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-            rs_sample_set_subsamp(s_x[i_ud],s_tmp,ens_ind,ens_ind);
-            sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->s_name,\
-                    param->dataset[d],ext);
-            rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-            rs_sample_set_subsamp(s_x[i_s],s_tmp,ens_ind,ens_ind);
-            rs_sample_cst(s_tmp,ind_beta(beta,param));
-            rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,ens_ind);
-            if (param->with_umd)
-            {
-                sprintf(sf_name,"%s/dMsq_K_%s.boot%s",*ens,param->dataset[d],\
-                        ext);
-                rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,ens_ind);
-            }
-            if (param->with_qed_fvol)
-            {
-                rs_sample_cst(s_tmp,1.0/((double)L_ens));
-                rs_sample_set_subsamp(s_x[i_Linv],s_tmp,ens_ind,ens_ind);
-            }
-            if (IS_ANALYZE(param,"phypt"))
-            {
-                if (param->with_ext_a)
-                {
-                    sprintf(sf_name,"./scale_%s_%s_%s.boot%s",beta,\
-                            param->scale_part,param->dataset_cat,ext);
-                    rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                    rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
-                }
-                else
-                {
-                    sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,\
-                            param->scale_part,param->dataset[d],ext);
-                    rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                    rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
-                }
-            }
             sprintf(sf_name,"%s/%s_%s.boot%s",*ens,param->q_name,\
                     param->dataset[d],ext);
-            rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-            rs_sample_set_subsamp(s_q,s_tmp,ens_ind,ens_ind);
-            ens_ind++;
+            if (access(sf_name,R_OK) == 0) 
+            {
+                rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                rs_sample_set_subsamp(s_q,s_tmp,ens_ind,ens_ind);
+                sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->ud_name,\
+                        param->dataset[d],ext);
+                rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                rs_sample_set_subsamp(s_x[i_ud],s_tmp,ens_ind,ens_ind);
+                sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->s_name,\
+                        param->dataset[d],ext);
+                rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                rs_sample_set_subsamp(s_x[i_s],s_tmp,ens_ind,ens_ind);
+                rs_sample_cst(s_tmp,ind_beta(beta,param));
+                rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,ens_ind);
+                if (param->with_umd)
+                {
+                    sprintf(sf_name,"%s/dMsq_K_%s.boot%s",*ens,param->dataset[d],\
+                            ext);
+                    rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                    rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,ens_ind);
+                }
+                if (param->with_qed_fvol)
+                {
+                    rs_sample_cst(s_tmp,1.0/((double)L_ens));
+                    rs_sample_set_subsamp(s_x[i_Linv],s_tmp,ens_ind,ens_ind);
+                }
+                if (IS_ANALYZE(param,"phypt"))
+                {
+                    if (param->with_ext_a)
+                    {
+                        sprintf(sf_name,"./scale_%s_%s_%s.boot%s",beta,\
+                                param->scale_part,param->dataset_cat,ext);
+                        rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                        rs_sample_eqinvp(s_tmp);
+                        rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
+                    }
+                    else
+                    {
+                        sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,\
+                                param->scale_part,param->dataset[d],ext);
+                        rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                        rs_sample_eqmuls(s_tmp,1.0/SQ(param->M_scale));
+                        rs_sample_eqsqrt(s_tmp);
+                        rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
+                    }
+                }
+                else if (IS_ANALYZE(param,"scaleset"))
+                {
+                    rs_sample_cst(s_tmp,1.0);
+                    rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
+                }
+                ens_ind++;
+            }
         }
     }
     END_FOR_LINE_TOK(field);
-
-    /* scaling */
     if (IS_ANALYZE(param,"phypt"))
     {
-        if (!param->with_ext_a)
-        {
-            rs_sample_eqmuls(s_x[i_ainv],1.0/SQ(param->M_scale));
-            rs_sample_eqsqrt(s_x[i_ainv]);
-            rs_sample_eqinvp(s_x[i_ainv]);
-        }
-        rs_sample_eqmulp(s_x[i_ud],s_x[i_ainv]);
-        rs_sample_eqmulp(s_x[i_ud],s_x[i_ainv]);
-        rs_sample_eqmulp(s_x[i_s],s_x[i_ainv]);
-        rs_sample_eqmulp(s_x[i_s],s_x[i_ainv]);
-        rs_sample_eqmulp(s_x[i_umd],s_x[i_ainv]);
-        rs_sample_eqmulp(s_x[i_umd],s_x[i_ainv]);
-        rs_sample_eqmulp(s_x[i_Linv],s_x[i_ainv]);
         for (i=1;i<=param->q_dim;i++)
         {
-            rs_sample_eqmulp(s_q,s_x[i_ainv]);
+            rs_sample_eqdivp(s_q,s_x[i_ainv]);
         }
-        rs_sample_eqinvp(s_x[i_ainv]);
-    }
+    }    
     
     /* computing errors */
     rs_sample_varp(x_err[i_ud],s_x[i_ud]);
@@ -158,13 +153,26 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q, strbuf beta,\
 #define PRINT_DLABEL_WERR(name) fprintf(outf[i],"%-12s %-12s  ",name,"error")
 #define PRINT_D(value) fprintf(outf[i],"% .5e  ",value)
 #define PRINT_D_WERR(value,err) fprintf(outf[i],"% .5e % .5e  ",value,err)
-#define PRINT_X(ind) PRINT_D(mat_get(rs_sample_pt_cent_val(s_x[ind]),ens_ind,0))
-#define PRINT_X_WERR(ind) \
-PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s_x[ind]),ens_ind,0),\
-             mat_get(x_err[ind],ens_ind,0))
-#define PRINT_CV_WERR(s,s_err) \
-PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s),ens_ind,0),\
-             mat_get(s_err,ens_ind,0))
+#define PRINT_X(ind,dim)\
+{\
+    double fac;\
+    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_ainv]),ens_ind,0),dim);\
+    PRINT_D(mat_get(rs_sample_pt_cent_val(s_x[ind]),ens_ind,0)*fac);\
+}
+#define PRINT_X_WERR(ind,dim)\
+{\
+    double fac;\
+    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_ainv]),ens_ind,0),dim);\
+    PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s_x[ind]),ens_ind,0)*fac,\
+                 mat_get(x_err[ind],ens_ind,0)*fac);\
+}
+#define PRINT_CV_WERR(s,s_err,dim)\
+{\
+    double fac;\
+    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_ainv]),ens_ind,0),dim);\
+    PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s),ens_ind,0)*fac,\
+                 mat_get(s_err,ens_ind,0)*fac);\
+}
     
     
     table_dump = fopen("phyfit_table.dat","w");
@@ -193,21 +201,21 @@ PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s),ens_ind,0),\
         for(ens_ind=0;ens_ind<nens;ens_ind++)
         {
             fprintf(outf[i],"%30s  ",ens_ar[ens_ind]);
-            PRINT_X_WERR(i_ud);
-            PRINT_X_WERR(i_s);
+            PRINT_X_WERR(i_ud,2);
+            PRINT_X_WERR(i_s,2);
             if (IS_ANALYZE(param,"phypt"))
             {
-                PRINT_X_WERR(i_ainv);
+                PRINT_X_WERR(i_ainv,0);
             }
             if (param->with_umd)
             {
-                PRINT_X_WERR(i_umd);
+                PRINT_X_WERR(i_umd,2);
             }
             if (param->with_qed_fvol)
             {
-                PRINT_X_WERR(i_Linv);
+                PRINT_X_WERR(i_Linv,1);
             }
-            PRINT_CV_WERR(s_q,q_err);
+            PRINT_CV_WERR(s_q,q_err,0);
             fprintf(outf[i],"\n");
         }
         fprintf(outf[i],"\n");

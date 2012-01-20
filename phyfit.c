@@ -166,7 +166,6 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param)
     }
 }
 #undef ADD_PLOT
-#undef PLOT_DISP
 
 #define PRINT_PAR(name)\
 {\
@@ -258,25 +257,20 @@ int main(int argc, char *argv[])
     /*              data loading                */
     /********************************************/
     rs_sample *s_x[N_EX_VAR],*s_q;
-    strbuf fset,sfname,beta;
-    size_t nsample;
+    strbuf beta;
     size_t i;
 
-    get_firstfname(fset,param->manifest);
-    sprintf(sfname,"%s/%s_%s.boot%s",fset,param->q_name,param->dataset[0],\
-            (io_get_fmt() == IO_XML) ? ".xml" : "");
-    rs_sample_load_nsample(&nsample,sfname,"");
     for (i=0;i<N_EX_VAR;i++)
     {
-        s_x[i] = rs_sample_create(param->nens,nsample);
+        s_x[i] = rs_sample_create(param->nens,param->nsample);
     }
-    s_q = rs_sample_create(param->nens,nsample);
+    s_q = rs_sample_create(param->nens,param->nsample);
     printf("-- loading data...\n");
     data_load(s_x,s_q,beta,param);
-    printf("%-11s : %d\n","simulations",(int)(param->nens/param->ndataset));
     printf("%-11s : %d\n","datasets",(int)param->ndataset);
     printf("%-11s : %d\n","points",(int)param->nens);
     printf("%-11s : %d\n","betas",(int)param->nbeta);
+    printf("%-11s : %d\n","samples",(int)param->nsample);
     printf("\n");
 
     /*              data fitting                */
@@ -291,7 +285,7 @@ int main(int argc, char *argv[])
     
     d       = fit_data_create(param->nens,N_EX_VAR);
     npar    = fit_model_get_npar(param->model,param);
-    s_fit   = rs_sample_create(npar,(size_t)nsample);
+    s_fit   = rs_sample_create(npar,param->nsample);
     fit_var = mat_create(npar,1);
     
     if (IS_ANALYZE(param,"phypt"))
@@ -322,15 +316,14 @@ int main(int argc, char *argv[])
     fprintf(chi2f,"uncorrelated : %e\n",fit_data_get_chi2pdof(d));
     rs_sample_varp(fit_var,s_fit);
     print_result(s_fit,param);
-    plot_fit(fit,d,param);
+    /*plot_fit(fit,d,param);*/
     printf("-- fitting and resampling %s...\n",param->q_name);
     use_x_var[i_ud]   = (param->M_ud_deg != 0);
     use_x_var[i_s]    = (param->M_s_deg  != 0);
     use_x_var[i_umd]  = (param->with_umd != 0);
-    use_x_var[i_ainv] = (IS_ANALYZE(param,"phypt"));
-    rs_x_data_fit(s_fit,s_x,s_q,d,X_COR|XDATA_COR,use_x_var);
+    rs_x_data_fit(s_fit,s_x,s_q,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
     rs_sample_varp(fit_var,s_fit);
-    plot_fit(fit,d,param);
+    /*plot_fit(fit,d,param);*/
     
     /*              result output               */
     /********************************************/
