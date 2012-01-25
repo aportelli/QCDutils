@@ -9,5 +9,6 @@
 /* prototypes */
 extern const fit_model fm_phypt_a_taylor;
 extern const fit_model fm_scaleset_taylor;
+extern const fit_model fm_comb_phyt_scale_taylor;
 
 #endif

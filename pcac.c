@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
     rs_sample *s_mass_pcac;
     mat *mass_pcac;
     
-    d = fit_data_create(nt-2,1);
+    d = fit_data_create(nt-2,1,1);
     s_mass_pcac = rs_sample_create(1,NBOOT);
     
     sprintf(sample_name,"%s_massfit_PCAC_%s.boot",opt->qcomp_str,manf_name);
@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
         mat_cp(rs_sample_pt_sample(s_mass_pcac,i),\
                rs_sample_pt_cent_val(s_mass_pcac));
     }
-    rs_data_fit(s_mass_pcac,s_effmass_pcac,d,NO_COR);
+    rs_data_fit(s_mass_pcac,&s_effmass_pcac,d,NO_COR);
     mass_pcac = rs_sample_pt_cent_val(s_mass_pcac);
     if (opt->do_save_rs_sample)
     {

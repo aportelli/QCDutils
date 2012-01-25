@@ -12,9 +12,10 @@
 #include <latan/latan_minimizer.h>
 #include <latan/latan_plot.h>
 
-void plot_fit(const mat *fit, fit_data *d, fit_param *param);
+/* void plot_fit(const mat *fit, fit_data *d, fit_param *param); */
 void print_result(const rs_sample *s_fit, fit_param *param);
 
+/*
 #define ADD_PLOT(obj,title,color)\
 if (param->M_ud_deg > 0)\
 {\
@@ -166,6 +167,7 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param)
     }
 }
 #undef ADD_PLOT
+*/
 
 #define PRINT_PAR(name)\
 {\
@@ -188,45 +190,69 @@ void print_result(const rs_sample *s_fit, fit_param *param)
     rs_sample_varp(fit_var,s_fit);
     printf("\nfit parameters (m_ud:%d m_s:%d m_u-m_d:%d a:%d) :\n",     \
            param->M_ud_deg,param->M_s_deg,param->with_umd,param->a_deg);
-    if (IS_ANALYZE(param,"phypt"))
-    {
-        PRINT_PAR(param->q_name);
-    }
-    else if (IS_ANALYZE(param,"scaleset"))
+    if (IS_ANALYZE(param,"scaleset")||IS_ANALYZE(param,"comb_phypt_scale"))
     {
         for(j=0;j<(int)param->nbeta;j++)
         {
-            sprintf(buf,"aM_%s_%s",param->scale_part,param->beta[i]);
+            sprintf(buf,"a_%s",param->beta[i]);
             PRINT_PAR(buf);
         }
-    }
-    if (param->M_ud_deg > 0)
-    {
-        for (j=0;j<param->M_ud_deg;j++)
+        if (param->s_M_ud_deg > 0)
         {
-            sprintf(buf,"p_ud_%d",j+1);
-            PRINT_PAR(buf);
+            for (j=0;j<param->s_M_ud_deg;j++)
+            {
+                sprintf(buf,"s_p_ud_%d",j+1);
+                PRINT_PAR(buf);
+            }
         }
-    }
-    if (param->M_s_deg > 0)
-    {
-        for (j=0;j<param->M_s_deg;j++)
+        if (param->s_M_s_deg > 0)
         {
-            sprintf(buf,"p_s_%d",j+1);
-            PRINT_PAR(buf);
+            for (j=0;j<param->s_M_s_deg;j++)
+            {
+                sprintf(buf,"s_p_s_%d",j+1);
+                PRINT_PAR(buf);
+            }
+        }
+        if (param->s_with_umd)
+        {
+            PRINT_PAR("s_p_miso");
+        }
+        if (param->s_with_qed_fvol)
+        {
+            PRINT_PAR("s_p_fvol_L");
         }
     }
-    if (param->a_deg > 0)
+    if (IS_ANALYZE(param,"phypt")||IS_ANALYZE(param,"comb_phypt_scale"))
     {
-        PRINT_PAR("p_a");
-    }
-    if (param->with_umd)
-    {
-        PRINT_PAR("p_miso");
-    }
-    if (param->with_qed_fvol)
-    {
-        PRINT_PAR("p_fvol_L");
+        PRINT_PAR(param->q_name);
+        if (param->M_ud_deg > 0)
+        {
+            for (j=0;j<param->M_ud_deg;j++)
+            {
+                sprintf(buf,"p_ud_%d",j+1);
+                PRINT_PAR(buf);
+            }
+        }
+        if (param->M_s_deg > 0)
+        {
+            for (j=0;j<param->M_s_deg;j++)
+            {
+                sprintf(buf,"p_s_%d",j+1);
+                PRINT_PAR(buf);
+            }
+        }
+        if (param->a_deg > 0)
+        {
+            PRINT_PAR("p_a");
+        }
+        if (param->with_umd)
+        {
+            PRINT_PAR("p_miso");
+        }
+        if (param->with_qed_fvol)
+        {
+            PRINT_PAR("p_fvol_L");
+        }
     }
     printf("\n");
     
@@ -256,7 +282,7 @@ int main(int argc, char *argv[])
     
     /*              data loading                */
     /********************************************/
-    rs_sample *s_x[N_EX_VAR],*s_q;
+    rs_sample *s_x[N_EX_VAR],*s_q[2];
     strbuf beta;
     size_t i;
 
@@ -264,7 +290,8 @@ int main(int argc, char *argv[])
     {
         s_x[i] = rs_sample_create(param->nens,param->nsample);
     }
-    s_q = rs_sample_create(param->nens,param->nsample);
+    s_q[0] = rs_sample_create(param->nens,param->nsample);
+    s_q[1] = rs_sample_create(param->nens,param->nsample);
     printf("-- loading data...\n");
     data_load(s_x,s_q,beta,param);
     printf("%-11s : %d\n","datasets",(int)param->ndataset);
@@ -276,19 +303,21 @@ int main(int argc, char *argv[])
     /*              data fitting                */
     /********************************************/
     fit_data *d;
-    size_t npar;
-    rs_sample *s_fit;
+    size_t npar,nydim;
+    rs_sample *s_fit,**s_pt;
     mat *fit,*fit_var;
     strbuf resf_name, chi2f_name;
     bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false};
     FILE *chi2f;
     
-    d       = fit_data_create(param->nens,N_EX_VAR);
+    nydim   = IS_ANALYZE(param,"comb_phypt_scale") ? 2 : 1;
+    d       = fit_data_create(param->nens,N_EX_VAR,nydim);
     npar    = fit_model_get_npar(param->model,param);
     s_fit   = rs_sample_create(npar,param->nsample);
+    s_pt    = IS_ANALYZE(param,"phypt") ? s_q+1 : s_q;
     fit_var = mat_create(npar,1);
     
-    if (IS_ANALYZE(param,"phypt"))
+    if (IS_ANALYZE(param,"phypt")||IS_ANALYZE(param,"comb_phypt_scale"))
     {
         sprintf(chi2f_name,"%s_%s_%s.chi2",param->q_name,param->scale_part,\
                 param->dataset_cat);
@@ -311,17 +340,17 @@ int main(int argc, char *argv[])
     minimizer_set_alg(MIN_MIGRAD);
     fit = rs_sample_pt_cent_val(s_fit);
     printf("-- pre-fit...\n");
-    rs_x_data_fit(s_fit,s_x,s_q,d,NO_COR,use_x_var);
+    rs_x_data_fit(s_fit,s_x,s_pt,d,NO_COR,use_x_var);
     printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
     fprintf(chi2f,"uncorrelated : %e\n",fit_data_get_chi2pdof(d));
     rs_sample_varp(fit_var,s_fit);
     print_result(s_fit,param);
     /*plot_fit(fit,d,param);*/
     printf("-- fitting and resampling %s...\n",param->q_name);
-    use_x_var[i_ud]   = (param->M_ud_deg != 0);
-    use_x_var[i_s]    = (param->M_s_deg  != 0);
-    use_x_var[i_umd]  = (param->with_umd != 0);
-    rs_x_data_fit(s_fit,s_x,s_q,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
+    use_x_var[i_ud]   = (param->M_ud_deg != 0)||(param->s_M_ud_deg != 0);
+    use_x_var[i_s]    = (param->M_s_deg  != 0)||(param->s_M_s_deg  != 0);
+    use_x_var[i_umd]  = (param->with_umd != 0)||(param->s_with_umd != 0);
+    rs_x_data_fit(s_fit,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
     rs_sample_varp(fit_var,s_fit);
     /*plot_fit(fit,d,param);*/
     
@@ -378,7 +407,8 @@ int main(int argc, char *argv[])
     {
         rs_sample_destroy(s_x[i]);
     }
-    rs_sample_destroy(s_q);
+    rs_sample_destroy(s_q[0]);
+    rs_sample_destroy(s_q[1]);
     fit_data_destroy(d);
     rs_sample_destroy(s_fit);
     mat_destroy(fit_var);

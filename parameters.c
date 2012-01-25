@@ -97,25 +97,29 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     
     field = NULL;
     
-    param->M_ud          = -1.0;
-    param->M_ud_deg      = 0;
-    param->M_s           = -1.0;
-    param->M_s_deg       = 0;
-    param->M_scale       = -1.0;
-    param->a_deg         = 0;
-    param->with_umd      = 0;
-    param->with_qed_fvol = 0;
-    param->with_ext_a    = 0;
-    param->q_dim         = 0;
-    param->verb          = 0;
-    param->dataset       = NULL;
-    param->ndataset      = 0;
-    param->beta          = NULL;
-    param->nbeta         = 0;
-    param->init_param    = NULL;
-    param->ninit_param   = 0;
-    param->nens          = 0;
-    param->nsample       = 0;
+    param->M_ud            = -1.0;
+    param->M_ud_deg        = 0;
+    param->s_M_ud_deg      = 0;
+    param->M_s             = -1.0;
+    param->M_s_deg         = 0;
+    param->s_M_s_deg       = 0;
+    param->M_scale         = -1.0;
+    param->a_deg           = 0;
+    param->with_umd        = 0;
+    param->s_with_umd      = 0;
+    param->with_qed_fvol   = 0;
+    param->s_with_qed_fvol = 0;
+    param->with_ext_a      = 0;
+    param->q_dim           = 0;
+    param->verb            = 0;
+    param->dataset         = NULL;
+    param->ndataset        = 0;
+    param->beta            = NULL;
+    param->nbeta           = 0;
+    param->init_param      = NULL;
+    param->ninit_param     = 0;
+    param->nens            = 0;
+    param->nsample         = 0;
     strbufcpy(param->analyze,"");
     strbufcpy(param->q_name,"");
     strbufcpy(param->scale_part,"");
@@ -127,13 +131,17 @@ void parse_fit_param(fit_param *param, const strbuf fname)
         if (field[0][0] != '#')
         {
             GET_PARAM_I(param,M_ud_deg);
+            GET_PARAM_I(param,s_M_ud_deg);
             GET_PARAM_D(param,M_ud);
             GET_PARAM_I(param,M_s_deg);
+            GET_PARAM_I(param,s_M_s_deg);
             GET_PARAM_D(param,M_s);
             GET_PARAM_D(param,M_scale);
             GET_PARAM_I(param,a_deg);
             GET_PARAM_I(param,with_umd);
+            GET_PARAM_I(param,s_with_umd);
             GET_PARAM_I(param,with_qed_fvol);
+            GET_PARAM_I(param,s_with_qed_fvol);
             GET_PARAM_I(param,with_ext_a);
             GET_PARAM_I(param,q_dim);
             GET_PARAM_I(param,verb);
@@ -168,11 +176,19 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     }
     else if (IS_ANALYZE(param,"scaleset"))
     {
-        param->q_dim      = 0;
-        param->a_deg      = 0;
-        param->with_ext_a = 0;
-        param->model      = &fm_scaleset_taylor;
+        param->q_dim           = 0;
+        param->s_M_ud_deg      = param->M_ud_deg;
+        param->s_M_s_deg       = param->M_s_deg;
+        param->s_with_umd      = param->with_umd;
+        param->s_with_qed_fvol = param->with_qed_fvol;
+        param->a_deg           = 0;
+        param->with_ext_a      = 0;
+        param->model           = &fm_scaleset_taylor;
         sprintf(param->q_name,"Msq_%s",param->scale_part);
+    }
+    else if (IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        param->model = &fm_comb_phyt_scale_taylor;
     }
     else
     {
