@@ -12,10 +12,14 @@ typedef struct
 typedef struct
 {
     int M_ud_deg;
+    int s_M_ud_deg;
     int M_s_deg;
+    int s_M_s_deg;
     int a_deg;
     int with_umd;
+    int s_with_umd;
     int with_qed_fvol;
+    int s_with_qed_fvol;
     int with_ext_a;
     int verb;
     int q_dim;
