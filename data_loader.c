@@ -132,13 +132,6 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
         }
     }
     END_FOR_LINE_TOK(field);
-    if (IS_ANALYZE(param,"phypt"))
-    {
-        for (i=1;i<=param->q_dim;i++)
-        {
-            rs_sample_eqdivp(s_q[1],s_x[i_ainv]);
-        }
-    }    
     
     /* computing errors */
     rs_sample_varp(x_err[i_ud],s_x[i_ud]);
@@ -223,7 +216,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
             {
                 PRINT_X_WERR(i_Linv,1);
             }
-            PRINT_CV_WERR(s_q[1],q_err[1],0);
+            PRINT_CV_WERR(s_q[1],q_err[1],param->q_dim);
             fprintf(outf[i],"\n");
         }
         fprintf(outf[i],"\n");

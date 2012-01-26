@@ -116,10 +116,7 @@ static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     {
         res += mat_get(p,ST_qedfv_I(0,param)+s,0)*SQ(Linv);
     }
-    if (IS_ANALYZE(param,"comb_phypt_scale"))
-    {
-        res *= pow(a,param->q_dim);
-    }
+    res *= pow(a,param->q_dim);
     
     return res;
 }
