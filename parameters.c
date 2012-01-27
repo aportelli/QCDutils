@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199506L /* strtok_r is used here */
+
 #include "models.h"
 #include "parameters.h"
 #include <stdio.h>
@@ -50,7 +52,7 @@ static void add_dataset(fit_param *param, const strbuf new_dataset)
     {
         param->ndataset++;
         param->dataset = (strbuf *)realloc(param->dataset,               \
-                                        param->ndataset*sizeof(strbuf));
+                                           param->ndataset*sizeof(strbuf));
         strbufcpy(param->dataset[param->ndataset-1],new_dataset);
         if (strlen(param->dataset_cat) > 0)
         {

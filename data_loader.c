@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199506L /* strtok_r is used here */
+
 #include "data_loader.h"
 #include "parameters.h"
 #include <stdio.h>
