@@ -17,7 +17,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
     strbuf *field,*ens,*ens_ar,M_str,ext,sf_name,ud_lbl,s_lbl;
     int lc,nf,i;
     size_t nsample,nens;
-    size_t ens_ind,d;
+    size_t ens_ind,bind,d;
     int T_ens,L_ens;
     rs_sample *s_tmp;
     mat **x_err,*q_err[2];
@@ -71,6 +71,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
             T_ens = atoi(field[0]);
             L_ens = atoi(field[1]);
             strbufcpy(beta,field[2]);
+            bind  = ind_beta(beta,param);
             sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->scale_part,\
                     param->dataset[d],ext);
             if (access(sf_name,R_OK) == 0) 
@@ -89,7 +90,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
                         param->dataset[d],ext);
                 rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                 rs_sample_set_subsamp(s_x[i_s],s_tmp,ens_ind,ens_ind);
-                rs_sample_cst(s_tmp,ind_beta(beta,param));
+                rs_sample_cst(s_tmp,bind);
                 rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,ens_ind);
                 if (param->with_umd||param->s_with_umd)
                 {
@@ -111,7 +112,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
                                 param->scale_part,param->dataset_cat,ext);
                         rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                         rs_sample_eqinvp(s_tmp);
-                        rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
+                        rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,\
+                                              ens_ind);
                     }
                     else
                     {
@@ -120,7 +122,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
                         rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                         rs_sample_eqmuls(s_tmp,1.0/SQ(param->M_scale));
                         rs_sample_eqsqrt(s_tmp);
-                        rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
+                        rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,\
+                                              ens_ind);
                     }
                 }
                 else if (IS_ANALYZE(param,"scaleset")          \
