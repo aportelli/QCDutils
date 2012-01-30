@@ -288,7 +288,7 @@ int main(int argc, char* argv[])
             sprintf(key,"%s propagator",h->name);
             mat_eqabs(mprop);
             mat_set_step(pr_t,0.0,1.0);
-            plot_add_dat_yerr(p,pr_t,mprop,sigmprop,key,"rgb 'red'");
+            plot_add_dat(p,pr_t,mprop,NULL,sigmprop,key,"rgb 'red'");
             switch (h->parity)
             {
                 case EVEN:
@@ -316,7 +316,7 @@ int main(int argc, char* argv[])
                               "rgb 'red'","rgb 'light-red'");
             sprintf(key,"%s effective mass",h->name);
             mat_set_step(em_t,1.0,1.0);
-            plot_add_dat_yerr(p,em_t,em,sigem,key,"rgb 'blue'");
+            plot_add_dat(p,em_t,em,NULL,sigem,key,"rgb 'blue'");
             plot_disp(p);
             
             plot_destroy(p);
@@ -327,7 +327,8 @@ int main(int argc, char* argv[])
             p = plot_create();
             
             plot_set_scale_manual(p,0,(double)(nt/2),0,2.0);
-            plot_add_dat(p,scanres_t,scanres_chi2,"chi^2/dof","rgb 'blue'");
+            plot_add_dat(p,scanres_t,scanres_chi2,NULL,NULL,"chi^2/dof",\
+                         "rgb 'blue'");
             plot_disp(p);
             
             plot_destroy(p);
@@ -337,8 +338,8 @@ int main(int argc, char* argv[])
             
             plot_set_scale_xmanual(p,0,(double)(nt/2));
             sprintf(key,"a*M_%s",h->name);
-            plot_add_dat_yerr(p,scanres_t,scanres_mass,scanres_masserr,key,\
-                              "rgb 'red'");
+            plot_add_dat(p,scanres_t,scanres_mass,NULL,scanres_masserr,key,\
+                         "rgb 'red'");
             plot_disp(p);
             
             plot_destroy(p);
