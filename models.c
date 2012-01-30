@@ -96,6 +96,12 @@ static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
         a = mat_get(p,bind,0);
         s = fm_scaleset_taylor_npar(param);
     }
+    else
+    {
+        fprintf(stderr,"error: this model should not ne used in program %s\n",\
+                param->analyze);
+        exit(EXIT_FAILURE);
+    }
     
     M_ud  = mat_get(X,i_ud,0)/SQ(a) - SQ(param->M_ud);
     M_s   = mat_get(X,i_s,0)/SQ(a) - SQ(param->M_s);
@@ -182,7 +188,7 @@ static void fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
     }
     sprintf(str,"%e+",mat_get(p,s,0));
     ud_s_taylor_pstr(str,p,s,x_str,M_ud_phi,param->M_ud_deg,M_s_phi,\
-                     param->M_ud_deg,param);
+                     param->M_s_deg,param);
     if (param->a_deg > 0)
     {
         sprintf(buf,"+%e*%s**%d",mat_get(p,ST_a_I(0,param)+s,0),x_str[i_ainv],\

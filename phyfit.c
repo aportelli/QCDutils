@@ -13,7 +13,7 @@
 #include <latan/latan_plot.h>
 
 /* void plot_fit(const mat *fit, fit_data *d, fit_param *param); */
-void print_result(const rs_sample *s_fit, fit_param *param);
+static void print_result(const rs_sample *s_fit, fit_param *param);
 
 /*
 #define ADD_PLOT(obj,title,color)\
@@ -175,7 +175,7 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param)
            sqrt(mat_get(fit_var,i,0))/fabs(mat_get(fit,i,0))*100.0);\
     i++;\
 }
-void print_result(const rs_sample *s_fit, fit_param *param)
+static void print_result(const rs_sample *s_fit, fit_param *param)
 {
     size_t i;
     int j;
