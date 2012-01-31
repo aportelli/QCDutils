@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
         mat_cp(rs_sample_pt_sample(s_mass_pcac,i),\
                rs_sample_pt_cent_val(s_mass_pcac));
     }
-    rs_data_fit(s_mass_pcac,&s_effmass_pcac,d,NO_COR);
+    rs_data_fit(s_mass_pcac,NULL,&s_effmass_pcac,d,NO_COR,NULL);
     mass_pcac = rs_sample_pt_cent_val(s_mass_pcac);
     if (opt->do_save_rs_sample)
     {
