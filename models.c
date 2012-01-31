@@ -240,21 +240,20 @@ static double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     bind    = (size_t)(mat_get(X,i_bind,0));
     a       = mat_get(p,bind,0);
     M_scale = param->M_scale;
-    Linv    = mat_get(X,i_Linv,0);
+    Linv    = mat_get(X,i_Linv,0)/(a*M_scale);
     M_ud    = mat_get(X,i_ud,0)/SQ(a*M_scale)-SQ(param->M_ud)/SQ(M_scale);
     M_s     = mat_get(X,i_s,0)/SQ(a*M_scale)-SQ(param->M_s)/SQ(M_scale);
     umd     = mat_get(X,i_umd,0)/SQ(a*M_scale)-DMSQ_K/SQ(M_scale);
     
     res += 1.0;
-    ud_s_taylor(res,p,0,M_ud,param->s_M_ud_deg,M_s,param->s_M_ud_deg,param);
+    ud_s_taylor(res,p,0,M_ud,param->s_M_ud_deg,M_s,param->s_M_s_deg,param);
     if (param->s_with_umd)
     {
         res += mat_get(p,ST_umd_I(0,param),0)*umd;
     }
     if (param->s_with_qed_fvol > 0)
     {
-        res += mat_get(p,ST_qedfv_I(0,param),0)*SQ(Linv)/mat_get(p,bind,0);
-        
+        res += mat_get(p,ST_qedfv_I(0,param),0)*SQ(Linv);
     }
     res *= SQ(a*M_scale);
     
@@ -288,44 +287,44 @@ static void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
                                     void *vparam)
 {
     fit_param *param;
-    strbuf buf,x_str[N_EX_VAR],fac_str;
-    double M_ud_phi,M_s_phi,M_scale,a;
+    strbuf buf,x_str[N_EX_VAR];
+    double M_ud_phi,M_s_phi,M_umd_phi,M_scale,a,fac;
     size_t bind;
     size_t j;
     
-    param    = (fit_param *)vparam;
-    bind     = (size_t)(mat_get(x_ex,i_bind,0));
-    a        = mat_get(p,bind,0);
-    M_scale  = param->M_scale;
-    M_ud_phi = SQ(param->M_ud)/SQ(M_scale);
-    M_s_phi  = SQ(param->M_s)/SQ(M_scale);
+    param     = (fit_param *)vparam;
+    bind      = (size_t)(mat_get(x_ex,i_bind,0));
+    a         = mat_get(p,bind,0);
+    M_scale   = param->M_scale;
+    M_ud_phi  = SQ(param->M_ud)/SQ(M_scale);
+    M_s_phi   = SQ(param->M_s)/SQ(M_scale);
+    M_umd_phi = DMSQ_K/SQ(M_scale);
     
     for (j=0;j<N_EX_VAR;j++)
     {
+        fac = (j == i_Linv) ? a*M_scale : SQ(a*M_scale);
         if (i == j)
         {
-            sprintf(x_str[j],"(x/%e)",SQ(a*M_scale));
+            sprintf(x_str[j],"(x/%e)",fac);
         }
         else
         {
-            sprintf(x_str[j],"%e",mat_get(x_ex,j,0)/SQ(a*M_scale));
+            sprintf(x_str[j],"%e",mat_get(x_ex,j,0)/fac);
         }
     }
-    sprintf(fac_str,"%e",mat_get(p,bind,0));
-    sprintf(str,"%s*(1.0",fac_str);
+    sprintf(str,"%e*(1.0",SQ(a*M_scale));
     ud_s_taylor_pstr(str,p,0,x_str,M_ud_phi,param->s_M_ud_deg,M_s_phi,\
                      param->s_M_s_deg,param);
     if (param->s_with_umd)
     {
         sprintf(buf,"+%e*(%s-%e)",mat_get(p,ST_umd_I(0,param),0),x_str[i_umd],\
-                DMSQ_K);
+                M_umd_phi);
         strcat(str,buf);
     }
     if (param->s_with_qed_fvol > 0)
     {
-        sprintf(buf,"+%e*%s**2/%e",mat_get(p,ST_qedfv_I(0,param),0),\
-                x_str[i_Linv],mat_get(p,bind,0));
-        
+        sprintf(buf,"+%e*%s**2",mat_get(p,ST_qedfv_I(0,param),0),x_str[i_Linv]);
+        strcat(str,buf);
     }
     strcat(str,")");
 }
