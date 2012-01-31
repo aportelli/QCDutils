@@ -91,7 +91,7 @@ int ind_beta(const strbuf beta, const fit_param *param)
 
 void parse_fit_param(fit_param *param, const strbuf fname)
 {
-    strbuf *field,test_fname;
+    strbuf *field,ens,test_fname;
     int nf,lc;
     int i;
     size_t j;
@@ -212,25 +212,20 @@ void parse_fit_param(fit_param *param, const strbuf fname)
         get_mass(dbuf,param->scale_part);
         param->M_scale = dbuf[0];
     }
-    BEGIN_FOR_LINE_TOK(field,param->manifest,"_",nf,lc)
+    BEGIN_FOR_LINE_TOK(field,param->manifest,"_ \t",nf,lc)
     {
         if ((nf>0)&&(field[0][0] != '#'))
         {
-            add_beta(param,field[2]);
-        }
-    }
-    END_FOR_LINE_TOK(field);
-    BEGIN_FOR_LINE_TOK(field,param->manifest," \t",nf,lc)
-    {
-        if ((nf>0)&&(field[0][0] != '#'))
-        {
+            sprintf(ens,"%s_%s_%s_%s_%s",field[0],field[1],field[2],field[3],\
+                    field[4]);
             for (j=0;j<param->ndataset;j++)
             {
-                sprintf(test_fname,"%s/%s_%s.boot%s",field[0],param->q_name,\
+                sprintf(test_fname,"%s/%s_%s.boot%s",ens,param->q_name,\
                         param->dataset[j],(io_get_fmt()==IO_XML)?".xml":"");
                 if (access(test_fname,R_OK) == 0)
                 {
                     param->nens++;
+                    add_beta(param,field[2]);
                     if (param->nsample == 0)
                     {
                         rs_sample_load_nsample(&(param->nsample),test_fname,"");
@@ -239,7 +234,7 @@ void parse_fit_param(fit_param *param, const strbuf fname)
                 else
                 {
                     fprintf(stderr,"warning: no data found for dataset %s in ensemble %s (unable to read file %s)\n",
-                            param->dataset[j],field[0],test_fname);
+                            param->dataset[j],ens,test_fname);
                 }
             }
         }
