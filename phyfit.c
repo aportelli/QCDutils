@@ -396,8 +396,7 @@ int main(int argc, char *argv[])
     chi2f = fopen(chi2f_name,"w");
     fit_data_fit_all_points(d,true);
     fit_data_set_model(d,param->model,param);
-    mat_cst(rs_sample_pt_cent_val(s_fit),1.0);
-    
+    mat_cst(rs_sample_pt_cent_val(s_fit),0.0001);
     for (i=0;i<param->ninit_param;i++)
     {
         mat_set(rs_sample_pt_cent_val(s_fit),param->init_param[i].ind,0,\
