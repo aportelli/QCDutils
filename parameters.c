@@ -8,16 +8,18 @@
 #include <latan/latan_io.h>
 #include <latan/latan_mass.h>
 
+#define ATOF(str) (strtod(str,(char **)NULL))
+#define ATOI(str) ((int)strtol(str,(char **)NULL,10))
 
 #define GET_PARAM_I(param,name)\
 if (strcmp(field[0],#name) == 0)\
 {\
-    (param)->name = atoi(field[1]);\
+    (param)->name = ATOI(field[1]);\
 }
 #define GET_PARAM_D(param,name)\
 if (strcmp(field[0],#name) == 0)\
 {\
-    (param)->name = atof(field[1]);\
+    (param)->name = ATOF(field[1]);\
 }
 #define GET_PARAM_S(param,name)\
 if (strcmp(field[0],#name) == 0)\
@@ -167,8 +169,8 @@ void parse_fit_param(fit_param *param, const strbuf fname)
                 param->init_param = (fit_init *)realloc(param->init_param,    \
                                          param->ninit_param*sizeof(fit_init));
                 param->init_param[param->ninit_param-1].ind   =\
-                    (size_t)atoi(field[1]);
-                param->init_param[param->ninit_param-1].value = atof(field[2]);
+                    (size_t)ATOI(field[1]);
+                param->init_param[param->ninit_param-1].value = ATOF(field[2]);
             }
         }
     }

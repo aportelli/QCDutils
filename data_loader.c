@@ -11,6 +11,8 @@
 #include <latan/latan_math.h>
 #include <latan/latan_nunits.h>
 
+#define ATOI(str) ((int)strtol(str,(char **)NULL,10))
+
 void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
                const fit_param *param)
 {
@@ -68,8 +70,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
             ens = ens_ar + ens_ind;
             sprintf(*ens,"%s_%s_%s_%s_%s",field[0],field[1],field[2],field[3],\
                     field[4]);
-            T_ens = atoi(field[0]);
-            L_ens = atoi(field[1]);
+            T_ens = ATOI(field[0]);
+            L_ens = ATOI(field[1]);
             strbufcpy(beta,field[2]);
             bind  = ind_beta(beta,param);
             sprintf(sf_name,"%s/%s_%s_%s.boot%s",*ens,M_str,param->scale_part,\
