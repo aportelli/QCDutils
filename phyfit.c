@@ -340,8 +340,7 @@ int main(int argc, char *argv[])
     minimizer_set_alg(MIN_MIGRAD);
     fit = rs_sample_pt_cent_val(s_fit);
     printf("-- pre-fit...\n");
-    
-    rs_x_data_fit(s_fit,s_x,s_pt,d,NO_COR,use_x_var);
+    rs_data_fit(s_fit,s_x,s_pt,d,NO_COR,use_x_var);
     printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
     fprintf(chi2f,"uncorrelated : %e\n",fit_data_get_chi2pdof(d));
     rs_sample_varp(fit_var,s_fit);
@@ -354,7 +353,7 @@ int main(int argc, char *argv[])
                     ||((param->s_M_s_deg != 0)&&!IS_ANALYZE(param,"phypt"));
     use_x_var[i_umd]  = (param->with_umd != 0)\
                     ||((param->s_with_umd != 0)&&!IS_ANALYZE(param,"phypt"));
-    rs_x_data_fit(s_fit,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
+    rs_data_fit(s_fit,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
     rs_sample_varp(fit_var,s_fit);
     /*plot_fit(fit,d,param);*/
     

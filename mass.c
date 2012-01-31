@@ -225,7 +225,7 @@ int main(int argc, char* argv[])
         sprintf(sample_name,"%s_mass_fit%s_%s.boot",h->name,range_info,\
                 manf_name);
         rs_sample_set_name(s_mass,sample_name);
-        rs_data_fit(s_mass,&s_mprop,d,NO_COR);
+        rs_data_fit(s_mass,NULL,&s_mprop,d,NO_COR,NULL);
         
         if (opt->do_save_rs_sample)
         {
@@ -247,7 +247,7 @@ int main(int argc, char* argv[])
                "error");
         for (i=tibeg;i<rmax-1;i++)
         {
-            rs_data_fit(s_mass,&s_mprop,d,NO_COR);
+            rs_data_fit(s_mass,NULL,&s_mprop,d,NO_COR,NULL);
             rs_sample_varp(sigmass,s_mass);
             mat_eqsqrt(sigmass);
             mat_set(scanres_t,i-tibeg,0,(double)(i));
