@@ -79,7 +79,7 @@ static size_t fm_comb_phyt_scale_npar(void* vparam);
 
 static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,M_ud,M_s,a,umd,Linv;
+    double res,M_ud,M_s,a,dimfac,umd,Linv;
     size_t s,bind;
     fit_param *param;
     
@@ -102,11 +102,11 @@ static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
                 param->analyze);
         exit(EXIT_FAILURE);
     }
-    
-    M_ud  = mat_get(X,i_ud,0)/SQ(a) - SQ(param->M_ud);
-    M_s   = mat_get(X,i_s,0)/SQ(a) - SQ(param->M_s);
-    umd   = mat_get(X,i_umd,0)/SQ(a) - DMSQ_K;
-    Linv  = mat_get(X,i_Linv,0)/a; 
+    dimfac = (!param->plotting) ? a : 1.0;
+    M_ud   = mat_get(X,i_ud,0)/SQ(dimfac) - SQ(param->M_ud);
+    M_s    = mat_get(X,i_s,0)/SQ(dimfac) - SQ(param->M_s);
+    umd    = mat_get(X,i_umd,0)/SQ(dimfac) - DMSQ_K;
+    Linv   = mat_get(X,i_Linv,0)/dimfac; 
     
     res += mat_get(p,s,0);
     ud_s_taylor(res,p,s,M_ud,param->M_ud_deg,M_s,param->M_s_deg,param);
@@ -122,7 +122,7 @@ static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     {
         res += mat_get(p,ST_qedfv_I(0,param)+s,0)*SQ(Linv);
     }
-    res *= pow(a,param->q_dim);
+    res *= pow(dimfac,param->q_dim);
     
     return res;
 }

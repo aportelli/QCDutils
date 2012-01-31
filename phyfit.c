@@ -12,38 +12,44 @@
 #include <latan/latan_minimizer.h>
 #include <latan/latan_plot.h>
 
-/* void plot_fit(const mat *fit, fit_data *d, fit_param *param); */
+typedef enum
+{
+    Q     = 0,
+    SCALE = 1
+} plot_flag;
+
+static void plot_fit(const mat *fit, fit_data *d, fit_param *param,\
+                     plot_flag f);
 static void print_result(const rs_sample *s_fit, fit_param *param);
 
-/*
-#define ADD_PLOT(obj,title,color)\
+#define ADD_PLOT(obj,k,title,color)\
 if (param->M_ud_deg > 0)\
 {\
-    plot_add_fit(p[i_ud],d,i_ud,phy_pt,fit,true,obj,title,"",color,color);\
+    plot_add_fit(p[i_ud],d,k,phy_pt,i_ud,fit,true,obj,title,"",color,color);\
 }\
 if (param->M_s_deg > 0)\
 {\
-    plot_add_fit(p[i_s],d,i_s,phy_pt,fit,true,obj,title,"",color,color);\
+    plot_add_fit(p[i_s],d,k,phy_pt,i_s,fit,true,obj,title,"",color,color);\
 }\
 if (param->a_deg > 0)\
 {\
-    plot_add_fit(p[i_ainv],d,i_ainv,phy_pt,fit,true,obj,title,"",color,color);\
+    plot_add_fit(p[i_a],d,k,phy_pt,i_a,fit,true,obj,title,"",color,color);\
 }\
 if (param->with_umd)\
 {\
-    plot_add_fit(p[i_umd],d,i_umd,phy_pt,fit,true,obj,title,"",color,color);\
+    plot_add_fit(p[i_umd],d,k,phy_pt,i_umd,fit,true,obj,title,"",color,color);\
 }\
 if (param->with_qed_fvol)\
 {\
-    plot_add_fit(p[i_Linv],d,i_Linv,phy_pt,fit,true,obj,title,"",color,color);\
+    plot_add_fit(p[i_Linv],d,k,phy_pt,i_Linv,fit,true,obj,title,"",color,color);\
 }
 
-void plot_fit(const mat *fit, fit_data *d, fit_param *param)
+static void plot_fit(const mat *fit, fit_data *d, fit_param *param, plot_flag f)
 {
     plot *p[N_EX_VAR];
     double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL};
-    double b_int[2],dbind,M_scale;
-    size_t bind,k;
+    double b_int[2],dbind,M_scale,a;
+    size_t bind,k,phy_ind;
     strbuf color,title,xlabel,ylabel;
     mat *phy_pt;
     
@@ -53,14 +59,17 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param)
         p[k] = plot_create();
     }
     
-    mat_set(phy_pt,i_bind,0,0.0);
-    mat_set(phy_pt,i_ainv,0,0.0);
-    mat_set(phy_pt,i_umd,0,DMSQ_K);
-    mat_set(phy_pt,i_Linv,0,0.0);
-    if (IS_ANALYZE(param,"phypt"))
+    phy_ind = IS_ANALYZE(param,"comb_phypt_scale") ? 1 : 0;
+    
+    param->plotting = 1;
+    if (f == Q)
     {
         mat_set(phy_pt,i_ud,0,SQ(param->M_ud));
         mat_set(phy_pt,i_s,0,SQ(param->M_s));
+        mat_set(phy_pt,i_umd,0,DMSQ_K);
+        mat_set(phy_pt,i_bind,0,0.0);
+        mat_set(phy_pt,i_a,0,0.0);
+        mat_set(phy_pt,i_Linv,0,0.0);
         for (bind=0;bind<param->nbeta;bind++)
         {
             dbind      = (double)(bind);
@@ -70,10 +79,10 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param)
             fit_data_fit_region(d,xb);
             sprintf(color,"%d",1+(int)bind);
             sprintf(title,"beta = %s",param->beta[bind]);
-            ADD_PLOT(PF_DATA,title,color);
+            ADD_PLOT(PF_DATA,phy_ind,title,color);
             fit_data_fit_all_points(d,true);
         }
-        ADD_PLOT(PF_FIT,"","rgb 'black'");
+        ADD_PLOT(PF_FIT,phy_ind,"","rgb 'black'");
         switch (param->q_dim) 
         {
             case 0:
@@ -83,12 +92,47 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param)
                 sprintf(ylabel,"%s (MeV)",param->q_name);
                 break;
             default:
-                sprintf(xlabel,"%s^%d (MeV^%d)",param->q_name,param->q_dim,\
+                sprintf(ylabel,"%s^%d (MeV^%d)",param->q_name,param->q_dim,\
                         param->q_dim);
                 break;
         }
+        if (param->M_ud_deg > 0)
+        {
+            sprintf(xlabel,"M_%s^2 (MeV^2)",param->ud_name);
+            plot_set_xlabel(p[i_ud],xlabel);
+            plot_set_ylabel(p[i_ud],ylabel);
+            plot_disp(p[i_ud]);
+        }
+        if (param->M_s_deg > 0)
+        {
+            sprintf(xlabel,"M_%s^2 (MeV^2)",param->s_name);
+            plot_set_xlabel(p[i_s],xlabel);
+            plot_set_ylabel(p[i_s],ylabel);
+            plot_disp(p[i_s]);
+        }
+        if (param->a_deg > 0)
+        {
+            strbufcpy(xlabel,"a (MeV^-1)");
+            plot_set_xlabel(p[i_a],xlabel);
+            plot_set_ylabel(p[i_a],ylabel);
+            plot_disp(p[i_a]);
+        }
+        if (param->with_umd)
+        {
+            strbufcpy(xlabel,"M_K_p^2 - M_K_0^2 (MeV^2)");
+            plot_set_xlabel(p[i_umd],xlabel);
+            plot_set_ylabel(p[i_umd],ylabel);
+            plot_disp(p[i_umd]);
+        }
+        if (param->with_qed_fvol)
+        {
+            strbufcpy(xlabel,"1/L (MeV)");
+            plot_set_xlabel(p[i_Linv],xlabel);
+            plot_set_ylabel(p[i_Linv],ylabel);
+            plot_disp(p[i_Linv]);
+        }
     }
-    else if (IS_ANALYZE(param,"scaleset"))
+    else if (f == SCALE)
     {
         for (bind=0;bind<param->nbeta;bind++)
         {
@@ -97,69 +141,51 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param)
             b_int[1]   = dbind + 0.1;
             xb[i_bind] = b_int;
             M_scale    = param->M_scale;
+            a          = mat_get(fit,bind,0);
             fit_data_fit_region(d,xb);
-            mat_set(phy_pt,i_ud,0,\
-                    SQ(param->M_ud)*mat_get(fit,bind,0)/SQ(M_scale));
-            mat_set(phy_pt,i_s,0,\
-                    SQ(param->M_s)*mat_get(fit,bind,0)/SQ(M_scale));
+            mat_set(phy_pt,i_ud,0,SQ(a*param->M_ud));
+            mat_set(phy_pt,i_s,0,SQ(a*param->M_s));
+            mat_set(phy_pt,i_umd,0,SQ(a)*DMSQ_K);
             mat_set(phy_pt,i_bind,0,bind);
+            mat_set(phy_pt,i_a,0,0.0);
+            mat_set(phy_pt,i_Linv,0,0.0);
             sprintf(color,"%d",1+(int)bind);
             sprintf(title,"beta = %s",param->beta[bind]);
-            ADD_PLOT(PF_DATA|PF_FIT,title,color);
+            ADD_PLOT(PF_DATA|PF_FIT,0,title,color);
             fit_data_fit_all_points(d,true);
         }
-        sprintf(ylabel,"a*%s",param->q_name);
-    }
-    if (param->M_ud_deg > 0)
-    {
-        if (IS_ANALYZE(param,"phypt"))
-        {
-            sprintf(xlabel,"M_%s^2 (MeV^2)",param->ud_name);
-        }
-        else if (IS_ANALYZE(param,"scaleset"))
+        sprintf(ylabel,"(a*M_%s)^2",param->scale_part);
+        if (param->s_M_ud_deg > 0)
         {
             sprintf(xlabel,"(a*M_%s)^2",param->ud_name);
+            plot_set_xlabel(p[i_ud],xlabel);
+            plot_set_ylabel(p[i_ud],ylabel);
+            plot_disp(p[i_ud]);
         }
-        plot_set_xlabel(p[i_ud],xlabel);
-        plot_set_ylabel(p[i_ud],ylabel);
-        plot_disp(p[i_ud]);
-
-    }
-    if (param->M_s_deg > 0)
-    {
-        if (IS_ANALYZE(param,"phypt"))
-        {
-            sprintf(xlabel,"M_%s^2 (MeV^2)",param->s_name);
-        }
-        else if (IS_ANALYZE(param,"scaleset"))
+        if (param->s_M_s_deg > 0)
         {
             sprintf(xlabel,"(a*M_%s)^2",param->s_name);
+            plot_set_xlabel(p[i_s],xlabel);
+            plot_set_ylabel(p[i_s],ylabel);
+            plot_disp(p[i_s]);
         }
-        plot_set_xlabel(p[i_s],xlabel);
-        plot_set_ylabel(p[i_s],ylabel);
-        plot_disp(p[i_s]);
+        if (param->s_with_umd)
+        {
+            strbufcpy(xlabel,"(a*M_K_p)^2 - (a*M_K_0)^2");
+            plot_set_xlabel(p[i_umd],xlabel);
+            plot_set_ylabel(p[i_umd],ylabel);
+            plot_disp(p[i_umd]);
+        }
+        if (param->s_with_qed_fvol)
+        {
+            strbufcpy(xlabel,"a/L");
+            plot_set_xlabel(p[i_Linv],xlabel);
+            plot_set_ylabel(p[i_Linv],ylabel);
+            plot_disp(p[i_Linv]);
+        }
     }
-    if (param->a_deg > 0)
-    {
-        sprintf(xlabel,"a^-%d (MeV)",param->a_deg);
-        plot_set_xlabel(p[i_ainv],xlabel);
-        plot_set_ylabel(p[i_ainv],ylabel);
-        plot_disp(p[i_ainv]);
-    }
-    if (param->with_umd)
-    {
-        strbufcpy(xlabel,"M_K_p^2 - M_K_0^2 (MeV^2)");
-        plot_set_xlabel(p[i_umd],xlabel);
-        plot_set_ylabel(p[i_umd],ylabel);
-        plot_disp(p[i_umd]);
-    }
-    if (param->with_qed_fvol)
-    {
-        strbufcpy(xlabel,"L^-1 (MeV)");
-        plot_set_xlabel(p[i_Linv],xlabel);
-        plot_set_ylabel(p[i_Linv],ylabel);
-        plot_disp(p[i_Linv]);
-    }
+    param->plotting = 0;
+    
     mat_destroy(phy_pt);
     for (k=0;k<N_EX_VAR;k++)
     {
@@ -167,7 +193,7 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param)
     }
 }
 #undef ADD_PLOT
-*/
+
 
 #define PRINT_PAR(name)\
 {\
@@ -259,7 +285,46 @@ static void print_result(const rs_sample *s_fit, fit_param *param)
     mat_destroy(fit_var);
 }
 #undef PRINT_PAR
-                      
+
+enum 
+{
+    AINV = 0,
+    A    = 1
+};
+
+#define SCALE_DATA(unit)\
+{\
+    int d_;\
+    if (unit == AINV)\
+    {\
+        rs_sample_eqdivp(s_x[i_ud],s_x[i_a]);\
+        rs_sample_eqdivp(s_x[i_ud],s_x[i_a]);\
+        rs_sample_eqdivp(s_x[i_s],s_x[i_a]);\
+        rs_sample_eqdivp(s_x[i_s],s_x[i_a]);\
+        rs_sample_eqdivp(s_x[i_umd],s_x[i_a]);\
+        rs_sample_eqdivp(s_x[i_umd],s_x[i_a]);\
+        rs_sample_eqdivp(s_x[i_Linv],s_x[i_a]);\
+        for (d_=0;d_<param->q_dim;d_++)\
+        {\
+            rs_sample_eqdivp(s_q[1],s_x[i_a]);\
+        }\
+    }\
+    else if (unit == A)\
+    {\
+        rs_sample_eqmulp(s_x[i_ud],s_x[i_a]);\
+        rs_sample_eqmulp(s_x[i_ud],s_x[i_a]);\
+        rs_sample_eqmulp(s_x[i_s],s_x[i_a]);\
+        rs_sample_eqmulp(s_x[i_s],s_x[i_a]);\
+        rs_sample_eqmulp(s_x[i_umd],s_x[i_a]);\
+        rs_sample_eqmulp(s_x[i_umd],s_x[i_a]);\
+        rs_sample_eqmulp(s_x[i_Linv],s_x[i_a]);\
+        for (d_=0;d_<param->q_dim;d_++)\
+        {\
+            rs_sample_eqmulp(s_q[1],s_x[i_a]);\
+        }\
+    }\
+}
+
 /* main program */
 int main(int argc, char *argv[])
 {
@@ -303,8 +368,8 @@ int main(int argc, char *argv[])
     /*              data fitting                */
     /********************************************/
     fit_data *d;
-    size_t npar,nydim;
-    rs_sample *s_fit,**s_pt;
+    size_t npar,nydim,bind;
+    rs_sample *s_fit,*s_tmp,**s_pt;
     mat *fit,*fit_var;
     strbuf resf_name, chi2f_name;
     bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false};
@@ -315,6 +380,7 @@ int main(int argc, char *argv[])
     npar    = fit_model_get_npar(param->model,param);
     s_fit   = rs_sample_create(npar,param->nsample);
     s_pt    = IS_ANALYZE(param,"phypt") ? s_q+1 : s_q;
+    s_tmp   = rs_sample_create(1,param->nsample);
     fit_var = mat_create(npar,1);
     
     if (IS_ANALYZE(param,"phypt")||IS_ANALYZE(param,"comb_phypt_scale"))
@@ -344,15 +410,35 @@ int main(int argc, char *argv[])
     printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
     fprintf(chi2f,"uncorrelated : %e\n",fit_data_get_chi2pdof(d));
     rs_sample_varp(fit_var,s_fit);
+    if (IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        for (i=0;i<param->nens;i++)
+        {
+            bind = (size_t)(mat_get(rs_sample_pt_cent_val(s_x[i_bind]),i,0));
+            rs_sample_get_subsamp(s_tmp,s_fit,bind,bind);
+            rs_sample_set_subsamp(s_x[i_a],s_tmp,i,i);
+        }
+    }
     print_result(s_fit,param);
-    /*plot_fit(fit,d,param);*/
+    use_x_var[i_ud]  = (param->M_ud_deg != 0)\
+                       ||((param->s_M_ud_deg != 0)&&!IS_ANALYZE(param,"phypt"));
+    use_x_var[i_s]   = (param->M_s_deg  != 0)\
+                       ||((param->s_M_s_deg != 0)&&!IS_ANALYZE(param,"phypt"));
+    use_x_var[i_umd] = (param->with_umd != 0)\
+                       ||((param->s_with_umd != 0)&&!IS_ANALYZE(param,"phypt"));
+    if (IS_ANALYZE(param,"phypt")||IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        SCALE_DATA(AINV);
+        fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
+        plot_fit(fit,d,param,Q);
+        SCALE_DATA(A);
+        fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
+    }
+    if (IS_ANALYZE(param,"scaleset")||IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        plot_fit(fit,d,param,SCALE);
+    }
     printf("-- fitting and resampling %s...\n",param->q_name);
-    use_x_var[i_ud]   = (param->M_ud_deg != 0)\
-                    ||((param->s_M_ud_deg != 0)&&!IS_ANALYZE(param,"phypt"));
-    use_x_var[i_s]    = (param->M_s_deg  != 0)\
-                    ||((param->s_M_s_deg != 0)&&!IS_ANALYZE(param,"phypt"));
-    use_x_var[i_umd]  = (param->with_umd != 0)\
-                    ||((param->s_with_umd != 0)&&!IS_ANALYZE(param,"phypt"));
     rs_data_fit(s_fit,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
     rs_sample_varp(fit_var,s_fit);
     /*plot_fit(fit,d,param);*/
@@ -414,6 +500,7 @@ int main(int argc, char *argv[])
     rs_sample_destroy(s_q[1]);
     fit_data_destroy(d);
     rs_sample_destroy(s_fit);
+    rs_sample_destroy(s_tmp);
     mat_destroy(fit_var);
     fclose(chi2f);
     free(param->beta);
