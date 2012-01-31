@@ -88,7 +88,7 @@ static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     bind  = (size_t)(mat_get(X,i_bind,0));
     if (IS_ANALYZE(param,"phypt"))
     {
-        a = mat_get(X,i_ainv,0);
+        a = mat_get(X,i_a,0);
         s = 0;
     }
     else if (IS_ANALYZE(param,"comb_phypt_scale"))
@@ -191,7 +191,7 @@ static void fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
                      param->M_s_deg,param);
     if (param->a_deg > 0)
     {
-        sprintf(buf,"+%e*%s**%d",mat_get(p,ST_a_I(0,param)+s,0),x_str[i_ainv],\
+        sprintf(buf,"+%e*%s**%d",mat_get(p,ST_a_I(0,param)+s,0),x_str[i_a],\
                 param->a_deg);
         strcat(str,buf);
     }

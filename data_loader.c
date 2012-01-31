@@ -60,7 +60,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
     }
     
     /* data loading */
-    BEGIN_FOR_LINE_TOK(field,param->manifest,"_",nf,lc)
+    BEGIN_FOR_LINE_TOK(field,param->manifest,"_ \t",nf,lc)
     if (field[0][0] != '#')
     {
         for (d=0;d<param->ndataset;d++)
@@ -112,7 +112,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
                                 param->scale_part,param->dataset_cat,ext);
                         rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                         rs_sample_eqinvp(s_tmp);
-                        rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,\
+                        rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,\
                                               ens_ind);
                     }
                     else
@@ -122,7 +122,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
                         rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                         rs_sample_eqmuls(s_tmp,1.0/SQ(param->M_scale));
                         rs_sample_eqsqrt(s_tmp);
-                        rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,\
+                        rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,\
                                               ens_ind);
                     }
                 }
@@ -130,7 +130,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
                          ||IS_ANALYZE(param,"comb_phypt_scale"))
                 {
                     rs_sample_cst(s_tmp,1.0);
-                    rs_sample_set_subsamp(s_x[i_ainv],s_tmp,ens_ind,ens_ind);
+                    rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,ens_ind);
                 }
                 ens_ind++;
             }
@@ -143,8 +143,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
     mat_eqsqrt(x_err[i_ud]);
     rs_sample_varp(x_err[i_s],s_x[i_s]);
     mat_eqsqrt(x_err[i_s]);
-    rs_sample_varp(x_err[i_ainv],s_x[i_ainv]);
-    mat_eqsqrt(x_err[i_ainv]);
+    rs_sample_varp(x_err[i_a],s_x[i_a]);
+    mat_eqsqrt(x_err[i_a]);
     rs_sample_varp(x_err[i_umd],s_x[i_umd]);
     mat_eqsqrt(x_err[i_umd]);
     rs_sample_varp(x_err[i_Linv],s_x[i_Linv]);
@@ -162,20 +162,20 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
 #define PRINT_X(ind,dim)\
 {\
     double fac;\
-    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_ainv]),ens_ind,0),dim);\
+    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_a]),ens_ind,0),dim);\
     PRINT_D(mat_get(rs_sample_pt_cent_val(s_x[ind]),ens_ind,0)*fac);\
 }
 #define PRINT_X_WERR(ind,dim)\
 {\
     double fac;\
-    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_ainv]),ens_ind,0),dim);\
+    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_a]),ens_ind,0),dim);\
     PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s_x[ind]),ens_ind,0)*fac,\
                  mat_get(x_err[ind],ens_ind,0)*fac);\
 }
 #define PRINT_CV_WERR(s,s_err,dim)\
 {\
     double fac;\
-    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_ainv]),ens_ind,0),dim);\
+    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_a]),ens_ind,0),dim);\
     PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s),ens_ind,0)*fac,\
                  mat_get(s_err,ens_ind,0)*fac);\
 }
@@ -211,7 +211,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], strbuf beta,\
             PRINT_X_WERR(i_s,2);
             if (IS_ANALYZE(param,"phypt"))
             {
-                PRINT_X_WERR(i_ainv,0);
+                PRINT_X_WERR(i_a,0);
             }
             if (param->with_umd)
             {
