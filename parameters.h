@@ -22,6 +22,7 @@ typedef struct
     int s_with_qed_fvol;
     int with_ext_a;
     int verb;
+    int plotting;
     int q_dim;
     fit_init *init_param;
     double M_ud;

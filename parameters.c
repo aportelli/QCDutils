@@ -114,6 +114,7 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     param->with_ext_a      = 0;
     param->q_dim           = 0;
     param->verb            = 0;
+    param->plotting        = 0;
     param->dataset         = NULL;
     param->ndataset        = 0;
     param->beta            = NULL;
