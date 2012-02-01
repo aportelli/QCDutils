@@ -81,7 +81,7 @@ double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     }
     else if (IS_ANALYZE(param,"comb_phypt_scale"))
     {
-        a = mat_get(p,bind,0);
+        a = (!param->plotting) ? mat_get(p,bind,0) : mat_get(X,i_a,0);
         s = fm_scaleset_taylor_npar(param);
     }
     else
