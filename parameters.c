@@ -115,6 +115,8 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     param->s_with_qed_fvol = 0;
     param->with_ext_a      = 0;
     param->q_dim           = 0;
+    param->q_target[0]     = -1.0;
+    param->q_target[1]     = 0.0;
     param->verb            = 0;
     param->plotting        = 0;
     param->dataset         = NULL;
@@ -156,6 +158,11 @@ void parse_fit_param(fit_param *param, const strbuf fname)
             GET_PARAM_S(param,ud_name);
             GET_PARAM_S(param,s_name);
             GET_PARAM_S(param,manifest);
+            if ((strcmp(field[0],"q_target") == 0)&&(nf >= 2))
+            {
+                param->q_target[0] = ATOF(field[1]);
+                param->q_target[1] = ATOF(field[2]);
+            }
             if ((strcmp(field[0],"dataset") == 0)&&(nf >= 2))
             {
                 for (i=1;i<nf;i++)
