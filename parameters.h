@@ -28,6 +28,7 @@ typedef struct
     double M_ud;
     double M_s;
     double M_scale;
+    double q_target[2];
     strbuf analyze;
     strbuf q_name;
     strbuf scale_part;
