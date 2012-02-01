@@ -8,18 +8,6 @@
 #include <latan/latan_math.h>
 
 /* physical point Taylor expansion models */
-static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam);
-static size_t fm_phypt_a_taylor_npar(void* vparam);
-static void   fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
-                                     const mat *x_ex, const mat *p,\
-                                     void *vparam);
-static double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam);
-static size_t fm_scaleset_taylor_npar(void* vparam);
-static void   fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
-                                      const mat *x_ex, const mat *p,\
-                                      void *vparam);
-static size_t fm_comb_phyt_scale_npar(void* vparam);
-
 #define ud_s_taylor(res,p,s,M_ud,M_ud_deg,M_s,M_s_deg,param)\
 {\
     int d_;\
@@ -77,7 +65,7 @@ static size_t fm_comb_phyt_scale_npar(void* vparam);
 #define ST_umd_I(i,param) (ST_a_I(i,param)+(((param)->a_deg > 0) ? 1 : 0))
 #define ST_qedfv_I(i,param)  (ST_umd_I(i,param)+((param)->with_umd ? 1 : 0))
 
-static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
+double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
 {
     double res,M_ud,M_s,a,dimfac,umd,Linv;
     size_t s,bind;
@@ -127,7 +115,7 @@ static double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     return res;
 }
 
-static size_t fm_phypt_a_taylor_npar(void* vparam)
+size_t fm_phypt_a_taylor_npar(void* vparam)
 {
     fit_param *param;
     size_t npar;
@@ -153,7 +141,7 @@ static size_t fm_phypt_a_taylor_npar(void* vparam)
     return npar;
 }
 
-static void fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
+void fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
                                    const mat *x_ex, const mat *p,\
                                    void *vparam)
 {
@@ -229,7 +217,7 @@ const fit_model fm_phypt_a_taylor =
 #define ST_umd_I(i,param)   (ST_K_I(i,param)+(param)->s_M_s_deg)
 #define ST_qedfv_I(i,param)  (ST_umd_I(i,param)+((param)->s_with_umd ? 1 : 0))
 
-static double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
+double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
 {
     double res,a,M_ud,M_s,umd,M_scale,Linv;
     fit_param *param;
@@ -260,7 +248,7 @@ static double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     return res;
 }
 
-static size_t fm_scaleset_taylor_npar(void* vparam)
+size_t fm_scaleset_taylor_npar(void* vparam)
 {
     fit_param *param;
     size_t npar;
@@ -282,9 +270,9 @@ static size_t fm_scaleset_taylor_npar(void* vparam)
     return npar;
 }
 
-static void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
-                                    const mat *x_ex, const mat *p,\
-                                    void *vparam)
+void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
+                             const mat *x_ex, const mat *p,\
+                             void *vparam)
 {
     fit_param *param;
     strbuf buf,x_str[N_EX_VAR];
@@ -339,7 +327,7 @@ const fit_model fm_scaleset_taylor =
     1
 };
 
-static size_t fm_comb_phyt_scale_npar(void* vparam)
+size_t fm_comb_phyt_scale_npar(void* vparam)
 {
     return fm_phypt_a_taylor_npar(vparam)+fm_scaleset_taylor_npar(vparam);
 }
