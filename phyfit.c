@@ -96,7 +96,6 @@ static void plot_fit(const mat *fit, const mat *fit_var, fit_data *d, \
         PLOT_ADD_FIT(PF_FIT,i_s,phy_ind,"","rgb 'black'");
         PLOT_ADD_FIT(PF_FIT,i_umd,phy_ind,"","rgb 'black'");
         PLOT_ADD_FIT(PF_FIT,i_a,phy_ind,"","rgb 'black'");
-        plot_print(p[i_a]);
         PLOT_ADD_FIT(PF_FIT,i_Linv,phy_ind,"","rgb 'black'");
         switch (param->q_dim) 
         {
@@ -111,36 +110,22 @@ static void plot_fit(const mat *fit, const mat *fit_var, fit_data *d, \
                         param->q_dim);
                 break;
         }
-        if (param->M_ud_deg > 0)
-        {
-            sprintf(xlabel,"M_%s^2 (MeV^2)",param->ud_name);
-            PLOT_ADD_EX(i_ud,s);
-            PLOT_DISP(i_ud);
-        }
-        if (param->M_s_deg > 0)
-        {
-            sprintf(xlabel,"M_%s^2 (MeV^2)",param->s_name);
-            PLOT_ADD_EX(i_s,s);
-            PLOT_DISP(i_s);
-        }
-        if (param->a_deg > 0)
-        {
-            strbufcpy(xlabel,"a (MeV^-1)");
-            PLOT_ADD_EX(i_a,s);
-            PLOT_DISP(i_a);
-        }
-        if (param->with_umd)
-        {
-            strbufcpy(xlabel,"M_K_p^2 - M_K_0^2 (MeV^2)");
-            PLOT_ADD_EX(i_umd,s);
-            PLOT_DISP(i_umd);
-        }
-        if (param->with_qed_fvol)
-        {
-            strbufcpy(xlabel,"1/L (MeV)");
-            PLOT_ADD_EX(i_Linv,s);
-            PLOT_DISP(i_Linv);
-        }
+
+        sprintf(xlabel,"M_%s^2 (MeV^2)",param->ud_name);
+        PLOT_ADD_EX(i_ud,s);
+        PLOT_DISP(i_ud);
+        sprintf(xlabel,"M_%s^2 (MeV^2)",param->s_name);
+        PLOT_ADD_EX(i_s,s);
+        PLOT_DISP(i_s);
+        strbufcpy(xlabel,"a (MeV^-1)");
+        PLOT_ADD_EX(i_a,s);
+        PLOT_DISP(i_a);
+        strbufcpy(xlabel,"M_K_p^2 - M_K_0^2 (MeV^2)");
+        PLOT_ADD_EX(i_umd,s);
+        PLOT_DISP(i_umd);
+        strbufcpy(xlabel,"1/L (MeV)");
+        PLOT_ADD_EX(i_Linv,s);
+        PLOT_DISP(i_Linv);
     }
     else if (f == SCALE)
     {
@@ -170,26 +155,14 @@ static void plot_fit(const mat *fit, const mat *fit_var, fit_data *d, \
             fit_data_fit_all_points(d,true);
         }
         sprintf(ylabel,"(a*M_%s)^2",param->scale_part);
-        if (param->s_M_ud_deg > 0)
-        {
-            sprintf(xlabel,"(a*M_%s)^2",param->ud_name);
-            PLOT_DISP(i_ud);
-        }
-        if (param->s_M_s_deg > 0)
-        {
-            sprintf(xlabel,"(a*M_%s)^2",param->s_name);
-            PLOT_DISP(i_s);
-        }
-        if (param->s_with_umd)
-        {
-            strbufcpy(xlabel,"(a*M_K_p)^2 - (a*M_K_0)^2");
-            PLOT_DISP(i_umd);
-        }
-        if (param->s_with_qed_fvol)
-        {
-            strbufcpy(xlabel,"a/L");
-            PLOT_DISP(i_Linv);
-        }
+        sprintf(xlabel,"(a*M_%s)^2",param->ud_name);
+        PLOT_DISP(i_ud);
+        sprintf(xlabel,"(a*M_%s)^2",param->s_name);
+        PLOT_DISP(i_s);
+        strbufcpy(xlabel,"(a*M_K_p)^2 - (a*M_K_0)^2");
+        PLOT_DISP(i_umd);
+        strbufcpy(xlabel,"a/L");
+        PLOT_DISP(i_Linv);
     }
     param->plotting = 0;
     
