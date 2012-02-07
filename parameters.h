@@ -3,13 +3,24 @@
 
 #include <latan/latan_fit.h>
 
-typedef struct
+typedef struct fit_init_s
 {
     size_t ind;
     double value;
 } fit_init;
 
-typedef struct
+typedef struct ens_s
+{
+    size_t T;
+    size_t L;
+    strbuf beta;
+    strbuf ud;
+    strbuf s;
+    strbuf dataset;
+    strbuf dir;
+} ens;
+
+typedef struct fit_param_s
 {
     int M_ud_deg;
     int s_M_ud_deg;
@@ -18,6 +29,7 @@ typedef struct
     int a_deg;
     int with_umd;
     int s_with_umd;
+    int have_umd;
     int with_qed_fvol;
     int s_with_qed_fvol;
     int with_ext_a;
@@ -25,6 +37,7 @@ typedef struct
     int plotting;
     int q_dim;
     fit_init *init_param;
+    ens *point;
     double M_ud;
     double M_s;
     double M_scale;

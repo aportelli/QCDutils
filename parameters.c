@@ -93,7 +93,7 @@ int ind_beta(const strbuf beta, const fit_param *param)
 
 void parse_fit_param(fit_param *param, const strbuf fname)
 {
-    strbuf *field,ens,test_fname;
+    strbuf *field,ens_dir,test_fname;
     int nf,lc;
     int i;
     size_t j;
@@ -111,6 +111,7 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     param->a_deg           = 0;
     param->with_umd        = 0;
     param->s_with_umd      = 0;
+    param->have_umd        = 0;
     param->with_qed_fvol   = 0;
     param->s_with_qed_fvol = 0;
     param->with_ext_a      = 0;
@@ -125,6 +126,7 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     param->nbeta           = 0;
     param->init_param      = NULL;
     param->ninit_param     = 0;
+    param->point           = NULL;
     param->nens            = 0;
     param->nsample         = 0;
     strbufcpy(param->analyze,"");
@@ -226,15 +228,25 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     {
         if ((nf>0)&&(field[0][0] != '#'))
         {
-            sprintf(ens,"%s_%s_%s_%s_%s",field[0],field[1],field[2],field[3],\
+            sprintf(ens_dir,"%s_%s_%s_%s_%s",field[0],field[1],field[2],field[3],\
                     field[4]);
             for (j=0;j<param->ndataset;j++)
             {
-                sprintf(test_fname,"%s/%s_%s.boot%s",ens,param->q_name,\
+                sprintf(test_fname,"%s/%s_%s.boot%s",ens_dir,param->q_name,\
                         param->dataset[j],(io_get_fmt()==IO_XML)?".xml":"");
                 if (access(test_fname,R_OK) == 0)
                 {
                     param->nens++;
+                    param->point  = (ens *)realloc(param->point,           \
+                                                   param->nens*sizeof(ens));
+                    param->point[param->nens-1].T = ATOI(field[0]);
+                    param->point[param->nens-1].L = ATOI(field[1]);
+                    strbufcpy(param->point[param->nens-1].beta,field[2]);
+                    strbufcpy(param->point[param->nens-1].ud,field[3]);
+                    strbufcpy(param->point[param->nens-1].s,field[4]);
+                    strbufcpy(param->point[param->nens-1].dataset,\
+                              param->dataset[j]);
+                    strbufcpy(param->point[param->nens-1].dir,ens_dir);
                     add_beta(param,field[2]);
                     if (param->nsample == 0)
                     {
@@ -243,8 +255,8 @@ void parse_fit_param(fit_param *param, const strbuf fname)
                 }
                 else
                 {
-                    fprintf(stderr,"warning: no data found for dataset %s in ensemble %s (unable to read file %s)\n",
-                            param->dataset[j],ens,test_fname);
+                    fprintf(stderr,"warning: no data found for dataset %s in ensemble %s (unable to read file %s)\n",\
+                            param->dataset[j],ens_dir,test_fname);
                 }
             }
         }

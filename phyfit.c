@@ -120,9 +120,12 @@ static void plot_fit(const mat *fit, const mat *fit_var, fit_data *d, \
         strbufcpy(xlabel,"a (MeV^-1)");
         PLOT_ADD_EX(i_a,s);
         PLOT_DISP(i_a);
-        strbufcpy(xlabel,"M_K_p^2 - M_K_0^2 (MeV^2)");
-        PLOT_ADD_EX(i_umd,s);
-        PLOT_DISP(i_umd);
+        if (param->have_umd)
+        {
+            strbufcpy(xlabel,"M_K_p^2 - M_K_0^2 (MeV^2)");
+            PLOT_ADD_EX(i_umd,s);
+            PLOT_DISP(i_umd);
+        }
         strbufcpy(xlabel,"1/L (MeV)");
         PLOT_ADD_EX(i_Linv,s);
         PLOT_DISP(i_Linv);
@@ -144,7 +147,7 @@ static void plot_fit(const mat *fit, const mat *fit_var, fit_data *d, \
             mat_set(phy_pt,i_s,0,SQ(a*param->M_s));
             mat_set(phy_pt,i_umd,0,SQ(a)*DMSQ_K);
             mat_set(phy_pt,i_bind,0,bind);
-            mat_set(phy_pt,i_a,0,0.0);
+            mat_set(phy_pt,i_a,0,a);
             mat_set(phy_pt,i_Linv,0,0.0);
             sprintf(color,"%d",1+(int)bind);
             sprintf(title,"beta = %s",param->beta[bind]);
@@ -159,8 +162,11 @@ static void plot_fit(const mat *fit, const mat *fit_var, fit_data *d, \
         PLOT_DISP(i_ud);
         sprintf(xlabel,"(a*M_%s)^2",param->s_name);
         PLOT_DISP(i_s);
-        strbufcpy(xlabel,"(a*M_K_p)^2 - (a*M_K_0)^2");
-        PLOT_DISP(i_umd);
+        if (param->have_umd)
+        {
+            strbufcpy(xlabel,"(a*M_K_p)^2 - (a*M_K_0)^2");
+            PLOT_DISP(i_umd);
+        }
         strbufcpy(xlabel,"a/L");
         PLOT_DISP(i_Linv);
     }
@@ -328,7 +334,6 @@ int main(int argc, char *argv[])
     /*              data loading                */
     /********************************************/
     rs_sample *s_x[N_EX_VAR],*s_q[2];
-    strbuf beta;
     size_t i;
 
     for (i=0;i<N_EX_VAR;i++)
@@ -338,7 +343,7 @@ int main(int argc, char *argv[])
     s_q[0] = rs_sample_create(param->nens,param->nsample);
     s_q[1] = rs_sample_create(param->nens,param->nsample);
     printf("-- loading data...\n");
-    data_load(s_x,s_q,beta,param);
+    data_load(s_x,s_q,param);
     printf("%-11s : %d\n","datasets",(int)param->ndataset);
     printf("%-11s : %d\n","points",(int)param->nens);
     printf("%-11s : %d\n","betas",(int)param->nbeta);
@@ -359,7 +364,7 @@ int main(int argc, char *argv[])
     d       = fit_data_create(param->nens,N_EX_VAR,nydim);
     npar    = fit_model_get_npar(param->model,param);
     s_fit   = rs_sample_create(npar,param->nsample);
-    s_pt    = IS_ANALYZE(param,"phypt") ? s_q+1 : s_q;
+    s_pt    = IS_ANALYZE(param,"phypt") ? s_q + 1 : s_q;
     s_tmp   = rs_sample_create(1,param->nsample);
     fit_var = mat_create(npar,1);
     
@@ -384,11 +389,16 @@ int main(int argc, char *argv[])
     }
     minimizer_set_alg(MIN_MIGRAD);
     fit = rs_sample_pt_cent_val(s_fit);
+    
+    /* uncorrelated fit without x errors to find a good initial value */
     printf("-- pre-fit...\n");
     rs_data_fit(s_fit,s_x,s_pt,d,NO_COR,use_x_var);
+    /** save chi^2/dof **/
     printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
     fprintf(chi2f,"uncorrelated : %e\n",fit_data_get_chi2pdof(d));
+    /** compute errors **/
     rs_sample_varp(fit_var,s_fit);
+    /** save lattice spacings in 'comb_phypt_scale' **/
     if (IS_ANALYZE(param,"comb_phypt_scale"))
     {
         for (i=0;i<param->nens;i++)
@@ -398,7 +408,9 @@ int main(int argc, char *argv[])
             rs_sample_set_subsamp(s_x[i_a],s_tmp,i,i);
         }
     }
+    /** print results **/
     print_result(s_fit,param);
+    /** display plots **/
     use_x_var[i_ud]  = (param->M_ud_deg != 0)\
                        ||((param->s_M_ud_deg != 0)&&!IS_ANALYZE(param,"phypt"));
     use_x_var[i_s]   = (param->M_s_deg  != 0)\
@@ -417,42 +429,75 @@ int main(int argc, char *argv[])
     {
         plot_fit(fit,fit_var,d,param,SCALE);
     }
+    
+    /* real fit */
     printf("-- fitting and resampling %s...\n",param->q_name);
     rs_data_fit(s_fit,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
+    /** save chi^2/dof **/
+    printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
+    fprintf(chi2f,"correlated   : %e\n",fit_data_get_chi2pdof(d));
+    /** compute errors **/
     rs_sample_varp(fit_var,s_fit);
-    /*plot_fit(fit,d,param);*/
+    /** save lattice spacings in 'comb_phypt_scale' **/
+    if (IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        for (i=0;i<param->nens;i++)
+        {
+            bind = (size_t)(mat_get(rs_sample_pt_cent_val(s_x[i_bind]),i,0));
+            rs_sample_get_subsamp(s_tmp,s_fit,bind,bind);
+            rs_sample_set_subsamp(s_x[i_a],s_tmp,i,i);
+        }
+    }
+    /** display plots **/
+    if (IS_ANALYZE(param,"phypt")||IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        SCALE_DATA(AINV);
+        fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
+        plot_fit(fit,fit_var,d,param,Q);
+        SCALE_DATA(A);
+        fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
+    }
+    if (IS_ANALYZE(param,"scaleset")||IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        plot_fit(fit,fit_var,d,param,SCALE);
+    }
     
     /*              result output               */
     /********************************************/
-    /** terminal/file output **/
-    /*** chi^2 ***/
-    printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
-    fprintf(chi2f,"correlated   : %e\n",fit_data_get_chi2pdof(d));
+    size_t s;
     
-    /*** parameters ***/
+    if (IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        s = fm_scaleset_taylor_npar(param);
+    }
+    else
+    {
+        s = 0;
+    }
+        
+    /* parameters */
     print_result(s_fit,param);
 
-    /*** extrapolation ***/
-    if (IS_ANALYZE(param,"phypt"))
+    /* extrapolation */
+    if (IS_ANALYZE(param,"phypt")||IS_ANALYZE(param,"comb_phypt_scale"))
     {
         printf("extrapolation :\n");
-        printf("%10s = %f +/- %e MeV^%d\n",param->q_name,mat_get(fit,0,0),\
+        printf("%10s = %f +/- %e MeV^%d\n",param->q_name,mat_get(fit,s,0),\
                sqrt(mat_get(fit_var,0,0)),param->q_dim);
         sprintf(resf_name,"%s_%s%s.boot",param->q_name,param->scale_part,\
                 param->dataset_cat);
-        rs_sample_save_subsamp(resf_name,'w',s_fit,0,0);
+        rs_sample_save_subsamp(resf_name,'w',s_fit,s,s);
     }
-    else if (IS_ANALYZE(param,"scaleset"))
+    else if (IS_ANALYZE(param,"scaleset")||IS_ANALYZE(param,"comb_phypt_scale"))
     {
         size_t j;
         
-        sprintf(resf_name,"scale_%s_%s",param->scale_part,param->dataset_cat);
-        rs_sample_set_name(s_fit,resf_name);
-        rs_sample_eqmuls(s_fit,1.0/SQ(param->M_scale));
-        rs_sample_eqsqrt(s_fit);
         printf("scales :\n\n");
         for (j=0;j<param->nbeta;j++)
         {
+            sprintf(resf_name,"a_%s_%s_%s.boot",param->beta[j],\
+                    param->scale_part,param->dataset_cat);
+            rs_sample_save_subsamp(resf_name,'w',s_fit,j,j);
             rs_sample_varp(fit_var,s_fit);
             printf("beta = %s\n",param->beta[j]);
             printf("a    = %f +/- %e fm\n",mat_get(fit,j,0)/NU_FM,\
@@ -462,9 +507,6 @@ int main(int argc, char *argv[])
             printf("a^-1 = %f +/- %e MeV\n",mat_get(fit,j,0),\
                    sqrt(mat_get(fit_var,j,0)));
             printf("\n");
-            sprintf(resf_name,"scale_%s_%s_%s.boot",param->beta[j],\
-                    param->scale_part,param->dataset_cat);
-            rs_sample_save_subsamp(resf_name,'w',s_fit,j,j);
             rs_sample_eqinvp(s_fit);
         }
     }
@@ -484,6 +526,8 @@ int main(int argc, char *argv[])
     fclose(chi2f);
     free(param->beta);
     free(param->init_param);
+    free(param->dataset);
+    free(param->point);
     free(param);
     
     return EXIT_SUCCESS;
