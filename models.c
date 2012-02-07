@@ -243,7 +243,7 @@ double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     {
         res += mat_get(p,ST_qedfv_I(0,param),0)*SQ(Linv);
     }
-    res *= SQ(a*M_scale);
+    res *= a*M_scale;
     
     return res;
 }
@@ -290,7 +290,14 @@ void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
     
     for (j=0;j<N_EX_VAR;j++)
     {
-        fac = (j == i_Linv) ? a*M_scale : SQ(a*M_scale);
+        if (j == i_Linv)
+        {
+            fac = a*M_scale;
+        }
+        else
+        {
+            fac = SQ(a*M_scale);
+        }
         if (i == j)
         {
             sprintf(x_str[j],"(x/%e)",fac);
@@ -300,7 +307,7 @@ void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
             sprintf(x_str[j],"%e",mat_get(x_ex,j,0)/fac);
         }
     }
-    sprintf(str,"%e*(1.0",SQ(a*M_scale));
+    sprintf(str,"%e*(1.0",a*M_scale);
     ud_s_taylor_pstr(str,p,0,x_str,M_ud_phi,param->s_M_ud_deg,M_s_phi,\
                      param->s_M_s_deg,param);
     if (param->s_with_umd)
