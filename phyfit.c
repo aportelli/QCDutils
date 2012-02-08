@@ -318,14 +318,12 @@ int main(int argc, char *argv[])
     /********************************************/
     fit_param *param;
     
-    param = (fit_param *)malloc(sizeof(fit_param));
-    
     if (argc != 2)
     {
         fprintf(stderr,"usage: %s <parameter file>\n",argv[0]);
         return EXIT_FAILURE;
     }
-    parse_fit_param(param,argv[1]);
+    param = fit_param_parse(argv[1]);
     
     /*              global settings             */
     /********************************************/
@@ -533,11 +531,7 @@ int main(int argc, char *argv[])
     rs_sample_destroy(s_tmp);
     mat_destroy(fit_var);
     fclose(chi2f);
-    free(param->beta);
-    free(param->init_param);
-    free(param->dataset);
-    free(param->point);
-    free(param);
+    fit_param_destroy(param);
     
     return EXIT_SUCCESS;
 }

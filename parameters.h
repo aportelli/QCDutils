@@ -62,6 +62,7 @@ typedef struct fit_param_s
 #define IS_ANALYZE(param,prog) (strcmp((param)->analyze,prog)==0)
 
 int ind_beta(const strbuf beta, const fit_param *param);
-void parse_fit_param(fit_param *param, const strbuf fname);
+fit_param * fit_param_parse(const strbuf fname);
+void fit_param_destroy(fit_param *param);
 
 #endif

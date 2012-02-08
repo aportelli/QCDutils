@@ -91,8 +91,9 @@ int ind_beta(const strbuf beta, const fit_param *param)
     return -1;
 }
 
-void parse_fit_param(fit_param *param, const strbuf fname)
+fit_param * fit_param_parse(const strbuf fname)
 {
+    fit_param *param;
     strbuf *field,ens_dir,test_fname;
     int nf,lc;
     int i;
@@ -100,6 +101,7 @@ void parse_fit_param(fit_param *param, const strbuf fname)
     double dbuf[2];
     
     field = NULL;
+    param = (fit_param *)malloc(sizeof(fit_param));
     
     param->M_ud            = -1.0;
     param->M_ud_deg        = 0;
@@ -262,4 +264,15 @@ void parse_fit_param(fit_param *param, const strbuf fname)
         }
     }
     END_FOR_LINE_TOK(field);
+    
+    return param;
+}
+
+void fit_param_destroy(fit_param *param)
+{
+    free(param->init_param);
+    free(param->point);
+    free(param->dataset);
+    free(param->beta);
+    free(param);
 }
