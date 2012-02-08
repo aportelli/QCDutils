@@ -354,6 +354,7 @@ int main(int argc, char *argv[])
     /********************************************/
     fit_data *d;
     size_t npar,nydim,bind;
+    size_t j;
     rs_sample *s_fit,*s_tmp,**s_pt;
     mat *fit,*fit_var;
     strbuf resf_name, chi2f_name;
@@ -389,6 +390,14 @@ int main(int argc, char *argv[])
     }
     minimizer_set_alg(MIN_MIGRAD);
     fit = rs_sample_pt_cent_val(s_fit);
+    for (i=0;i<param->nens;i++)
+    for (j=i+1;j<param->nens;j++)
+    {
+        if (strcmp(param->point[i].dir,param->point[j].dir) != 0)
+        {
+            fit_data_set_data_cor(d,i,j,false);
+        }
+    }
     
     /* uncorrelated fit without x errors to find a good initial value */
     printf("-- pre-fit...\n");
@@ -490,22 +499,22 @@ int main(int argc, char *argv[])
     }
     else if (IS_ANALYZE(param,"scaleset")||IS_ANALYZE(param,"comb_phypt_scale"))
     {
-        size_t j;
+        size_t k;
         
         printf("scales :\n\n");
-        for (j=0;j<param->nbeta;j++)
+        for (k=0;k<param->nbeta;k++)
         {
-            sprintf(resf_name,"a_%s_%s_%s.boot",param->beta[j],\
+            sprintf(resf_name,"a_%s_%s_%s.boot",param->beta[k],\
                     param->scale_part,param->dataset_cat);
-            rs_sample_save_subsamp(resf_name,'w',s_fit,j,j);
+            rs_sample_save_subsamp(resf_name,'w',s_fit,k,k);
             rs_sample_varp(fit_var,s_fit);
-            printf("beta = %s\n",param->beta[j]);
-            printf("a    = %f +/- %e fm\n",mat_get(fit,j,0)/NU_FM,\
-                   sqrt(mat_get(fit_var,j,0))/NU_FM);
+            printf("beta = %s\n",param->beta[k]);
+            printf("a    = %f +/- %e fm\n",mat_get(fit,k,0)/NU_FM,\
+                   sqrt(mat_get(fit_var,k,0))/NU_FM);
             rs_sample_eqinvp(s_fit);
             rs_sample_varp(fit_var,s_fit);
-            printf("a^-1 = %f +/- %e MeV\n",mat_get(fit,j,0),\
-                   sqrt(mat_get(fit_var,j,0)));
+            printf("a^-1 = %f +/- %e MeV\n",mat_get(fit,k,0),\
+                   sqrt(mat_get(fit_var,k,0)));
             printf("\n");
             rs_sample_eqinvp(s_fit);
         }
