@@ -2,7 +2,7 @@
 
 # Initialization
 AC_PREREQ([2.64])
-AC_INIT([QCDutils],[2.0beta2],[antonin.portelli@gmail.com],[qcdutils])
+AC_INIT([QCDutils],[2.0beta3],[antonin.portelli@gmail.com],[qcdutils])
 AC_CONFIG_AUX_DIR([.buildutils])
 AC_CONFIG_SRCDIR([prop.c])
 AC_CONFIG_MACRO_DIR([.buildutils/m4])
