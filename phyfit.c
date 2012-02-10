@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
         printf("extrapolation :\n");
         printf("%10s = %f +/- %e MeV^%d\n",param->q_name,mat_get(fit,s,0),\
                sqrt(mat_get(fit_var,0,0)),param->q_dim);
-        sprintf(resf_name,"%s_%s%s.boot",param->q_name,param->scale_part,\
+        sprintf(resf_name,"%s_%s_%s.boot",param->q_name,param->scale_part,\
                 param->dataset_cat);
         rs_sample_save_subsamp(resf_name,'w',s_fit,s,s);
     }
