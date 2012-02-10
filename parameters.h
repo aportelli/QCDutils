@@ -2,6 +2,7 @@
 #define PARAMETERS_H_
 
 #include <latan/latan_fit.h>
+#include <latan/latan_statistics.h>
 
 typedef struct fit_init_s
 {
@@ -58,6 +59,8 @@ typedef struct fit_param_s
     size_t nsample;
     size_t ninit_param;
     const fit_model *model;
+    rs_sample *a;
+    mat *a_err;
 } fit_param;
 
 #define IS_ANALYZE(param,prog) (strcmp((param)->analyze,prog)==0)

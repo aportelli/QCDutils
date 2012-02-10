@@ -111,6 +111,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                                 param->scale_part,param->dataset_cat,ext);
                         rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                         rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,ens_ind);
+                        rs_sample_set_subsamp(param->a,s_tmp,bind,bind);
                     }
                     else
                     {
@@ -146,6 +147,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
     mat_eqsqrt(q_err[0]);
     rs_sample_varp(q_err[1],s_q[1]);
     mat_eqsqrt(q_err[1]);
+    rs_sample_varp(param->a_err,param->a);
+    mat_eqsqrt(param->a_err);
     
     /* display */
 #define PRINT_DLABEL(name) fprintf(outf[i],"%-12s  ",name)

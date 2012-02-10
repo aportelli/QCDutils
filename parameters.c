@@ -266,6 +266,8 @@ fit_param * fit_param_parse(const strbuf fname)
         }
     }
     END_FOR_LINE_TOK(field);
+    param->a     = rs_sample_create(param->nbeta,param->nsample);
+    param->a_err = mat_create(param->nbeta,1);
     
     return param;
 }
@@ -276,5 +278,7 @@ void fit_param_destroy(fit_param *param)
     free(param->point);
     free(param->dataset);
     free(param->beta);
+    rs_sample_destroy(param->a);
+    mat_destroy(param->a_err);
     free(param);
 }

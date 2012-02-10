@@ -106,7 +106,16 @@ double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     /* what is the lattice spacing ? */
     if (IS_ANALYZE(param,"phypt"))
     {
-        a = mat_get(X,i_a,0);
+        /** a global parameter with error (with external scale samples) **/
+        if (param->with_ext_a)
+        {
+            a = (!param->plotting) ? mat_get(p,I_a(bind),0) : mat_get(X,i_a,0);
+        }
+        /** a x coordinate (with the ratio method) **/
+        else
+        {
+            a = mat_get(X,i_a,0);
+        }
         s = 0;
     }
     else if (IS_ANALYZE(param,"comb_phypt_scale"))
@@ -174,6 +183,10 @@ size_t fm_phypt_a_taylor_npar(void* vparam)
     if (param->with_qed_fvol)
     {
         npar++;
+    }
+    if (IS_ANALYZE(param,"phypt")&&(param->with_ext_a))
+    {
+        npar += param->nbeta;
     }
     
     return npar;

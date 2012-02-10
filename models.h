@@ -7,6 +7,7 @@
 #define DMSQ_K (SQ(NU_M_K_p)-SQ(NU_M_K_0))
 
 /* prototypes */
+double a_error_chi2_ext(mat *p, void *vd);
 double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam);
 size_t fm_phypt_a_taylor_npar(void* vparam);
 void   fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \

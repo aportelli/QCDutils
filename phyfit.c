@@ -115,13 +115,21 @@ int main(int argc, char *argv[])
     }
     else if (IS_ANALYZE(param,"scaleset"))
     {
-        sprintf(chi2f_name,"scale_%s_%s.chi2",param->scale_part,\
+        sprintf(chi2f_name,"a_%s_%s.chi2",param->scale_part,\
                 param->dataset_cat);
     }
     chi2f = fopen(chi2f_name,"w");
     fit_data_fit_all_points(d,true);
     fit_data_set_model(d,param->model,param);
     mat_cst(rs_sample_pt_cent_val(s_fit),0.0001);
+    if (IS_ANALYZE(param,"phypt")&&(param->with_ext_a))
+    {
+        fit_data_set_chi2_ext(d,&a_error_chi2_ext);
+        mat_set_subm(rs_sample_pt_cent_val(s_fit),   \
+                     rs_sample_pt_cent_val(param->a),\
+                     npar-param->nbeta,0,npar-1,0);
+        fit_data_set_ndumbpar(d,param->nbeta);
+    }
     for (i=0;i<param->ninit_param;i++)
     {
         mat_set(rs_sample_pt_cent_val(s_fit),param->init_param[i].ind,0,\
