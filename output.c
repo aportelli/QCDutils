@@ -210,6 +210,10 @@ void print_result(const rs_sample *s_fit, fit_param *param)
                 PRINT_PAR(buf);
             }
         }
+        if (param->s_with_aM_s)
+        {
+            PRINT_PAR("s_aM_s");
+        }
         if (param->s_with_umd)
         {
             PRINT_PAR("s_p_miso");

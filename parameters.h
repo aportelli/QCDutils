@@ -27,6 +27,7 @@ typedef struct fit_param_s
     int M_s_deg;
     int s_M_s_deg;
     int a_deg;
+    int s_with_aM_s;
     int with_umd;
     int s_with_umd;
     int have_umd;

@@ -111,6 +111,7 @@ fit_param * fit_param_parse(const strbuf fname)
     param->s_M_s_deg       = 0;
     param->M_scale         = -1.0;
     param->a_deg           = 0;
+    param->s_with_aM_s         = 0;
     param->with_umd        = 0;
     param->s_with_umd      = 0;
     param->have_umd        = 0;
@@ -149,6 +150,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_D(param,M_s);
             GET_PARAM_D(param,M_scale);
             GET_PARAM_I(param,a_deg);
+            GET_PARAM_I(param,s_with_aM_s);
             GET_PARAM_I(param,with_umd);
             GET_PARAM_I(param,s_with_umd);
             GET_PARAM_I(param,with_qed_fvol);
