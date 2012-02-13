@@ -134,7 +134,7 @@ double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     dimfac = (!param->plotting) ? a : 1.0;
     M_ud   = mat_get(X,i_ud,0)/SQ(dimfac) - SQ(param->M_ud);
     M_s    = mat_get(X,i_s,0)/SQ(dimfac) - SQ(param->M_s);
-    umd    = mat_get(X,i_umd,0)/SQ(dimfac) - DMSQ_K;
+    umd    = mat_get(X,i_umd,0)/SQ(dimfac) - param->M_umd;
     Linv   = mat_get(X,i_Linv,0)/dimfac; 
     
     /* constant term (extrapolated quantity) */
@@ -237,7 +237,7 @@ void fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
     if (param->with_umd)
     {
         sprintf(buf,"+%e*(%s-%e)",mat_get(p,I_umd(0)+s,0),\
-                x_str[i_umd],DMSQ_K);
+                x_str[i_umd],param->M_umd);
         strcat(str,buf);
     }
     if (param->with_qed_fvol > 0)
@@ -284,7 +284,7 @@ double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     Linv    = mat_get(X,i_Linv,0)/(a*M_scale);
     M_ud    = mat_get(X,i_ud,0)/SQ(a*M_scale)-SQ(param->M_ud)/SQ(M_scale);
     M_s     = mat_get(X,i_s,0)/SQ(a*M_scale)-SQ(param->M_s)/SQ(M_scale);
-    umd     = mat_get(X,i_umd,0)/SQ(a*M_scale)-DMSQ_K/SQ(M_scale);
+    umd     = mat_get(X,i_umd,0)/SQ(a*M_scale)-param->M_umd/SQ(M_scale);
     
     res += 1.0;
     ud_s_taylor(res,p,0,M_ud,param->s_M_ud_deg,M_s,param->s_M_s_deg,param);
@@ -347,7 +347,7 @@ void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
     M_scale   = param->M_scale;
     M_ud_phi  = SQ(param->M_ud)/SQ(M_scale);
     M_s_phi   = SQ(param->M_s)/SQ(M_scale);
-    M_umd_phi = DMSQ_K/SQ(M_scale);
+    M_umd_phi = param->M_umd/SQ(M_scale);
     
     for (j=0;j<N_EX_VAR;j++)
     {

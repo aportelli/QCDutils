@@ -4,8 +4,6 @@
 #include <latan/latan_fit.h>
 #include <latan/latan_nunits.h>
 
-#define DMSQ_K (SQ(NU_M_K_p)-SQ(NU_M_K_0))
-
 /* prototypes */
 double a_error_chi2_ext(mat *p, void *vd);
 double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam);

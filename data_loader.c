@@ -91,8 +91,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 rs_sample_cst(s_tmp,bind);
                 rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,ens_ind);
                 /* m_u - m_d fixing quantity if possible */
-                sprintf(sf_name,"%s/dMsq_K_%s.boot%s",ens_pt->dir,\
-                        param->dataset[d],ext);
+                sprintf(sf_name,"%s/%s_%s.boot%s",ens_pt->dir,\
+                        param->umd_name,param->dataset[d],ext);
                 if (access(sf_name,R_OK) == 0)
                 {
                     rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
@@ -192,7 +192,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
         }
         if (param->with_umd)
         {
-            PRINT_DLABEL_WERR("m_u-m_d");
+            PRINT_DLABEL_WERR(param->umd_name);
         }
         if (param->with_qed_fvol)
         {

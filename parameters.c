@@ -109,6 +109,7 @@ fit_param * fit_param_parse(const strbuf fname)
     param->M_s             = -1.0;
     param->M_s_deg         = 0;
     param->s_M_s_deg       = 0;
+    param->M_umd           = 0.0;
     param->M_scale         = -1.0;
     param->a_deg           = 0;
     param->s_with_aM_s         = 0;
@@ -137,6 +138,7 @@ fit_param * fit_param_parse(const strbuf fname)
     strbufcpy(param->scale_part,"");
     strbufcpy(param->ud_name,"");
     strbufcpy(param->s_name,"");
+    strbufcpy(param->umd_name,"");
     strbufcpy(param->manifest,"");
     BEGIN_FOR_LINE_TOK(field,fname," \t",nf,lc)
     {
@@ -149,6 +151,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_I(param,s_M_s_deg);
             GET_PARAM_D(param,M_s);
             GET_PARAM_D(param,M_scale);
+            GET_PARAM_D(param,M_umd);
             GET_PARAM_I(param,a_deg);
             GET_PARAM_I(param,s_with_aM_s);
             GET_PARAM_I(param,with_umd);
@@ -163,6 +166,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_S(param,scale_part);
             GET_PARAM_S(param,ud_name);
             GET_PARAM_S(param,s_name);
+            GET_PARAM_S(param,umd_name);
             GET_PARAM_S(param,manifest);
             if ((strcmp(field[0],"q_target") == 0)&&(nf >= 2))
             {
@@ -182,7 +186,7 @@ fit_param * fit_param_parse(const strbuf fname)
                 param->init_param = (fit_init *)realloc(param->init_param,    \
                                          param->ninit_param*sizeof(fit_init));
                 param->init_param[param->ninit_param-1].ind   =\
-                    (size_t)ATOI(field[1]);
+                                                        (size_t)ATOI(field[1]);
                 param->init_param[param->ninit_param-1].value = ATOF(field[2]);
             }
         }

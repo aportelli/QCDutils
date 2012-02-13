@@ -42,6 +42,7 @@ typedef struct fit_param_s
     ens *point;
     double M_ud;
     double M_s;
+    double M_umd;
     double M_scale;
     double q_target[2];
     strbuf analyze;
@@ -49,6 +50,7 @@ typedef struct fit_param_s
     strbuf scale_part;
     strbuf ud_name;
     strbuf s_name;
+    strbuf umd_name;
     strbuf *dataset;
     strbuf dataset_cat;
     strbuf manifest;

@@ -56,7 +56,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d, \
                 param->q_name,param->scale_part,param->dataset_cat,param->manifest);
         mat_set(phy_pt,i_ud,0,SQ(param->M_ud));
         mat_set(phy_pt,i_s,0,SQ(param->M_s));
-        mat_set(phy_pt,i_umd,0,DMSQ_K);
+        mat_set(phy_pt,i_umd,0,param->M_umd);
         mat_set(phy_pt,i_bind,0,0.0);
         mat_set(phy_pt,i_a,0,0.0);
         mat_set(phy_pt,i_Linv,0,0.0);
@@ -129,7 +129,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d, \
             fit_data_fit_region(d,xb);
             mat_set(phy_pt,i_ud,0,SQ(a*param->M_ud));
             mat_set(phy_pt,i_s,0,SQ(a*param->M_s));
-            mat_set(phy_pt,i_umd,0,SQ(a)*DMSQ_K);
+            mat_set(phy_pt,i_umd,0,SQ(a)*param->M_umd);
             mat_set(phy_pt,i_bind,0,bind);
             mat_set(phy_pt,i_a,0,a);
             mat_set(phy_pt,i_Linv,0,0.0);
