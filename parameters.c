@@ -15,16 +15,19 @@
 if (strcmp(field[0],#name) == 0)\
 {\
     (param)->name = ATOI(field[1]);\
+    continue;\
 }
 #define GET_PARAM_D(param,name)\
 if (strcmp(field[0],#name) == 0)\
 {\
     (param)->name = ATOF(field[1]);\
+    continue;\
 }
 #define GET_PARAM_S(param,name)\
 if (strcmp(field[0],#name) == 0)\
 {\
     strbufcpy((param)->name,field[1]);\
+    continue;\
 }
 
 static int ind_dataset(const strbuf dataset, const fit_param *param);
@@ -172,6 +175,7 @@ fit_param * fit_param_parse(const strbuf fname)
             {
                 param->q_target[0] = ATOF(field[1]);
                 param->q_target[1] = ATOF(field[2]);
+                continue;
             }
             if ((strcmp(field[0],"dataset") == 0)&&(nf >= 2))
             {
@@ -179,6 +183,7 @@ fit_param * fit_param_parse(const strbuf fname)
                 {
                     add_dataset(param,field[i]);
                 }
+                continue;
             }
             if ((strcmp(field[0],"init_param") == 0)&&(nf >= 3))
             {
@@ -188,7 +193,10 @@ fit_param * fit_param_parse(const strbuf fname)
                 param->init_param[param->ninit_param-1].ind   =\
                                                         (size_t)ATOI(field[1]);
                 param->init_param[param->ninit_param-1].value = ATOF(field[2]);
+                continue;
             }
+            fprintf(stderr,"warning: line %d of %s ignored (syntax error)\n",\
+                    lc,fname);
         }
     }
     END_FOR_LINE_TOK(field);
