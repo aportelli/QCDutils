@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     /*              data fitting                */
     /********************************************/
     fit_data *d;
-    size_t npar,nydim,bind;
+    size_t npar,nydim,bind,s;
     size_t j;
     rs_sample *s_fit,*s_tmp,**s_pt;
     mat *fit,*fit_var;
@@ -122,6 +122,18 @@ int main(int argc, char *argv[])
     fit_data_fit_all_points(d,true);
     fit_data_set_model(d,param->model,param);
     mat_cst(rs_sample_pt_cent_val(s_fit),0.0001);
+    if (IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        s = fm_scaleset_taylor_npar(param);
+    }
+    else
+    {
+        s = 0;
+    }
+    if (IS_ANALYZE(param,"phypt")||IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        mat_set(rs_sample_pt_cent_val(s_fit),s,0,param->q_target[0]);
+    }
     if (IS_ANALYZE(param,"phypt")&&(param->with_ext_a))
     {
         fit_data_set_chi2_ext(d,&a_error_chi2_ext);
@@ -225,16 +237,6 @@ int main(int argc, char *argv[])
     
     /*              result output               */
     /********************************************/
-    size_t s;
-    
-    if (IS_ANALYZE(param,"comb_phypt_scale"))
-    {
-        s = fm_scaleset_taylor_npar(param);
-    }
-    else
-    {
-        s = 0;
-    }
         
     /* parameters */
     print_result(s_fit,param);
