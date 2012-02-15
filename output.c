@@ -1,5 +1,6 @@
 #include "output.h"
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 #include <latan/latan_math.h>
 #include <latan/latan_plot.h>
@@ -22,8 +23,8 @@ plot_set_ylabel(p[kx],ylabel);\
 plot_disp(p[kx]);
 
 
-void plot_fit(const mat *fit, const mat *fit_var, fit_data *d, \
-              fit_param *param, plot_flag f)
+void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
+              fit_param *param, const plot_flag f)
 {
     plot *p[N_EX_VAR];
     double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL};
@@ -164,6 +165,59 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d, \
 }
 #undef ADD_PLOT
 
+void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
+                    const strbuf title)
+{
+    strbuf *tmpfname,plotcmd;
+    size_t nbeta,nens,nydim,bind;
+    size_t i;
+    FILE **tmpf;
+    plot *p;
+    
+    nbeta    = param->nbeta;
+    nens     = param->nens;
+    nydim    = fit_data_get_nydim(d);
+    
+    tmpf     = (FILE **)malloc(nbeta*nydim*sizeof(FILE *));
+    tmpfname = (strbuf *)malloc(nbeta*nydim*sizeof(strbuf));
+    p        = plot_create();
+    
+    for (i=0;i<nbeta;i++)
+    {
+        sprintf(tmpfname[i],".qcd_phyfit_tmp_%d",(int)i);
+        tmpf[i] = fopen(tmpfname[i],"w");
+    }
+    for (i=0;i<nens;i++)
+    {
+        bind = ind_beta(param->point[i].beta,param);
+        fprintf(tmpf[bind],"%s %e %e\n",param->point[i].dir,(double)(i),\
+                mat_get(d->chi2_comp,i+k*nens,0));
+    }
+    for (i=0;i<nbeta;i++)
+    {
+        fclose(tmpf[i]);
+        sprintf(plotcmd,"'%s' u 2:3:xtic(1) t '%s' w impulse",tmpfname[i],\
+                param->beta[i]);
+        plot_add_plot(p,plotcmd);
+    }
+    plot_add_head(p,"set xtics rotate by -90 font 'courier, 10'");
+    plot_set_scale_manual(p,-1.0,(double)(param->nens+1),0.0,5.0);
+    plot_add_plot(p,"1.0 lt -1 lc rgb 'black' notitle");
+    plot_add_plot(p,"2.0 lt -1 lc rgb 'dark-gray' notitle");
+    plot_add_plot(p,"3.0 lt -1 lc rgb 'gray' notitle");
+    plot_add_plot(p,"4.0 lt -1 lc rgb 'light-gray' notitle");
+    plot_set_ylabel(p,"standard deviations");
+    plot_set_title(p,title);
+    plot_disp(p);
+    for (i=0;i<nbeta;i++)
+    {
+        remove(tmpfname[i]);
+    }
+    
+    free(tmpf);
+    free(tmpfname);
+    plot_destroy(p);
+}
 
 #define PRINT_PAR(name)\
 {\

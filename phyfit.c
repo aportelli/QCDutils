@@ -166,6 +166,11 @@ int main(int argc, char *argv[])
     }
     /** print results **/
     print_result(s_fit,param);
+    if (IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        plot_chi2_comp(d,param,0,"scale setting");
+        plot_chi2_comp(d,param,1,"physical point fit");
+    }
     /** display plots **/
     use_x_var[i_ud]  = (param->M_ud_deg != 0)\
                        ||((param->s_M_ud_deg != 0)&&!IS_ANALYZE(param,"phypt"));
