@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
     mat **prop_PP;
     
     ndat  = (size_t)get_nfile(manf_name);
-    nbdat = ndat/binsize;
+    nbdat = ndat/binsize + ((ndat%binsize == 0) ? 0 : 1);
     hadron_prop_load_nt(&nt,h_AP,source,sink,manf_name);
     
     prop_AP = mat_ar_create(nbdat,nt,1);

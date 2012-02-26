@@ -62,13 +62,14 @@ int main(int argc, char* argv[])
     
     /*              loading datas               */
     /********************************************/
-    size_t ndat,nt;
+    size_t ndat,nbdat,nt;
     mat **prop;
     
     ndat    = (size_t)get_nfile(manf_name);
+    nbdat   = ndat/binsize + ((ndat%binsize == 0) ? 0 : 1);
     hadron_prop_load_nt(&nt,h,source,sink,manf_name);
     
-    prop = mat_ar_create(ndat,nt,1);
+    prop = mat_ar_create(nbdat,nt,1);
 
     io_init();
     qcd_printf(opt,"-- loading %s datas from %s...\n",h->name,manf_name);
@@ -120,7 +121,7 @@ int main(int argc, char* argv[])
     FREE(opt);
     spectrum_destroy(s);
     io_finish();
-    mat_ar_destroy(prop,ndat);
+    mat_ar_destroy(prop,nbdat);
     rs_sample_destroy(s_mprop);
     mat_destroy(sig);
     
