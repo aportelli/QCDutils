@@ -201,11 +201,16 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
         plot_add_plot(p,plotcmd);
     }
     plot_add_head(p,"set xtics rotate by -90 font 'courier, 10'");
-    plot_set_scale_manual(p,-1.0,(double)(param->nens+1),0.0,5.0);
+    plot_set_scale_manual(p,-1.0,(double)(param->nens+1),-5.0,5.0);
+    plot_add_plot(p,"0.0 lt -1 lc rgb 'black' notitle");
     plot_add_plot(p,"1.0 lt -1 lc rgb 'black' notitle");
+    plot_add_plot(p,"-1.0 lt -1 lc rgb 'black' notitle");
     plot_add_plot(p,"2.0 lt -1 lc rgb 'dark-gray' notitle");
+    plot_add_plot(p,"-2.0 lt -1 lc rgb 'dark-gray' notitle");
     plot_add_plot(p,"3.0 lt -1 lc rgb 'gray' notitle");
+    plot_add_plot(p,"-3.0 lt -1 lc rgb 'gray' notitle");
     plot_add_plot(p,"4.0 lt -1 lc rgb 'light-gray' notitle");
+    plot_add_plot(p,"-4.0 lt -1 lc rgb 'light-gray' notitle");
     plot_set_ylabel(p,"standard deviations");
     plot_set_title(p,title);
     plot_disp(p);
