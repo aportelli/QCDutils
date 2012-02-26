@@ -229,6 +229,15 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
            sqrt(mat_get(fit_var,i,0))/fabs(mat_get(fit,i,0))*100.0);\
     i++;\
 }
+#define PRINT_SCALE(name)\
+{\
+    double sig_,p_;\
+    sig_ = sqrt(mat_get(fit_var,i,0));\
+    p_   = mat_get(fit,i,0);\
+    printf("%10s = %e (%.4f%%) (%s^-1 = %.0f(%.0f) MeV)\n",name,\
+           p_,sig_/fabs(p_)*100.0,name,1.0/p_,sig_/SQ(p_));\
+    i++;\
+}
 
 void print_result(const rs_sample *s_fit, fit_param *param)
 {
@@ -249,8 +258,8 @@ void print_result(const rs_sample *s_fit, fit_param *param)
     {
         for(j=0;j<(int)param->nbeta;j++)
         {
-            sprintf(buf,"a_%s",param->beta[i]);
-            PRINT_PAR(buf);
+            sprintf(buf,"a_%s",param->beta[j]);
+            PRINT_SCALE(buf);
         }
         if (param->s_M_ud_deg > 0)
         {
@@ -323,6 +332,14 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         if (param->with_qed_fvol)
         {
             PRINT_PAR("p_fvol_L");
+        }
+        if (IS_ANALYZE(param,"phypt")&&(param->with_ext_a))
+        {
+            for(j=0;j<(int)param->nbeta;j++)
+            {
+                sprintf(buf,"corr_a_%s",param->beta[j]);
+                PRINT_SCALE(buf);
+            }
         }
     }
     printf("\n");
