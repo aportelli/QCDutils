@@ -219,7 +219,15 @@ int main(int argc, char *argv[])
     }
     /** print results **/   
     print_result(s_fit,param);
-    if (IS_ANALYZE(param,"comb_phypt_scale"))
+    if (IS_ANALYZE(param,"phypt"))
+    {
+        plot_chi2_comp(d,param,0,"physical point fit");
+    }
+    else if (IS_ANALYZE(param,"scaleset"))
+    {
+        plot_chi2_comp(d,param,0,"scale setting");
+    }
+    else if (IS_ANALYZE(param,"comb_phypt_scale"))
     {
         plot_chi2_comp(d,param,0,"scale setting");
         plot_chi2_comp(d,param,1,"physical point fit");
