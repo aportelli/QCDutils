@@ -1,6 +1,5 @@
 #include "output.h"
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 #include <latan/latan_math.h>
 #include <latan/latan_plot.h>
@@ -331,3 +330,99 @@ void print_result(const rs_sample *s_fit, fit_param *param)
     mat_destroy(fit_var);
 }
 #undef PRINT_PAR
+
+#define PRINT_DLABEL(name) fprintf(stream,"%-12s  ",name)
+#define PRINT_DLABEL_WERR(name) fprintf(stream,"%-12s %-12s  ",name,"error")
+#define PRINT_D(value) fprintf(stream,"% .5e  ",value)
+#define PRINT_D_WERR(value,err) fprintf(stream,"% .5e % .5e  ",value,err)
+#define PRINT_X(ind,dim)\
+PRINT_D(mat_get(rs_sample_pt_cent_val(s_x[ind]),ens_ind,0))
+#define PRINT_CV_WERR(s,s_err)\
+PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s),ens_ind,0),\
+             mat_get(s_err,ens_ind,0))
+#define PRINT_X_WERR(ind) PRINT_CV_WERR(s_x[ind],x_err[ind])
+void fprint_table(FILE* stream, rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2],\
+                  const mat *res, const fit_param *param, const plot_flag f)
+{
+    mat **x_err,*q_err;
+    const rs_sample *s_q_pt;
+    double have_dim;
+    size_t nens,ydim;
+    size_t ens_ind;
+    
+    nens     = param->nens;
+    have_dim = (f == SCALE) ? 0.0 : 1.0;
+    ydim     = (f == SCALE) ? 0   : 1;
+    s_q_pt   = s_q[ydim];
+    
+    x_err = mat_ar_create(N_EX_VAR,nens,1);
+    q_err = mat_create(nens,1);
+    
+    /* computing errors */
+    rs_sample_varp(x_err[i_ud],s_x[i_ud]);
+    mat_eqsqrt(x_err[i_ud]);
+    rs_sample_varp(x_err[i_s],s_x[i_s]);
+    mat_eqsqrt(x_err[i_s]);
+    rs_sample_varp(x_err[i_a],s_x[i_a]);
+    mat_eqsqrt(x_err[i_a]);
+    rs_sample_varp(x_err[i_umd],s_x[i_umd]);
+    mat_eqsqrt(x_err[i_umd]);
+    rs_sample_varp(x_err[i_Linv],s_x[i_Linv]);
+    mat_eqsqrt(x_err[i_Linv]);
+    rs_sample_varp(q_err,s_q_pt);
+    mat_eqsqrt(q_err);
+    
+    /* display */
+    fprintf(stream,"#%29s  ","ensemble");
+    PRINT_DLABEL_WERR(param->ud_name);
+    PRINT_DLABEL_WERR(param->s_name);
+    if (f == Q)
+    {
+        PRINT_DLABEL_WERR("a");
+    }
+    if (param->have_umd)
+    {
+        PRINT_DLABEL_WERR(param->umd_name);
+    }
+    PRINT_DLABEL_WERR("1/L");
+    if (f == Q)
+    {
+        PRINT_DLABEL_WERR(param->q_name);
+    }
+    else if (f == SCALE)
+    {
+        PRINT_DLABEL_WERR(param->scale_part);
+    }
+    PRINT_DLABEL("residuals");
+    fprintf(stream,"\n");
+    for(ens_ind=0;ens_ind<nens;ens_ind++)
+    {
+        fprintf(stream,"%30s  ",param->point[ens_ind].dir);
+        PRINT_X_WERR(i_ud);
+        PRINT_X_WERR(i_s);
+        if (f == Q)
+        {
+            PRINT_X_WERR(i_a);
+        }
+        if (param->have_umd)
+        {
+            PRINT_X_WERR(i_umd);
+        }
+        PRINT_X_WERR(i_Linv);
+        PRINT_CV_WERR(s_q_pt,q_err);
+        PRINT_D(mat_get(res,ens_ind,0));
+        fprintf(stream,"\n");
+    }
+    fprintf(stream,"\n");
+
+    mat_ar_destroy(x_err,N_EX_VAR);
+    mat_destroy(q_err);
+}
+
+#undef PRINT_DLABEL
+#undef PRINT_DLABEL_WERR
+#undef PRINT_D
+#undef PRINT_D_WERR
+#undef PRINT_X
+#undef PRINT_X_WERR
+#undef PRINT_Q_WERR

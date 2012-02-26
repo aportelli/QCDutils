@@ -34,6 +34,7 @@ enum
         for (d_=0;d_<param->q_dim;d_++)\
         {\
             rs_sample_eqdivp(s_q[1],s_x[i_a]);\
+            mat_eqdivp(res[1],rs_sample_pt_cent_val(s_x[i_a]));\
         }\
     }\
     else if (unit == A)\
@@ -48,6 +49,7 @@ enum
         for (d_=0;d_<param->q_dim;d_++)\
         {\
             rs_sample_eqmulp(s_q[1],s_x[i_a]);\
+            mat_eqmulp(res[1],rs_sample_pt_cent_val(s_x[i_a]));\
         }\
     }\
 }
@@ -95,10 +97,10 @@ int main(int argc, char *argv[])
     size_t npar,nydim,bind,s;
     size_t j;
     rs_sample *s_fit,*s_tmp,**s_pt;
-    mat *fit,*fit_var;
+    mat *fit,*fit_var,**res;
     strbuf resf_name, chi2f_name;
     bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false};
-    FILE *chi2f;
+    FILE *chi2f,*tablef;
     
     nydim   = IS_ANALYZE(param,"comb_phypt_scale") ? 2 : 1;
     d       = fit_data_create(param->nens,N_EX_VAR,nydim);
@@ -107,6 +109,7 @@ int main(int argc, char *argv[])
     s_pt    = IS_ANALYZE(param,"phypt") ? s_q + 1 : s_q;
     s_tmp   = rs_sample_create(1,param->nsample);
     fit_var = mat_create(npar,1);
+    res     = mat_ar_create(2,param->nens,1);
     
     if (IS_ANALYZE(param,"phypt")||IS_ANALYZE(param,"comb_phypt_scale"))
     {
@@ -161,12 +164,25 @@ int main(int argc, char *argv[])
     /* uncorrelated fit without x errors to find a good initial value */
     printf("-- pre-fit...\n");
     rs_data_fit(s_fit,s_x,s_pt,d,NO_COR,use_x_var);
+    if (IS_ANALYZE(param,"phypt"))
+    {
+        fit_residual(res[1],d,0,fit);
+    }
+    else if (IS_ANALYZE(param,"scaleset"))
+    {
+        fit_residual(res[0],d,0,fit);
+    }
+    else if (IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        fit_residual(res[0],d,0,fit);
+        fit_residual(res[1],d,1,fit);
+    }
     /** save chi^2/dof **/
     printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
     fprintf(chi2f,"uncorrelated : %e\n",fit_data_get_chi2pdof(d));
     /** compute errors **/
     rs_sample_varp(fit_var,s_fit);
-    /** save lattice spacings in 'comb_phypt_scale' **/
+    /** save lattice spacings **/
     if (IS_ANALYZE(param,"comb_phypt_scale"))
     {
         for (i=0;i<param->nens;i++)
@@ -176,7 +192,32 @@ int main(int argc, char *argv[])
             rs_sample_set_subsamp(s_x[i_a],s_tmp,i,i);
         }
     }
-    /** print results **/
+    else if (IS_ANALYZE(param,"phypt")&&(param->with_ext_a))
+    {
+        for (i=0;i<param->nens;i++)
+        {
+            bind = (size_t)(mat_get(rs_sample_pt_cent_val(s_x[i_bind]),i,0));
+            rs_sample_get_subsamp(s_tmp,s_fit,npar-param->nbeta+bind,\
+                                  npar-param->nbeta+bind);
+            rs_sample_set_subsamp(s_x[i_a],s_tmp,i,i);
+        }
+    }
+    /** save tables **/
+    if (IS_ANALYZE(param,"phypt")||IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        tablef = fopen("qcd_phyfit_q.dat","w");
+        SCALE_DATA(AINV);
+        fprint_table(tablef,s_x,s_q,res[1],param,Q);
+        SCALE_DATA(A);
+        fclose(tablef);
+    }
+    if (IS_ANALYZE(param,"scaleset")||IS_ANALYZE(param,"comb_phypt_scale"))
+    {
+        tablef = fopen("qcd_phyfit_scale.dat","w");
+        fprint_table(tablef,s_x,s_q,res[0],param,SCALE);
+        fclose(tablef);
+    }
+    /** print results **/   
     print_result(s_fit,param);
     if (IS_ANALYZE(param,"comb_phypt_scale"))
     {

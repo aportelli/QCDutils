@@ -15,33 +15,17 @@
 
 void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
 {
-    strbuf M_str,Msq_str,ext,sf_name,ud_lbl,s_lbl;
+    strbuf M_str,Msq_str,ext,sf_name;
     size_t nsample,nens;
     size_t ens_ind,bind,d;
-    int i;
     rs_sample *s_tmp;
     ens *ens_pt;
-    mat **x_err,*q_err[2];
-    FILE *table_dump,*outf[2];
 
     nsample  = param->nsample;
     nens     = param->nens;
     
     s_tmp    = rs_sample_create(1,nsample);
-    x_err    = mat_ar_create(N_EX_VAR,nens,1);
-    q_err[0] = mat_create(nens,1);
-    q_err[1] = mat_create(nens,1);
     
-    if (IS_ANALYZE(param,"phypt"))
-    {
-        sprintf(ud_lbl,"M_%s^2",param->ud_name);
-        sprintf(s_lbl,"M_%s^2",param->s_name);
-    }
-    else if (IS_ANALYZE(param,"scaleset")||IS_ANALYZE(param,"comb_phypt_scale"))
-    {
-        sprintf(ud_lbl,"(a*M_%s)^2",param->ud_name);
-        sprintf(s_lbl,"(a*M_%s)^2",param->s_name);
-    }
     strbufcpy(M_str,"M");
     strbufcpy(Msq_str,"Msq");
     switch (io_get_fmt())
@@ -128,112 +112,9 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                     rs_sample_cst(s_tmp,1.0);
                     rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,ens_ind);
                 }
+                rs_sample_varp(param->a_err,param->a);
+                mat_eqsqrt(param->a_err);
             }
         }
     }
-    
-    /* computing errors */
-    rs_sample_varp(x_err[i_ud],s_x[i_ud]);
-    mat_eqsqrt(x_err[i_ud]);
-    rs_sample_varp(x_err[i_s],s_x[i_s]);
-    mat_eqsqrt(x_err[i_s]);
-    rs_sample_varp(x_err[i_a],s_x[i_a]);
-    mat_eqsqrt(x_err[i_a]);
-    rs_sample_varp(x_err[i_umd],s_x[i_umd]);
-    mat_eqsqrt(x_err[i_umd]);
-    rs_sample_varp(x_err[i_Linv],s_x[i_Linv]);
-    mat_eqsqrt(x_err[i_Linv]);
-    rs_sample_varp(q_err[0],s_q[0]);
-    mat_eqsqrt(q_err[0]);
-    rs_sample_varp(q_err[1],s_q[1]);
-    mat_eqsqrt(q_err[1]);
-    rs_sample_varp(param->a_err,param->a);
-    mat_eqsqrt(param->a_err);
-    
-    /* display */
-#define PRINT_DLABEL(name) fprintf(outf[i],"%-12s  ",name)
-#define PRINT_DLABEL_WERR(name) fprintf(outf[i],"%-12s %-12s  ",name,"error")
-#define PRINT_D(value) fprintf(outf[i],"% .5e  ",value)
-#define PRINT_D_WERR(value,err) fprintf(outf[i],"% .5e % .5e  ",value,err)
-#define PRINT_X(ind,dim)\
-{\
-    double fac;\
-    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_a]),ens_ind,0),dim);\
-    PRINT_D(mat_get(rs_sample_pt_cent_val(s_x[ind]),ens_ind,0)*fac);\
-}
-#define PRINT_X_WERR(ind,dim)\
-{\
-    double fac;\
-    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_a]),ens_ind,0),dim);\
-    PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s_x[ind]),ens_ind,0)*fac,\
-                 mat_get(x_err[ind],ens_ind,0)*fac);\
-}
-#define PRINT_CV_WERR(s,s_err,dim)\
-{\
-    double fac;\
-    fac = pow(1.0/mat_get(rs_sample_pt_cent_val(s_x[i_a]),ens_ind,0),dim);\
-    PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s),ens_ind,0)*fac,\
-                 mat_get(s_err,ens_ind,0)*fac);\
-}
-    
-    
-    table_dump = fopen("phyfit_table.dat","w");
-    outf[0]    = stdout;
-    outf[1]    = table_dump;
-    printf("\n");
-    for (i=0;i<2;i++)
-    {
-        fprintf(outf[i],"#%29s  ","ensemble");
-        PRINT_DLABEL_WERR(ud_lbl);
-        PRINT_DLABEL_WERR(s_lbl);
-        if (IS_ANALYZE(param,"phypt"))
-        {
-            PRINT_DLABEL_WERR("a");
-        }
-        if (param->with_umd)
-        {
-            PRINT_DLABEL_WERR(param->umd_name);
-        }
-        if (param->with_qed_fvol)
-        {
-            PRINT_DLABEL_WERR("1/L");
-        }
-        PRINT_DLABEL_WERR(param->q_name);
-        fprintf(outf[i],"\n");
-        for(ens_ind=0;ens_ind<nens;ens_ind++)
-        {
-            fprintf(outf[i],"%30s  ",param->point[ens_ind].dir);
-            PRINT_X_WERR(i_ud,2);
-            PRINT_X_WERR(i_s,2);
-            if (IS_ANALYZE(param,"phypt"))
-            {
-                PRINT_X_WERR(i_a,0);
-            }
-            if (param->with_umd)
-            {
-                PRINT_X_WERR(i_umd,2);
-            }
-            if (param->with_qed_fvol)
-            {
-                PRINT_X_WERR(i_Linv,1);
-            }
-            PRINT_CV_WERR(s_q[1],q_err[1],param->q_dim);
-            fprintf(outf[i],"\n");
-        }
-        fprintf(outf[i],"\n");
-    }
-    fclose(table_dump);
-
-#undef PRINT_DLABEL
-#undef PRINT_DLABEL_WERR
-#undef PRINT_D
-#undef PRINT_D_WERR
-#undef PRINT_X
-#undef PRINT_X_WERR
-#undef PRINT_Q_WERR
-    
-    rs_sample_destroy(s_tmp);
-    mat_ar_destroy(x_err,N_EX_VAR);
-    mat_destroy(q_err[0]);
-    mat_destroy(q_err[1]);
 }
