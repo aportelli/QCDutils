@@ -59,12 +59,14 @@
     }\
 }
 
-#define I_ud(i)    (i+1)
-#define I_s(i)     (I_ud(i)+(param)->M_ud_deg)
-#define I_discr(i) (I_s(i)+(param)->M_s_deg)
-#define I_umd(i)   (I_discr(i)+(((param)->a_deg > 0) ? 1 : 0))
-#define I_qedfv(i) (I_umd(i)+((param)->with_umd ? 1 : 0))
-#define I_a(i)     (I_qedfv(i)+((param)->with_qed_fvol ? 1 : 0))
+#define I_ud(i)         (i+1)
+#define I_s(i)          (I_ud(i)+(param)->M_ud_deg)
+#define I_discr(i)      (I_s(i)+(param)->M_s_deg)
+#define I_dis_a2M_ud(i) (I_discr(i)+(((param)->a_deg > 0) ? 1 : 0))
+#define I_dis_a2M_s(i)  (I_dis_a2M_ud(i)+((param)->with_a2M_ud ? 1 : 0))
+#define I_umd(i)        (I_dis_a2M_s(i)+((param)->with_a2M_s ? 1 : 0))
+#define I_qedfv(i)      (I_umd(i)+((param)->with_umd ? 1 : 0))
+#define I_a(i)          (I_qedfv(i)+((param)->with_qed_fvol ? 1 : 0))
 
 double a_error_chi2_ext(mat *p, void *vd)
 {
@@ -95,7 +97,7 @@ double a_error_chi2_ext(mat *p, void *vd)
 
 double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,M_ud,M_s,a,dimfac,umd,Linv;
+    double res,M_ud,M_ud2,M_s,a,dimfac,umd,Linv,a2mud,a2ms;
     size_t s,bind;
     fit_param *param;
     
@@ -133,9 +135,12 @@ double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     /* x values */
     dimfac = (!param->plotting) ? a : 1.0;
     M_ud   = mat_get(X,i_ud,0)/SQ(dimfac) - SQ(param->M_ud);
+    M_ud2  = mat_get(X,i_ud,0)/SQ(dimfac);
     M_s    = mat_get(X,i_s,0)/SQ(dimfac) - SQ(param->M_s);
     umd    = mat_get(X,i_umd,0)/SQ(dimfac) - param->M_umd;
-    Linv   = mat_get(X,i_Linv,0)/dimfac; 
+    Linv   = mat_get(X,i_Linv,0)/dimfac;
+    a2mud  = SQ(a)*mat_get(X,i_ud,0)/SQ(dimfac);
+    a2ms   = SQ(a)*mat_get(X,i_s,0)/SQ(dimfac);
     
     /* constant term (extrapolated quantity) */
     res += mat_get(p,s,0);
@@ -145,6 +150,14 @@ double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     if (param->a_deg > 0)
     {
         res += mat_get(p,I_discr(0)+s,0)*pow(a,(double)(param->a_deg));
+    }
+    if (param->with_a2M_ud)
+    {
+        res += mat_get(p,I_dis_a2M_ud(0)+s,0)*a2mud;
+    }
+    if (param->with_a2M_s)
+    {
+        res += mat_get(p,I_dis_a2M_s(0)+s,0)*a2ms;
     }
     /* mass isospin breaking effects */
     if (param->with_umd)
@@ -173,6 +186,14 @@ size_t fm_phypt_a_taylor_npar(void* vparam)
     npar += param->M_ud_deg;
     npar += param->M_s_deg;
     if (param->a_deg > 0)
+    {
+        npar++;
+    }
+    if (param->with_a2M_ud) 
+    {
+        npar++;
+    }
+    if (param->with_a2M_s) 
     {
         npar++;
     }
@@ -234,13 +255,25 @@ void fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
                 param->a_deg);
         strcat(str,buf);
     }
+    if (param->with_a2M_ud)
+    {
+        sprintf(buf,"+%e*%s**2*%s",mat_get(p,I_dis_a2M_ud(0)+s,0),x_str[i_a],\
+                x_str[i_ud]);
+        strcat(str,buf);
+    }
+    if (param->with_a2M_s)
+    {
+        sprintf(buf,"+%e*%s**2*%s",mat_get(p,I_dis_a2M_s(0)+s,0),x_str[i_a],\
+                x_str[i_s]);
+        strcat(str,buf);
+    }
     if (param->with_umd)
     {
         sprintf(buf,"+%e*(%s-%e)",mat_get(p,I_umd(0)+s,0),\
                 x_str[i_umd],param->M_umd);
         strcat(str,buf);
     }
-    if (param->with_qed_fvol > 0)
+    if (param->with_qed_fvol)
     {
         sprintf(buf,"+%e*%s**2",mat_get(p,I_qedfv(0)+s,0),\
                 x_str[i_Linv]);
@@ -261,17 +294,20 @@ const fit_model fm_phypt_a_taylor =
 #undef I_ud
 #undef I_s
 #undef I_discr
+#undef I_dis_a2M_ud
+#undef I_dis_a2M_s
 #undef I_umd
 #undef I_qedfv
-#define I_ud(i)    (i+(param)->nbeta)
-#define I_s(i)     (I_ud(i)+(param)->s_M_ud_deg)
-#define I_discr(i) (I_s(i)+(param)->s_M_s_deg)
-#define I_umd(i)   (I_discr(i)+(((param)->s_with_aM_s) ? 1 : 0))
-#define I_qedfv(i) (I_umd(i)+((param)->s_with_umd ? 1 : 0))
+#define I_ud(i)         (i+(param)->nbeta)
+#define I_s(i)          (I_ud(i)+(param)->s_M_ud_deg)
+#define I_dis_a2M_ud(i) (I_s(i)+(param)->s_M_s_deg)
+#define I_dis_a2M_s(i)  (I_dis_a2M_ud(i)+(((param)->s_with_a2M_ud) ? 1 : 0))
+#define I_umd(i)        (I_dis_a2M_s(i)+(((param)->s_with_a2M_s) ? 1 : 0))
+#define I_qedfv(i)      (I_umd(i)+((param)->s_with_umd ? 1 : 0))
 
 double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,a,M_ud,M_s,umd,M_scale,Linv,ams;
+    double res,a,M_ud,M_s,umd,M_scale,Linv,a2mud,a2ms;
     fit_param *param;
     size_t bind;
     
@@ -280,7 +316,8 @@ double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     bind    = (size_t)(mat_get(X,i_bind,0));
     M_scale = param->M_scale;
     a       = mat_get(p,bind,0);
-    ams     = mat_get(X,i_s,0)/(a*M_scale);
+    a2ms    = mat_get(X,i_s,0)/M_scale;
+    a2mud   = mat_get(X,i_ud,0)/M_scale;
     Linv    = mat_get(X,i_Linv,0)/(a*M_scale);
     M_ud    = mat_get(X,i_ud,0)/SQ(a*M_scale)-SQ(param->M_ud)/SQ(M_scale);
     M_s     = mat_get(X,i_s,0)/SQ(a*M_scale)-SQ(param->M_s)/SQ(M_scale);
@@ -288,10 +325,6 @@ double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     
     res += 1.0;
     ud_s_taylor(res,p,0,M_ud,param->s_M_ud_deg,M_s,param->s_M_s_deg,param);
-    if (param->s_with_aM_s)
-    {
-        res += mat_get(p,I_discr(0),0)*ams;
-    }
     if (param->s_with_umd)
     {
         res += mat_get(p,I_umd(0),0)*umd;
@@ -299,6 +332,14 @@ double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     if (param->s_with_qed_fvol > 0)
     {
         res += mat_get(p,I_qedfv(0),0)*SQ(Linv);
+    }
+    if (param->s_with_a2M_ud)
+    {
+        res += mat_get(p,I_dis_a2M_ud(0),0)*a2mud;
+    }
+    if (param->s_with_a2M_s)
+    {
+        res += mat_get(p,I_dis_a2M_s(0),0)*a2ms;
     }
     res *= a*M_scale;
     
@@ -315,15 +356,19 @@ size_t fm_scaleset_taylor_npar(void* vparam)
     npar  = param->nbeta;
     npar += param->s_M_ud_deg;
     npar += param->s_M_s_deg;
-    if (param->s_with_aM_s)
-    {
-        npar++;
-    }
     if (param->s_with_umd)
     {
         npar++;
     }
     if (param->s_with_qed_fvol)
+    {
+        npar++;
+    }
+    if (param->s_with_a2M_ud)
+    {
+        npar++;
+    }
+    if (param->s_with_a2M_s)
     {
         npar++;
     }
@@ -371,11 +416,6 @@ void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
     sprintf(str,"%e*(1.0",a*M_scale);
     ud_s_taylor_pstr(str,p,0,x_str,M_ud_phi,param->s_M_ud_deg,M_s_phi,\
                      param->s_M_s_deg,param);
-    if (param->s_with_aM_s)
-    {
-        sprintf(buf,"+%e*%e*%s",mat_get(p,I_discr(0),0),a*M_scale,x_str[i_s]);
-        strcat(str,buf);
-    }
     if (param->s_with_umd)
     {
         sprintf(buf,"+%e*(%s-%e)",mat_get(p,I_umd(0),0),x_str[i_umd],\
@@ -385,6 +425,18 @@ void fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
     if (param->s_with_qed_fvol > 0)
     {
         sprintf(buf,"+%e*%s**2",mat_get(p,I_qedfv(0),0),x_str[i_Linv]);
+        strcat(str,buf);
+    }
+    if (param->s_with_a2M_ud)
+    {
+        sprintf(buf,"+%e*%e*%s",mat_get(p,I_dis_a2M_ud(0),0),SQ(a)*M_scale,\
+                x_str[i_ud]);
+        strcat(str,buf);
+    }
+    if (param->s_with_a2M_s)
+    {
+        sprintf(buf,"+%e*%e*%s",mat_get(p,I_dis_a2M_s(0),0),SQ(a)*M_scale,\
+                x_str[i_s]);
         strcat(str,buf);
     }
     strcat(str,")");

@@ -269,13 +269,17 @@ void print_result(const rs_sample *s_fit, fit_param *param)
                 PRINT_PAR(buf);
             }
         }
-        if (param->s_with_aM_s)
+        if (param->s_with_a2M_ud)
         {
-            PRINT_PAR("s_aM_s");
+            PRINT_PAR("s_a2M_ud");
+        }
+        if (param->s_with_a2M_s)
+        {
+            PRINT_PAR("s_a2M_s");
         }
         if (param->s_with_umd)
         {
-            PRINT_PAR("s_p_miso");
+            PRINT_PAR("s_p_umd");
         }
         if (param->s_with_qed_fvol)
         {
@@ -305,9 +309,17 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         {
             PRINT_PAR("p_a");
         }
+        if (param->with_a2M_ud)
+        {
+            PRINT_PAR("p_a2M_ud");
+        }
+        if (param->with_a2M_s)
+        {
+            PRINT_PAR("p_a2M_s");
+        }
         if (param->with_umd)
         {
-            PRINT_PAR("p_miso");
+            PRINT_PAR("p_umd");
         }
         if (param->with_qed_fvol)
         {
