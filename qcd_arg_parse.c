@@ -88,12 +88,14 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     struct arg_int*  a_binsize       = NULL;
     struct arg_str*  a_minimizer     = NULL;
     struct arg_str*  a_range         = NULL;
+    struct arg_lit*  a_uncorr        = NULL;
     struct arg_int*  a_rscan         = NULL;
     struct arg_file* a_manf          = NULL;
     struct arg_end*  a_end           = NULL;
-    strbuf help_msg,ver_msg,verb_msg,fmt_msg,save_rs_msg,load_rg_msg,          \
-    noplot_msg,latspac_fm_msg,qcomp_msg,spec_msg,part_msg,channel_msg,ss_msg,  \
-    binsize_msg,minimizer_msg,range_msg,rscan_msg,manf_msg;
+    strbuf help_msg,ver_msg,verb_msg,fmt_msg,save_rs_msg,load_rg_msg,        \
+           noplot_msg,latspac_fm_msg,qcomp_msg,spec_msg,part_msg,channel_msg,\
+           ss_msg,binsize_msg,minimizer_msg,range_msg,uncorr_msg,rscan_msg,  \
+           manf_msg;
     strbuf defmin;
     
     minalg_id_get(defmin,minimizer_get_alg());
@@ -108,12 +110,13 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     sprintf(latspac_fm_msg  ,"lattice spacing (in fm)"                      );
     sprintf(qcomp_msg       ,"quark composition"                            );
     sprintf(spec_msg        ,"particle spectrum (default: qcd)"             );
-    sprintf(part_msg        ,"particle name"                                );
+    sprintf(part_msg        ,"particle(s) name(s)"                          );
     sprintf(channel_msg     ,"custom channel label"                         );
     sprintf(ss_msg          ,"particle source and sink (e.g GG,GP...)"      );
     sprintf(binsize_msg     ,"data binning size (default: 1)"               );
     sprintf(minimizer_msg   ,"minimizer (default: %s)",defmin               );
     sprintf(range_msg       ,"manual fit range"                             );
+    sprintf(uncorr_msg      ,"use uncorrelated chi^2"                       );
     sprintf(rscan_msg       ,"perform fit range scan"                       );
     sprintf(manf_msg        ,"LatAnalyze data manifest"                     );
 
@@ -144,7 +147,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     if (argset_flag & A_PARTICLE)
     {
         a_spec          = arg_str0("s","spectrum","{qcd|qcdqed}",spec_msg);
-        a_part          = arg_str1("p","particle","NAME",part_msg);
+        a_part          = arg_strn("p","particle","NAME",1,2,part_msg);
     }
     if (argset_flag & A_CHANNEL)
     {
@@ -163,14 +166,13 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
         a_minimizer     = arg_str0("M","minimizer","ID",minimizer_msg);
         a_range         = arg_strn("R","range","[min,max]",0,MAX_RANGES,\
                                    range_msg);
+        a_uncorr        = arg_lit0(NULL,"uncorr",uncorr_msg);
         a_rscan         = arg_int0("f","range-scan",NULL,rscan_msg);
     }
     a_end   = arg_end(A_MAX_NERROR);
     
     a_table_size = 4;
-
     QCD_MALLOC(a_table,void**,a_table_size);
-
     a_table[0] = a_help;
     a_table[1] = a_ver;
     a_table[2] = a_verb;
@@ -237,12 +239,13 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     }
     if (argset_flag & A_FIT)
     {
-        a_table_size += 3;
+        a_table_size += 4;
         QCD_REALLOC(a_table,a_table,void**,a_table_size);
         a_table[i]   = a_minimizer;
         a_table[i+1] = a_range;
-        a_table[i+2] = a_rscan;
-        i += 3;
+        a_table[i+2] = a_uncorr;
+        a_table[i+3] = a_rscan;
+        i += 4;
     }
     a_table_size++;
     QCD_REALLOC(a_table,a_table,void**,a_table_size);
@@ -279,6 +282,8 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     if (argset_flag & A_PARTICLE)
     {
         strbufcpy(opt->spec_name,"qcd");
+        strbufcpy(opt->part_name[0],"");
+        strbufcpy(opt->part_name[1],"");
     }
     if (argset_flag & A_CHANNEL)
     {
@@ -295,7 +300,8 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     }
     if (argset_flag & A_FIT)
     {
-        opt->minimizer = minalg_no_get(defmin);
+        opt->minimizer   = minalg_no_get(defmin);
+        opt->corr        = DATA_COR;
         opt->rscan_begin = -1;
     }
     opt->latan_verb = QUIET;
@@ -380,11 +386,16 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     }
     if (argset_flag & A_PARTICLE)
     {
+        int j;
+        
         if (a_spec->count > 0)
         {
             strbufcpy(opt->spec_name,a_spec->sval[0]);
         }
-        strbufcpy(opt->part_name,a_part->sval[0]);
+        for (j=0;j<a_part->count;j++)
+        {
+            strbufcpy(opt->part_name[j],a_part->sval[j]);
+        }
     }
     if (argset_flag & A_CHANNEL)
     {
@@ -435,6 +446,10 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
                         a_range->sval[i]);
                 exit(EXIT_FAILURE);
             }
+        }
+        if (a_uncorr->count > 0)
+        {
+            opt->corr = NO_COR;
         }
         if (a_rscan->count > 0)
         {

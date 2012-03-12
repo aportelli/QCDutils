@@ -27,13 +27,24 @@ int main(int argc, char* argv[])
     channel_no ch;
     double latspac_nu;
     qcd_options *opt;
-    strbuf spec_name,part_name,manf_name,unit;
+    bool is_split;
+    strbuf spec_name,part_name[2],full_name,manf_name,unit;
     size_t binsize;
     
     opt = qcd_arg_parse(argc,argv,A_PARTICLE|A_PROP_LOAD|A_LATSPAC|A_FIT\
                         |A_SAVE_RS|A_PLOT|A_CHANNEL|A_LOAD_RG);
+    is_split   = (strlen(opt->part_name[1]) != 0);
     strbufcpy(spec_name,opt->spec_name);
-    strbufcpy(part_name,opt->part_name);
+    strbufcpy(part_name[0],opt->part_name[0]);
+    if (is_split)
+    {
+        strbufcpy(part_name[1],opt->part_name[1]);
+        sprintf(full_name,"%s-%s",part_name[0],part_name[1]);
+    }
+    else
+    {
+        strbufcpy(full_name,part_name[0]);
+    }
     strbufcpy(manf_name,opt->manf_name);
     source     = opt->source;
     sink       = opt->sink;
@@ -59,7 +70,7 @@ int main(int argc, char* argv[])
     /*          identifying particle            */
     /********************************************/
     spectrum *s;
-    hadron *h;
+    hadron *h[2];
 
     if (strcmp(spec_name,"qcd") == 0)
     {
@@ -75,38 +86,56 @@ int main(int argc, char* argv[])
         fprintf(stderr,"error: spectrum %s unknown\n",spec_name);
         return EXIT_FAILURE;
     }
-    h = spectrum_get(s,part_name);
+    h[0] = spectrum_get(s,part_name[0]);
+    if (is_split)
+    {
+        h[1] = spectrum_get(s,part_name[1]);
+    }
     
     /*              loading datas               */
     /********************************************/
     size_t ndat,nbdat,nt;
-    mat **prop;
+    mat **prop[2];
     
     ndat    = (size_t)get_nfile(manf_name);
     nbdat   = ndat/binsize + ((ndat%binsize == 0) ? 0 : 1);
-    hadron_prop_load_nt(&nt,h,source,sink,manf_name);
+    hadron_prop_load_nt(&nt,h[0],source,sink,manf_name);
     
-    prop = mat_ar_create(nbdat,nt,1);
+    prop[0] = mat_ar_create(nbdat,nt,1);
+    prop[1] = mat_ar_create(nbdat,nt,1);
     
-    qcd_printf(opt,"-- loading %s datas from %s...\n",h->name,manf_name);
-    hadron_prop_load_bin(prop,h,source,sink,manf_name,binsize);
+    qcd_printf(opt,"-- loading %s datas from %s...\n",h[0]->name,manf_name);
+    hadron_prop_load_bin(prop[0],h[0],source,sink,manf_name,binsize);
+    if (is_split)
+    {
+        qcd_printf(opt,"-- loading %s datas from %s...\n",h[1]->name,manf_name);
+        hadron_prop_load_bin(prop[1],h[1],source,sink,manf_name,binsize);
+    }
 
     /*                propagator                */
     /********************************************/
-    rs_sample *s_mprop;
+    rs_sample *s_tmp,*s_mprop;
     strbuf sample_name;
     mat *mprop,*sigmprop;
 
     s_mprop  = rs_sample_create(nt,NBOOT);
+    s_tmp    = rs_sample_create(nt,NBOOT);
     sigmprop = mat_create(nt,1);
     
-    sprintf(sample_name,"%s_prop_%s",h->name,manf_name);
+    sprintf(sample_name,"%s_prop_%s",full_name,manf_name);
     rs_sample_set_name(s_mprop,sample_name);
-    qcd_printf(opt,"-- resampling %s mean propagator...\n",h->name);
+    qcd_printf(opt,"-- resampling %s mean propagator...\n",h[0]->name);
     randgen_set_state(opt->state);
-    resample(s_mprop,prop,nbdat,&rs_mean,BOOT,NULL);
+    resample(s_mprop,prop[0],nbdat,&rs_mean,BOOT,NULL);
+    if (is_split)
+    {
+        qcd_printf(opt,"-- resampling %s mean propagator...\n",h[1]->name);
+        randgen_set_state(opt->state);
+        resample(s_tmp,prop[1],nbdat,&rs_mean,BOOT,NULL);
+        rs_sample_eqdivp(s_mprop,s_tmp);
+        h[0]->parity = EVEN;
+    }
     mprop = rs_sample_pt_cent_val(s_mprop);
-    qcd_printf(opt,"-- estimating %s mean propagator variance...\n",h->name);
     rs_sample_varp(sigmprop,s_mprop);
     mat_eqsqrt(sigmprop);
     
@@ -120,12 +149,12 @@ int main(int argc, char* argv[])
     s_effmass = rs_sample_create(nt-2,NBOOT);
     sigem     = mat_create(nt-2,1);
     
-    sprintf(sample_name,"%s_effmass_%s",h->name,manf_name);
+    sprintf(sample_name,"%s_effmass_%s",full_name,manf_name);
     rs_sample_set_name(s_effmass,sample_name);
-    qcd_printf(opt,"-- resampling %s effective mass...\n",h->name);
-    rs_sample_effmass(s_effmass, s_mprop,h->parity);
+    qcd_printf(opt,"-- resampling %s effective mass...\n",full_name);
+    rs_sample_effmass(s_effmass, s_mprop,h[0]->parity);
     em = rs_sample_pt_cent_val(s_effmass);
-    qcd_printf(opt,"-- computing %s effective mass variance...\n",h->name);
+    qcd_printf(opt,"-- computing %s effective mass variance...\n",full_name);
     rs_sample_varp(sigem,s_effmass);
     mat_eqsqrt(sigem);
     
@@ -134,7 +163,7 @@ int main(int argc, char* argv[])
     fit_data *d;
     rs_sample *s_mass;
     mat *mass,*sigmass,*scanres_t,*scanres_chi2,*scanres_mass,*scanres_masserr;
-    size_t npar,nti,tibeg,inrmin,rmin,inrmax,rmax;
+    size_t npar,nti,tibeg,inrmin,rmin,inrmax,rmax,best_t;
     size_t i;
     bool first_elim;
     strbuf buf,range_info;
@@ -153,10 +182,10 @@ int main(int argc, char* argv[])
    
     mass = rs_sample_pt_cent_val(s_mass);
     fit_data_mass_fit_tune(d,rs_sample_pt_cent_val(s_mass),mprop,em,sigem,\
-                           h->parity);
+                           h[0]->parity);
     if (opt->rscan_begin < 0)
     {
-        qcd_printf(opt,"-- fitting and resampling %s mass...\n",h->name);
+        qcd_printf(opt,"-- fitting and resampling %s mass...\n",full_name);
     }
     else
     {
@@ -222,10 +251,10 @@ int main(int argc, char* argv[])
     scanres_masserr = mat_create(nti,1);
     if (opt->rscan_begin < 0)
     {
-        sprintf(sample_name,"%s_mass_fit%s_%s.boot",h->name,range_info,\
+        sprintf(sample_name,"%s_mass_fit%s_%s.boot",full_name,range_info,\
                 manf_name);
         rs_sample_set_name(s_mass,sample_name);
-        rs_data_fit(s_mass,NULL,&s_mprop,d,NO_COR,NULL);
+        rs_data_fit(s_mass,NULL,&s_mprop,d,opt->corr,NULL);
         
         if (opt->do_save_rs_sample)
         {
@@ -235,7 +264,7 @@ int main(int argc, char* argv[])
         mat_eqsqrt(sigmass);
         mat_eqmuls(em,1.0/latspac_nu);
         mat_eqmuls(sigem,1.0/latspac_nu);
-        qcd_printf(opt,"M_%-10s= %.8f +/- %.8e %s\n",h->name,\
+        qcd_printf(opt,"M_%-10s= %.8f +/- %.8e %s\n",full_name,\
                    mat_get(mass,0,0)/latspac_nu,             \
                    mat_get(sigmass,0,0)/latspac_nu,unit);
         qcd_printf(opt,"%-12s= %d\n","dof",fit_data_get_dof(d));
@@ -243,22 +272,29 @@ int main(int argc, char* argv[])
     }
     else
     {
-        printf("%-5s %-12s a*M_%-8s %-12s\n","ti/a","chi^2/dof",h->name,\
+        printf("%-5s %-12s a*M_%-8s %-12s","ti/a","chi^2/dof",full_name,\
                "error");
+        best_t = 0;
         for (i=tibeg;i<rmax-1;i++)
         {
-            rs_data_fit(s_mass,NULL,&s_mprop,d,NO_COR,NULL);
+            rs_data_fit(s_mass,NULL,&s_mprop,d,opt->corr,NULL);
             rs_sample_varp(sigmass,s_mass);
             mat_eqsqrt(sigmass);
             mat_set(scanres_t,i-tibeg,0,(double)(i));
             mat_set(scanres_chi2,i-tibeg,0,fit_data_get_chi2pdof(d));
             mat_set(scanres_mass,i-tibeg,0,mat_get(mass,0,0));
             mat_set(scanres_masserr,i-tibeg,0,mat_get(sigmass,0,0));
-            printf("%5d % .5e % .5e % .5e\n",(int)(i),fit_data_get_chi2pdof(d),\
+            if ((i>tibeg)&&(best_t==0)\
+                &&(fit_data_get_chi2pdof(d)>mat_get(scanres_chi2,i-tibeg-1,0)))
+            {
+                best_t = i-1;
+                printf(" BEST TIME");
+            }
+            printf("\n%5d % .5e % .5e % .5e",(int)(i),fit_data_get_chi2pdof(d),\
                    mat_get(mass,0,0),mat_get(sigmass,0,0));
             fit_data_fit_point(d,i,false);
         }
-        printf("\n");
+        printf("\n\n");
     }
     
     /*                  plot                    */
@@ -269,11 +305,11 @@ int main(int argc, char* argv[])
         plot *p;
         strbuf key,plotcmd;
         size_t maxt;
-        double dmaxt,shift;
+        double dmaxt,shift,abs_mass;
         
         maxt  = nt-1;
         dmaxt = (double)maxt;
-        shift = (h->parity == EVEN) ? 0.0 : -DRATIO(nt,2.0);
+        shift = (h[0]->parity == EVEN) ? 0.0 : -DRATIO(nt,2.0);
         
         em_t = mat_create(nt-2,1);
         pr_t = mat_create(nt,1);
@@ -285,15 +321,15 @@ int main(int argc, char* argv[])
 
             plot_set_scale_ylog(p);
             plot_set_scale_xmanual(p,0,dmaxt);
-            sprintf(key,"%s propagator",h->name);
+            sprintf(key,"%s propagator",full_name);
             mat_eqabs(mprop);
             mat_set_step(pr_t,0.0,1.0);
             plot_add_dat(p,pr_t,mprop,NULL,sigmprop,key,"rgb 'red'");
-            switch (h->parity)
+            switch (h[0]->parity)
             {
                 case EVEN:
-                    sprintf(plotcmd,"%e*exp(-%e*x)",\
-                            mat_get(mass,1,0),mat_get(mass,0,0));
+                    sprintf(plotcmd,"exp(-%e*x+%e)",\
+                            mat_get(mass,0,0),mat_get(mass,1,0));
                     break;
                 case ODD:
                     sprintf(plotcmd,"cosh(%e*(x-%e))*%e",                   \
@@ -310,11 +346,11 @@ int main(int argc, char* argv[])
             /* effective mass plot */
             p = plot_create();
             
-            plot_set_scale_xmanual(p,0.0,nt-1);
-            plot_add_hlineerr(p,mat_get(mass,0,0)/latspac_nu,\
-                              mat_get(sigmass,0,0)/latspac_nu,"0",\
-                              "rgb 'red'","rgb 'light-red'");
-            sprintf(key,"%s effective mass",h->name);
+            abs_mass = fabs(mat_get(mass,0,0))/latspac_nu;
+            plot_set_scale_manual(p,0.0,nt-1,0.0,2.0*abs_mass);
+            plot_add_hlineerr(p,abs_mass, mat_get(sigmass,0,0)/latspac_nu,\
+                              "rgb 'red'");
+            sprintf(key,"%s effective mass",full_name);
             mat_set_step(em_t,1.0,1.0);
             plot_add_dat(p,em_t,em,NULL,sigem,key,"rgb 'blue'");
             plot_disp(p);
@@ -337,7 +373,7 @@ int main(int argc, char* argv[])
             p = plot_create();
             
             plot_set_scale_xmanual(p,0,(double)(nt/2));
-            sprintf(key,"a*M_%s",h->name);
+            sprintf(key,"a*M_%s",full_name);
             plot_add_dat(p,scanres_t,scanres_mass,NULL,scanres_masserr,key,\
                          "rgb 'red'");
             plot_disp(p);
@@ -354,8 +390,10 @@ int main(int argc, char* argv[])
     free(opt);
     spectrum_destroy(s); 
     io_finish();
-    mat_ar_destroy(prop,nbdat);
+    mat_ar_destroy(prop[0],nbdat);
+    mat_ar_destroy(prop[1],nbdat);
     rs_sample_destroy(s_mprop);
+    rs_sample_destroy(s_tmp);
     mat_destroy(sigmprop);
     rs_sample_destroy(s_effmass);
     mat_destroy(sigem);
