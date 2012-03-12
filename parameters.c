@@ -1,12 +1,13 @@
 #define _POSIX_C_SOURCE 199506L /* strtok_r is used here */
 
-#include "models.h"
 #include "parameters.h"
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <latan/latan_io.h>
 #include <latan/latan_mass.h>
+#include "models.h"
+#include "data_loader.h"
 
 #define ATOF(str) (strtod(str,(char **)NULL))
 #define ATOI(str) ((int)strtol(str,(char **)NULL,10))
@@ -28,6 +29,36 @@ if (strcmp(field[0],#name) == 0)\
 {\
     strbufcpy((param)->name,field[1]);\
     continue;\
+}
+#define CHECK_MODEL(param,m,s_m)\
+if (IS_AN(param,AN_PHYPT))\
+{\
+    if (strcmp((param)->model,#m) == 0)\
+    {\
+        (param)->fm.func[s] = &fm_phypt_##m##_func;\
+        strcat((param)->fm.name,#m);\
+        if (IS_AN(param,AN_SCALE))\
+        {\
+            (param)->fm.npar = &fm_comb_phypt_##m##_scale_##s_m##_npar;\
+            strcat((param)->fm.name,"/");\
+        }\
+        else\
+        {\
+            (param)->fm.npar = &fm_phypt_##m##_npar;\
+        }\
+    }\
+}\
+if (IS_AN(param,AN_SCALE))\
+{\
+    if (strcmp((param)->s_model,#s_m) == 0)\
+    {\
+        (param)->fm.func[0] = &fm_scaleset_##s_m##_func;\
+        strcat((param)->fm.name,#s_m);\
+        if (!IS_AN(param,AN_PHYPT))\
+        {\
+            (param)->fm.npar = &fm_scaleset_##s_m##_npar;\
+        }\
+    }\
 }
 
 static int ind_dataset(const strbuf dataset, const fit_param *param);
@@ -100,12 +131,15 @@ fit_param * fit_param_parse(const strbuf fname)
     strbuf *field,ens_dir,test_fname;
     int nf,lc;
     int i;
+    size_t s;
     size_t j;
     double dbuf[2];
     
     field = NULL;
     param = (fit_param *)malloc(sizeof(fit_param));
     
+    /* initialization */
+    param->analyze         = AN_NOTHING;
     param->M_ud            = -1.0;
     param->M_ud_deg        = 0;
     param->s_M_ud_deg      = 0;
@@ -119,8 +153,8 @@ fit_param * fit_param_parse(const strbuf fname)
     param->s_with_a2M_ud   = 0;
     param->with_a2M_s      = 0;
     param->s_with_a2M_s    = 0;
-    param->with_umd        = 0;
-    param->s_with_umd      = 0;
+    param->umd_deg         = 0;
+    param->s_umd_deg       = 0;
     param->have_umd        = 0;
     param->with_qed_fvol   = 0;
     param->s_with_qed_fvol = 0;
@@ -129,6 +163,9 @@ fit_param * fit_param_parse(const strbuf fname)
     param->q_target[0]     = -1.0;
     param->q_target[1]     = 0.0;
     param->verb            = 0;
+    param->correlated      = 0;
+    param->save_result     = 0;
+    param->plot            = 0;
     param->plotting        = 0;
     param->dataset         = NULL;
     param->ndataset        = 0;
@@ -139,13 +176,18 @@ fit_param * fit_param_parse(const strbuf fname)
     param->point           = NULL;
     param->nens            = 0;
     param->nsample         = 0;
-    strbufcpy(param->analyze,"");
+    strbufcpy(param->analyze_name,"");
+    strbufcpy(param->model,"");
+    strbufcpy(param->s_model,"");
     strbufcpy(param->q_name,"");
     strbufcpy(param->scale_part,"");
     strbufcpy(param->ud_name,"");
     strbufcpy(param->s_name,"");
     strbufcpy(param->umd_name,"");
     strbufcpy(param->manifest,"");
+    strbufcpy(param->s_manifest,"");
+    
+    /* parse parameter file */
     BEGIN_FOR_LINE_TOK(field,fname," \t",nf,lc)
     {
         if (field[0][0] != '#')
@@ -163,15 +205,21 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_I(param,s_with_a2M_ud);
             GET_PARAM_I(param,with_a2M_s);
             GET_PARAM_I(param,s_with_a2M_s);
-            GET_PARAM_I(param,with_umd);
-            GET_PARAM_I(param,s_with_umd);
+            GET_PARAM_I(param,umd_deg);
+            GET_PARAM_I(param,s_umd_deg);
             GET_PARAM_I(param,with_qed_fvol);
             GET_PARAM_I(param,s_with_qed_fvol);
             GET_PARAM_I(param,with_ext_a);
             GET_PARAM_I(param,q_dim);
             GET_PARAM_I(param,verb);
-            GET_PARAM_S(param,analyze);
+            GET_PARAM_I(param,correlated);
+            GET_PARAM_I(param,save_result);
+            GET_PARAM_I(param,plot);
+            GET_PARAM_S(param,analyze_name);
+            GET_PARAM_S(param,model);
+            GET_PARAM_S(param,s_model);
             GET_PARAM_S(param,q_name);
+            GET_PARAM_S(param,s_manifest);
             GET_PARAM_S(param,scale_part);
             GET_PARAM_S(param,ud_name);
             GET_PARAM_S(param,s_name);
@@ -206,31 +254,30 @@ fit_param * fit_param_parse(const strbuf fname)
         }
     }
     END_FOR_LINE_TOK(field);
-    if (IS_ANALYZE(param,"phypt"))
+    
+    /* set analyze program flag */
+    if (strcmp(param->analyze_name,"phypt") == 0) 
     {
-        param->model   = &fm_phypt_a_taylor;
+        param->analyze = AN_PHYPT;
     }
-    else if (IS_ANALYZE(param,"scaleset"))
+    else if (strcmp(param->analyze_name,"scaleset") == 0)
     {
-        param->q_dim           = 0;
-        param->s_M_ud_deg      = param->M_ud_deg;
-        param->s_M_s_deg       = param->M_s_deg;
-        param->s_with_umd      = param->with_umd;
-        param->s_with_qed_fvol = param->with_qed_fvol;
-        param->a_deg           = 0;
-        param->with_ext_a      = 0;
-        param->model           = &fm_scaleset_taylor;
-        sprintf(param->q_name,"Msq_%s",param->scale_part);
+        param->analyze = AN_SCALE;
     }
-    else if (IS_ANALYZE(param,"comb_phypt_scale"))
+    else if (strcmp(param->analyze_name,"comb_phypt_scaleset") == 0)
     {
-        param->model = &fm_comb_phyt_scale_taylor;
+        param->analyze = AN_PHYPT|AN_SCALE;
     }
-    else
-    {
-        fprintf(stderr,"error: analysis program %s unknown\n",param->analyze);
-        abort();
-    }
+    
+    /* choose the model */
+    s               = (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE)) ? 1 : 0;
+    param->fm.nxdim = N_EX_VAR;
+    param->fm.nydim = (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE)) ? 2 : 1;
+    strbufcpy(param->fm.name,"");
+    CHECK_MODEL(param,taylor,taylor);
+    CHECK_MODEL(param,dMsqpi_su2pqchiptqed,taylor);
+
+    /* set extrapolation masses */
     if (param->M_ud < 0)
     {
         get_mass(dbuf,param->ud_name);
@@ -246,12 +293,29 @@ fit_param * fit_param_parse(const strbuf fname)
         get_mass(dbuf,param->scale_part);
         param->M_scale = dbuf[0];
     }
+    
+    /* parse ensemble informations */
+    if (IS_AN(param,AN_SCALE))
+    {
+        if (!IS_AN(param,AN_PHYPT)&&(strlen(param->manifest) == 0))
+        {
+            strbufcpy(param->manifest,param->s_manifest);
+        }
+        else
+        {
+            strbufcpy(param->s_manifest,param->manifest);
+        }
+        if (!IS_AN(param,AN_PHYPT))
+        {
+            sprintf(param->q_name,"M_%s",param->scale_part);
+        }
+    }
     BEGIN_FOR_LINE_TOK(field,param->manifest,"_ \t",nf,lc)
     {
         if ((nf>0)&&(field[0][0] != '#'))
         {
-            sprintf(ens_dir,"%s_%s_%s_%s_%s",field[0],field[1],field[2],field[3],\
-                    field[4]);
+            sprintf(ens_dir,"%s_%s_%s_%s_%s",field[0],field[1],field[2],\
+                    field[3],field[4]);
             for (j=0;j<param->ndataset;j++)
             {
                 sprintf(test_fname,"%s/%s_%s.boot%s",ens_dir,param->q_name,\
@@ -284,6 +348,8 @@ fit_param * fit_param_parse(const strbuf fname)
         }
     }
     END_FOR_LINE_TOK(field);
+    
+    /* create sample for external scales */
     param->a     = rs_sample_create(param->nbeta,param->nsample);
     param->a_err = mat_create(param->nbeta,1);
     

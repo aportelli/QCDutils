@@ -7,12 +7,13 @@
 #include "models.h"
 
 #define PLOT_ADD_FIT(obj,kx,ky,title,color)\
-plot_add_fit(p[kx],d,ky,phy_pt,kx,fit,true,obj,title,"",color,color)
+plot_add_fit(p[kx],d,ky,phy_pt,kx,fit,x_range[kx][0],x_range[kx][1],1000,true,\
+             obj,title,"",color,color)
 
 #define PLOT_ADD_EX(kx,s)\
-plot_add_point(p[kx],mat_get(phy_pt,kx,0),param->q_target[0],      \
+plot_add_datpoint(p[kx],mat_get(phy_pt,kx,0),param->q_target[0],      \
                -1.0,param->q_target[1],"target","rgb 'dark-blue'");\
-plot_add_point(p[kx],mat_get(phy_pt,kx,0),mat_get(fit,s,0),                   \
+plot_add_datpoint(p[kx],mat_get(phy_pt,kx,0),mat_get(fit,s,0),                   \
                -1.0,sqrt(mat_get(fit_var,s,0)),"physical point","rgb 'black'");
 
 #define PLOT_DISP(kx)\
@@ -27,18 +28,20 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
 {
     plot *p[N_EX_VAR];
     double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL};
-    double b_int[2],dbind,M_scale,a;
+    double x_range[N_EX_VAR][2],b_int[2],dbind,M_scale,a;
     size_t bind,k,phy_ind,s;
     strbuf color,gtitle,title,xlabel,ylabel;
-    mat *phy_pt;
+    mat *phy_pt,*x_k;
     
     phy_pt = mat_create(N_EX_VAR,1);
+    x_k    = mat_create(param->nens,1);
     for (k=0;k<N_EX_VAR;k++)
     {
         p[k] = plot_create();
     }
     
-    if (IS_ANALYZE(param,"comb_phypt_scale"))
+    param->plotting = 1;
+    if (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE))
     {
         phy_ind = 1;
         s       = fm_scaleset_taylor_npar(param);
@@ -48,8 +51,19 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
         phy_ind = 0;
         s       = 0;
     }
-    
-    param->plotting = 1;
+    for (k=0;k<N_EX_VAR;k++)
+    {
+        fit_data_get_x_k(x_k,d,k);
+        if ((k == i_a)||(k == i_ud)||(k == i_Linv))
+        {
+            x_range[k][0] = 0.0;
+        }
+        else
+        {
+            x_range[k][0] = mat_get_min(x_k)-0.40*fabs(mat_get_min(x_k));
+        }
+        x_range[k][1] = mat_get_max(x_k)+0.40*fabs(mat_get_min(x_k));
+    }
     if (f == Q)
     {
         sprintf(gtitle,"quantity: %s -- scale: %s -- datasets: %s -- ensembles: %s",
@@ -157,6 +171,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
     param->plotting = 0;
     
     mat_destroy(phy_pt);
+    mat_destroy(x_k);
     for (k=0;k<N_EX_VAR;k++)
     {
         plot_destroy(p[k]);
@@ -225,7 +240,7 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
 
 #define PRINT_PAR(name)\
 {\
-    printf("%10s = %e (%.4f%%)\n",name,mat_get(fit,i,0),            \
+    printf("%12s = % e (%4.0f%%)\n",name,mat_get(fit,i,0),            \
            sqrt(mat_get(fit_var,i,0))/fabs(mat_get(fit,i,0))*100.0);\
     i++;\
 }
@@ -234,7 +249,7 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
     double sig_,p_;\
     sig_ = sqrt(mat_get(fit_var,i,0));\
     p_   = mat_get(fit,i,0);\
-    printf("%10s = %e (%.4f%%) (%s^-1 = %.0f(%.0f) MeV)\n",name,\
+    printf("%12s = % e (%4.1f%%) [%12s^-1 = %5.0f(%4.0f) MeV]\n",name,\
            p_,sig_/fabs(p_)*100.0,name,1.0/p_,sig_/SQ(p_));\
     i++;\
 }
@@ -249,12 +264,11 @@ void print_result(const rs_sample *s_fit, fit_param *param)
     i   = 0;
     fit = rs_sample_pt_cent_val(s_fit);
     
-    fit_var = mat_create(fit_model_get_npar(param->model,param),1);
+    fit_var = mat_create(fit_model_get_npar(&(param->fm),param),1);
     
     rs_sample_varp(fit_var,s_fit);
-    printf("\nfit parameters (m_ud:%d m_s:%d m_u-m_d:%d a:%d) :\n",     \
-           param->M_ud_deg,param->M_s_deg,param->with_umd,param->a_deg);
-    if (IS_ANALYZE(param,"scaleset")||IS_ANALYZE(param,"comb_phypt_scale"))
+    printf("\nfit parameters :\n");
+    if (IS_AN(param,AN_SCALE))
     {
         for(j=0;j<(int)param->nbeta;j++)
         {
@@ -285,16 +299,20 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         {
             PRINT_PAR("s_a2M_s");
         }
-        if (param->s_with_umd)
+        if (param->s_umd_deg > 0)
         {
-            PRINT_PAR("s_p_umd");
+            for (j=0;j<param->s_umd_deg;j++)
+            {
+                sprintf(buf,"s_p_umd_%d",j+1);
+                PRINT_PAR(buf);
+            }
         }
         if (param->s_with_qed_fvol)
         {
             PRINT_PAR("s_p_fvol_L");
         }
     }
-    if (IS_ANALYZE(param,"phypt")||IS_ANALYZE(param,"comb_phypt_scale"))
+    if (IS_AN(param,AN_PHYPT))
     {
         PRINT_PAR(param->q_name);
         if (param->M_ud_deg > 0)
@@ -325,15 +343,19 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         {
             PRINT_PAR("p_a2M_s");
         }
-        if (param->with_umd)
+        if (param->umd_deg > 0)
         {
-            PRINT_PAR("p_umd");
+            for (j=0;j<param->umd_deg;j++)
+            {
+                sprintf(buf,"p_umd_%d",j+1);
+                PRINT_PAR(buf);
+            }
         }
         if (param->with_qed_fvol)
         {
             PRINT_PAR("p_fvol_L");
         }
-        if (IS_ANALYZE(param,"phypt")&&(param->with_ext_a))
+        if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&(param->with_ext_a))
         {
             for(j=0;j<(int)param->nbeta;j++)
             {

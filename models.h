@@ -4,22 +4,19 @@
 #include <latan/latan_fit.h>
 #include <latan/latan_nunits.h>
 
-/* prototypes */
-double a_error_chi2_ext(mat *p, void *vd);
-double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam);
-size_t fm_phypt_a_taylor_npar(void* vparam);
-void   fm_phypt_a_taylor_pstr(strbuf str, const size_t i,   \
-                              const mat *x_ex, const mat *p,\
-                              void *vparam);
-double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam);
-size_t fm_scaleset_taylor_npar(void* vparam);
-void   fm_scaleset_taylor_pstr(strbuf str, const size_t i,   \
-                               const mat *x_ex, const mat *p,\
-                               void *vparam);
-size_t fm_comb_phyt_scale_npar(void* vparam);
+/* chi^2 extension for lattice spacing errors */
+double a_error_chi2_ext(const mat *p, void *vd);
 
-extern const fit_model fm_phypt_a_taylor;
-extern const fit_model fm_scaleset_taylor;
-extern const fit_model fm_comb_phyt_scale_taylor;
+/* model functions */
+/** physical point Taylor expansion **/
+double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam);
+double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam);
+
+/* model number of parameter */
+/** physical point Taylor expansion **/
+size_t fm_phypt_taylor_npar(void* vparam);
+size_t fm_scaleset_taylor_npar(void* vparam);
+/** combined models **/
+size_t fm_comb_phypt_taylor_scale_taylor_npar(void* vparam);
 
 #endif

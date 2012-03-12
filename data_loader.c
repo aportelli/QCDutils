@@ -52,15 +52,21 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
             if (strcmp(param->dataset[d],ens_pt->dataset) == 0)
             {
                 /* scale setting quantity */
-                sprintf(sf_name,"%s/M_%s_%s.boot%s",ens_pt->dir,\
-                        param->scale_part,ens_pt->dataset,ext);
-                rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                rs_sample_set_subsamp(s_q[0],s_tmp,ens_ind,ens_ind);
-                /* main quantity (same as the previous one in 'scaleset') */
-                sprintf(sf_name,"%s/%s_%s.boot%s",ens_pt->dir,param->q_name,\
-                        param->dataset[d],ext);
-                rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                rs_sample_set_subsamp(s_q[1],s_tmp,ens_ind,ens_ind);
+                if (IS_AN(param,AN_SCALE))
+                {
+                    sprintf(sf_name,"%s/M_%s_%s.boot%s",ens_pt->dir,\
+                            param->scale_part,ens_pt->dataset,ext);
+                    rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                    rs_sample_set_subsamp(s_q[0],s_tmp,ens_ind,ens_ind);
+                }
+                /* main quantity */
+                if (IS_AN(param,AN_PHYPT))
+                {
+                    sprintf(sf_name,"%s/%s_%s.boot%s",ens_pt->dir,\
+                            param->q_name,param->dataset[d],ext);
+                    rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                    rs_sample_set_subsamp(s_q[1],s_tmp,ens_ind,ens_ind);
+                }
                 /* m_ud fixing quantity */
                 sprintf(sf_name,"%s/%s_%s_%s.boot%s",ens_pt->dir,Msq_str,\
                         param->ud_name,param->dataset[d],ext);
@@ -77,7 +83,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 /* m_u - m_d fixing quantity if possible */
                 sprintf(sf_name,"%s/%s_%s.boot%s",ens_pt->dir,\
                         param->umd_name,param->dataset[d],ext);
-                if (access(sf_name,R_OK) == 0)
+                if ((param->umd_deg > 0)||(access(sf_name,R_OK) == 0))
                 {
                     rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                     rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,ens_ind);
@@ -87,12 +93,12 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 rs_sample_cst(s_tmp,1.0/((double)ens_pt->L));
                 rs_sample_set_subsamp(s_x[i_Linv],s_tmp,ens_ind,ens_ind);
                 /* lattice spacing */
-                if (IS_ANALYZE(param,"phypt"))
+                if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE))
                 {
                     if (param->with_ext_a)
                     {
                         sprintf(sf_name,"./a_%s_%s_%s.boot%s",ens_pt->beta,\
-                                param->scale_part,param->dataset_cat,ext);
+                                param->scale_part,param->s_manifest,ext);
                         rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                         rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,ens_ind);
                         rs_sample_set_subsamp(param->a,s_tmp,bind,bind);
@@ -106,8 +112,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                         rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,ens_ind);
                     }
                 }
-                else if (IS_ANALYZE(param,"scaleset")          \
-                         ||IS_ANALYZE(param,"comb_phypt_scale"))
+                else if (IS_AN(param,AN_SCALE))
                 {
                     rs_sample_cst(s_tmp,1.0);
                     rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,ens_ind);
