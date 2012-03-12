@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     rs_sample_set_name(s_mprop,sample_name);
     qcd_printf(opt,"-- resampling %s mean propagator...\n",h->name);
     randgen_set_state(opt->state);
-    resample(s_mprop,prop,ndat,&rs_mean,BOOT,NULL);
+    resample(s_mprop,prop,nbdat,&rs_mean,BOOT,NULL);
     mprop = rs_sample_pt_cent_val(s_mprop);
     
     /*  computing error on mean propagator      */
