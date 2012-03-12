@@ -281,9 +281,19 @@ size_t fm_comb_phypt_taylor_scale_taylor_npar(void* vparam)
     return fm_phypt_taylor_npar(vparam)+fm_scaleset_taylor_npar(vparam);
 }
 
+double fm_phypt_dMsqpi_su2pqchiptqed_func(const mat *X, const mat *p,\
+                                          void *vparam)
 {
-
-{
+    return 0.0;
 }
 
+size_t fm_phypt_dMsqpi_su2pqchiptqed_npar(void *vparam)
 {
+    return 0;
+}
+
+size_t fm_comb_phypt_dMsqpi_su2pqchiptqed_scale_taylor_npar(void* vparam)
+{
+    return fm_phypt_dMsqpi_su2pqchiptqed_npar(vparam)\
+           +fm_scaleset_taylor_npar(vparam);
+}
