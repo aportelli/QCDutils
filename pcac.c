@@ -212,8 +212,8 @@ int main(int argc, char* argv[])
         plot_set_xlabel(p,"time");
         plot_set_ylabel(p,ylabel);
         plot_set_scale_xmanual(p,2.0,nt-1);
-        plot_add_hlineerr(p,mat_get(mass_pcac,0,0),mat_get(sigmass,0,0),"0",\
-                          "rgb 'red'","rgb 'light-red'");
+        plot_add_hlineerr(p,mat_get(mass_pcac,0,0),mat_get(sigmass,0,0),\
+                          "rgb 'red'");
         mat_set_step(pr_t,1.0,1.0);
         plot_add_dat(p,pr_t,effmass_pcac,NULL,sigem,key,"rgb 'blue'");
         plot_disp(p);   
