@@ -1,6 +1,9 @@
 COM_CFLAGS = -std=c99 -O2 -W -Wall
 
-bin_PROGRAMS = qcd_mass qcd_prop qcd_pcac qcd_phyfit
+bin_PROGRAMS = qcd_error qcd_mass qcd_prop qcd_pcac qcd_phyfit
+
+qcd_error_SOURCES  = error.c
+qcd_error_CFLAGS   = $(COM_CFLAGS)
 
 qcd_mass_SOURCES   = mass.c qcd_arg_parse.h qcd_arg_parse.c
 qcd_mass_CFLAGS    = $(COM_CFLAGS)
