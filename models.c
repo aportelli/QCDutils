@@ -1,12 +1,13 @@
-
 #include "models.h"
 #include "data_loader.h"
 #include "parameters.h"
+#include "qed_fvol_tabfunc.h"
 #include <math.h>
 #include <string.h>
 #include <latan/latan_nunits.h>
 #include <latan/latan_mass.h>
 #include <latan/latan_math.h>
+#include <latan/latan_tabfunc.h>
 
 /* physical point Taylor expansion models */
 #define uds_taylor(res,p,s,M_ud,M_ud_deg,M_s,M_s_deg,umd,umd_deg)\
@@ -78,9 +79,9 @@ double a_error_chi2_ext(const mat *p, void *vd)
     return res;
 }
 
-double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
+double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,M_ud,M_ud2,M_s,a,dimfac,umd,Linv,a2mud,a2ms;
+    double res,M_ud,M_s,a,dimfac,umd,Linv,a2mud,a2ms;
     size_t s,bind;
     fit_param *param;
     
@@ -115,7 +116,7 @@ double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     else
     {
         fprintf(stderr,"error: this model should not ne used in program %s\n",\
-                param->analyze_name);
+                param->analyze);
         exit(EXIT_FAILURE);
     }
     /* x values */
@@ -124,11 +125,8 @@ double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     M_s    = mat_get(X,i_s,0)/SQ(dimfac) - SQ(param->M_s);
     umd    = mat_get(X,i_umd,0)/SQ(dimfac) - param->M_umd;
     Linv   = mat_get(X,i_Linv,0)/dimfac;
-    M_pi   = sqrt(mat_get(X,i_ud,0))/dimfac;
-    M_piL  = M_pi/Linv;
     a2mud  = SQ(a)*mat_get(X,i_ud,0)/SQ(dimfac);
     a2ms   = SQ(a)*mat_get(X,i_s,0)/SQ(dimfac);
-    e      = NU_ELECTRON_CHARGE;
     
     /* constant term (extrapolated quantity) */
     res += mat_get(p,s,0);
@@ -148,12 +146,10 @@ double fm_phypt_a_taylor_func(const mat *X, const mat *p, void *vparam)
     {
         res += mat_get(p,I_dis_a2M_s(0)+s,0)*a2ms;
     }
-    {
-    }
     /* QED finite volume effect */
     if (param->with_qed_fvol)
     {
-        res += mat_get(p,I_qedfv(0)+s,0)*SQ(Linv);
+        res += mat_get(p,I_qedfv(0)+s,0)*pow(Linv,param->q_dim);
     }
     /* dimensional factor */
     res *= pow(dimfac,param->q_dim);
@@ -276,24 +272,7 @@ size_t fm_scaleset_taylor_npar(void* vparam)
 }
 
 
-size_t fm_comb_phypt_taylor_scale_taylor_npar(void* vparam)
+size_t fm_comb_phypt_taylor_scaleset_taylor_npar(void* vparam)
 {
-    return fm_phypt_taylor_npar(vparam)+fm_scaleset_taylor_npar(vparam);
-}
-
-double fm_phypt_dMsqpi_su2pqchiptqed_func(const mat *X, const mat *p,\
-                                          void *vparam)
-{
-    return 0.0;
-}
-
-size_t fm_phypt_dMsqpi_su2pqchiptqed_npar(void *vparam)
-{
-    return 0;
-}
-
-size_t fm_comb_phypt_dMsqpi_su2pqchiptqed_scale_taylor_npar(void* vparam)
-{
-    return fm_phypt_dMsqpi_su2pqchiptqed_npar(vparam)\
-           +fm_scaleset_taylor_npar(vparam);
+    return fm_phypt_taylor_npar(vparam) + fm_scaleset_taylor_npar(vparam);
 }

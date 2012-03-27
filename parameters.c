@@ -39,7 +39,7 @@ if (IS_AN(param,AN_PHYPT))\
         strcat((param)->fm.name,#m);\
         if (IS_AN(param,AN_SCALE))\
         {\
-            (param)->fm.npar = &fm_comb_phypt_##m##_scale_##s_m##_npar;\
+            (param)->fm.npar = &fm_comb_phypt_##m##_scaleset_##s_m##_npar;\
             strcat((param)->fm.name,"/");\
         }\
         else\
@@ -139,15 +139,15 @@ fit_param * fit_param_parse(const strbuf fname)
     param = (fit_param *)malloc(sizeof(fit_param));
     
     /* initialization */
-    param->analyze         = AN_NOTHING;
-    param->M_ud            = -1.0;
+    param->analyze_flag    = AN_NOTHING;
+    param->M_ud            = latan_nan();
     param->M_ud_deg        = 0;
     param->s_M_ud_deg      = 0;
-    param->M_s             = -1.0;
+    param->M_s             = latan_nan();
     param->M_s_deg         = 0;
     param->s_M_s_deg       = 0;
-    param->M_umd           = 0.0;
-    param->M_scale         = -1.0;
+    param->M_umd           = latan_nan();
+    param->M_scale         = latan_nan();
     param->a_deg           = 0;
     param->with_a2M_ud     = 0;
     param->s_with_a2M_ud   = 0;
@@ -160,8 +160,8 @@ fit_param * fit_param_parse(const strbuf fname)
     param->s_with_qed_fvol = 0;
     param->with_ext_a      = 0;
     param->q_dim           = 0;
-    param->q_target[0]     = -1.0;
-    param->q_target[1]     = 0.0;
+    param->q_target[0]     = latan_nan();
+    param->q_target[1]     = latan_nan();
     param->verb            = 0;
     param->correlated      = 0;
     param->save_result     = 0;
@@ -176,7 +176,7 @@ fit_param * fit_param_parse(const strbuf fname)
     param->point           = NULL;
     param->nens            = 0;
     param->nsample         = 0;
-    strbufcpy(param->analyze_name,"");
+    strbufcpy(param->analyze,"");
     strbufcpy(param->model,"");
     strbufcpy(param->s_model,"");
     strbufcpy(param->q_name,"");
@@ -215,7 +215,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_I(param,correlated);
             GET_PARAM_I(param,save_result);
             GET_PARAM_I(param,plot);
-            GET_PARAM_S(param,analyze_name);
+            GET_PARAM_S(param,analyze);
             GET_PARAM_S(param,model);
             GET_PARAM_S(param,s_model);
             GET_PARAM_S(param,q_name);
@@ -256,17 +256,22 @@ fit_param * fit_param_parse(const strbuf fname)
     END_FOR_LINE_TOK(field);
     
     /* set analyze program flag */
-    if (strcmp(param->analyze_name,"phypt") == 0) 
+    if (strcmp(param->analyze,"phypt") == 0) 
     {
-        param->analyze = AN_PHYPT;
+        param->analyze_flag = AN_PHYPT;
     }
-    else if (strcmp(param->analyze_name,"scaleset") == 0)
+    else if (strcmp(param->analyze,"scaleset") == 0)
     {
-        param->analyze = AN_SCALE;
+        param->analyze_flag = AN_SCALE;
     }
-    else if (strcmp(param->analyze_name,"comb_phypt_scaleset") == 0)
+    else if (strcmp(param->analyze,"comb_phypt_scaleset") == 0)
     {
-        param->analyze = AN_PHYPT|AN_SCALE;
+        param->analyze_flag = AN_PHYPT|AN_SCALE;
+    }
+    else
+    {
+        fprintf(stderr,"error: analyze program '%s' unknown\n",param->analyze);
+        exit(EXIT_FAILURE);
     }
     
     /* choose the model */
@@ -275,20 +280,25 @@ fit_param * fit_param_parse(const strbuf fname)
     param->fm.nydim = (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE)) ? 2 : 1;
     strbufcpy(param->fm.name,"");
     CHECK_MODEL(param,taylor,taylor);
-    CHECK_MODEL(param,dMsqpi_su2pqchiptqed,taylor);
+    if ((param->fm.func[0] == NULL)||((s==1)&&(param->fm.func[s] == NULL))
+        ||(param->fm.npar == NULL))
+    {
+        fprintf(stderr,"error: model initialization failed\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* set extrapolation masses */
-    if (param->M_ud < 0)
+    if (latan_isnan(param->M_ud))
     {
         get_mass(dbuf,param->ud_name);
         param->M_ud = dbuf[0];
     }
-    if (param->M_s < 0)
+    if (latan_isnan(param->M_s))
     {
         get_mass(dbuf,param->s_name);
         param->M_s = dbuf[0];
     }
-    if (param->M_scale < 0)
+    if (latan_isnan(param->M_scale))
     {
         get_mass(dbuf,param->scale_part);
         param->M_scale = dbuf[0];

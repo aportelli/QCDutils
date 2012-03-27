@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
     printf("%-11s : %d\n","betas",(int)param->nbeta);
     printf("%-11s : %d\n","samples",(int)param->nsample);
     printf("\n");
-
+    
     /*              data fitting                */
     /********************************************/
     fit_data *d;
@@ -231,14 +231,12 @@ int main(int argc, char *argv[])
     /** print results **/   
     print_result(s_fit,param);
     /** display plots **/
-    use_x_var[i_ud]  = ((param->M_ud_deg != 0)&&IS_AN(param,AN_PHYPT))\
-                     ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
-    use_x_var[i_s]   = ((param->M_s_deg != 0)&&IS_AN(param,AN_PHYPT))\
-                     ||((param->s_M_s_deg != 0)&&IS_AN(param,AN_SCALE));
-    use_x_var[i_umd] = ((param->umd_deg != 0)&&IS_AN(param,AN_PHYPT))\
-                     ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE));
+
     if (param->plot)
     {
+        use_x_var[i_ud]  = true;
+        use_x_var[i_s]   = true;
+        use_x_var[i_umd] = param->have_umd;
         if (IS_AN(param,AN_PHYPT))
         {
             plot_chi2_comp(d,param,s,"physical point fit");
@@ -256,8 +254,16 @@ int main(int argc, char *argv[])
     }
     
     /* real fit */
+    
     if (param->correlated)
     {
+        use_x_var[i_ud]  = ((param->M_ud_deg != 0)&&IS_AN(param,AN_PHYPT))\
+                           ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
+        use_x_var[i_s]   = ((param->M_s_deg != 0)&&IS_AN(param,AN_PHYPT))\
+                           ||((param->s_M_s_deg != 0)&&IS_AN(param,AN_SCALE));
+        use_x_var[i_umd] = (((param->umd_deg != 0)&&IS_AN(param,AN_PHYPT))\
+                           ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE)))\
+                           &&param->have_umd;
         printf("-- fitting and resampling %s...\n",param->q_name);
         rs_data_fit(s_fit,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
         /** save chi^2/dof **/
@@ -296,6 +302,21 @@ int main(int argc, char *argv[])
                 }
             }
         }
+        /** save tables **/
+        if (IS_AN(param,AN_PHYPT))
+        {
+            tablef = fopen("qcd_phyfit_q.dat","w");
+            SCALE_DATA(AINV);
+            fprint_table(tablef,s_x,s_q,res[s],param,Q);
+            SCALE_DATA(A);
+            fclose(tablef);
+        }
+        if (IS_AN(param,AN_SCALE))
+        {
+            tablef = fopen("qcd_phyfit_scale.dat","w");
+            fprint_table(tablef,s_x,s_q,res[0],param,SCALE);
+            fclose(tablef);
+        }
         /** print results **/
         print_result(s_fit,param);
         /** display plots **/
@@ -318,7 +339,6 @@ int main(int argc, char *argv[])
     
     /*              result output               */
     /********************************************/
-
     /* extrapolation */
     if (IS_AN(param,AN_PHYPT))
     {

@@ -51,7 +51,7 @@ typedef struct fit_param_s
     int plot;
     int plotting;
     int q_dim;
-    unsigned int analyze;
+    unsigned int analyze_flag;
     fit_init *init_param;
     ens *point;
     double M_ud;
@@ -59,7 +59,7 @@ typedef struct fit_param_s
     double M_umd;
     double M_scale;
     double q_target[2];
-    strbuf analyze_name;
+    strbuf analyze;
     strbuf model;
     strbuf s_model;
     strbuf q_name;
@@ -82,7 +82,7 @@ typedef struct fit_param_s
     mat *a_err;
 } fit_param;
 
-#define IS_AN(param,prog_flag) ((param)->analyze & (prog_flag))
+#define IS_AN(param,prog_flag) ((param)->analyze_flag & (prog_flag))
 
 int ind_beta(const strbuf beta, const fit_param *param);
 fit_param * fit_param_parse(const strbuf fname);

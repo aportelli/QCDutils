@@ -11,10 +11,14 @@ plot_add_fit(p[kx],d,ky,phy_pt,kx,fit,x_range[kx][0],x_range[kx][1],1000,true,\
              obj,title,"",color,color)
 
 #define PLOT_ADD_EX(kx,s)\
-plot_add_datpoint(p[kx],mat_get(phy_pt,kx,0),param->q_target[0],      \
-               -1.0,param->q_target[1],"target","rgb 'dark-blue'");\
-plot_add_datpoint(p[kx],mat_get(phy_pt,kx,0),mat_get(fit,s,0),                   \
-               -1.0,sqrt(mat_get(fit_var,s,0)),"physical point","rgb 'black'");
+if ((!latan_isnan(param->q_target[0]))&&(!latan_isnan(param->q_target[1])))\
+{\
+    plot_add_datpoint(p[kx],mat_get(phy_pt,kx,0),param->q_target[0],      \
+                      -1.0,param->q_target[1],"target","rgb 'dark-blue'");\
+}\
+plot_add_datpoint(p[kx],mat_get(phy_pt,kx,0),mat_get(fit,s,0),     \
+                  -1.0,sqrt(mat_get(fit_var,s,0)),"physical point",\
+                  "rgb 'black'");
 
 #define PLOT_DISP(kx)\
 plot_set_title(p[kx],gtitle);\
@@ -120,7 +124,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
         PLOT_DISP(i_a);
         if (param->have_umd)
         {
-            strbufcpy(xlabel,"M_K_p^2 - M_K_0^2 (MeV^2)");
+            sprintf(xlabel,"%s (MeV^2)",param->umd_name);
             PLOT_ADD_EX(i_umd,s);
             PLOT_DISP(i_umd);
         }
@@ -162,7 +166,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
         PLOT_DISP(i_s);
         if (param->have_umd)
         {
-            strbufcpy(xlabel,"(a*M_K_p)^2 - (a*M_K_0)^2");
+            sprintf(xlabel,"a^2*%s",param->umd_name);
             PLOT_DISP(i_umd);
         }
         strbufcpy(xlabel,"a/L");

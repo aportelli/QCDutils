@@ -88,6 +88,11 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                     rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
                     rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,ens_ind);
                     param->have_umd = 1;
+                    if (latan_isnan(param->M_umd))
+                    {
+                        fprintf(stderr,"error: %s data found but no physical value specified (parameter M_umd)\n",param->umd_name);
+                        exit(EXIT_FAILURE);
+                    }
                 }
                 /* spatial extent */
                 rs_sample_cst(s_tmp,1.0/((double)ens_pt->L));
