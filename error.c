@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
     
     /* compute median */
     printf("-- resampling median...\n");
-    med_s = mat_elpercentile(res,NULL,50.0);
+    med_s = mat_elpercentile(res,w,50.0);
     mat_set(med,0,0,med_s);
     for (s=0;s<nsample;s++)
     {
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
     
     /* display result */
     rs_sample_varp(med_var,s_med);
-    conf_int(sys_err,res,NULL,1.0);
+    conf_int(sys_err,res,w,1.0);
     final      = mat_get(med,0,0);
     stat_err   = sqrt(mat_get(med_var,0,0));
     sys_err[0] = final - sys_err[0];
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     l    = xmax-xmin;
     xmin = xmin - 0.2*l;
     xmax = xmax + 0.2*l;
-    histogram(hist,rs_sample_pt_cent_val(s_res),NULL,xmin,xmax,nbin);
+    histogram(hist,rs_sample_pt_cent_val(s_res),w,xmin,xmax,nbin);
     histogram(phist,w,NULL,0.0,1.0,20);
     
     /* make plot */
