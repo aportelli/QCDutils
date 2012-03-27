@@ -2,6 +2,7 @@
 
 # binaries
 *.o
+qcd_error
 qcd_mass
 qcd_prop
 qcd_pcac
