@@ -89,7 +89,6 @@ int main(int argc, char *argv[])
         mat_set(chi2_val,i,1,chi2_val_i[1]);
         mat_set(w,i,0,chi2_pvalue(chi2_val_i[0],(size_t)chi2_val_i[1]));
         #ifdef _OPENMP
-        #pragma omp barrier
         #pragma omp critical
         #endif
         {

@@ -32,7 +32,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
 {
     plot *p[N_EX_VAR];
     double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL};
-    double x_range[N_EX_VAR][2],b_int[2],dbind,M_scale,a;
+    double x_range[N_EX_VAR][2],b_int[2],dbind,a;
     size_t bind,k,phy_ind,s;
     strbuf color,gtitle,title,xlabel,ylabel;
     mat *phy_pt,*x_k;
@@ -142,7 +142,6 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
             b_int[0]   = dbind - 0.1;
             b_int[1]   = dbind + 0.1;
             xb[i_bind] = b_int;
-            M_scale    = param->M_scale;
             a          = mat_get(fit,bind,0);
             fit_data_fit_region(d,xb);
             mat_set(phy_pt,i_ud,0,SQ(a*param->M_ud));
@@ -389,12 +388,10 @@ void fprint_table(FILE* stream, rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2],\
 {
     mat **x_err,*q_err;
     const rs_sample *s_q_pt;
-    double have_dim;
     size_t nens,ydim;
     size_t ens_ind;
     
     nens     = param->nens;
-    have_dim = (f == SCALE) ? 0.0 : 1.0;
     ydim     = (f == SCALE) ? 0   : 1;
     s_q_pt   = s_q[ydim];
     

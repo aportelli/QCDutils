@@ -165,7 +165,6 @@ int main(int argc, char* argv[])
     mat *mass,*sigmass,*scanres_t,*scanres_chi2,*scanres_mass,*scanres_masserr;
     size_t npar,nti,tibeg,inrmin,rmin,inrmax,rmax,best_t;
     size_t i;
-    bool first_elim;
     strbuf buf,range_info;
     double rerr,uc_mass,uc_mass_err,dev;
 
@@ -174,8 +173,6 @@ int main(int argc, char* argv[])
     rmax       = 0;
     rmin       = 0;
     tibeg      = (size_t)(opt->rscan_begin); 
-    
-    first_elim = true;
 
     s_mass          = rs_sample_create(npar,NBOOT);
     sigmass         = mat_create(npar,1);
@@ -313,11 +310,10 @@ int main(int argc, char* argv[])
         plot *p;
         strbuf key,plotcmd;
         size_t maxt;
-        double dmaxt,shift,abs_mass;
+        double dmaxt,abs_mass;
         
         maxt  = nt-1;
         dmaxt = (double)maxt;
-        shift = (h[0]->parity == EVEN) ? 0.0 : -DRATIO(nt,2.0);
         
         em_t = mat_create(nt-2,1);
         pr_t = mat_create(nt,1);

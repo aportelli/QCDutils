@@ -126,23 +126,23 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     a_fmt   = arg_str0(NULL,"format","{ascii|xml}",fmt_msg);
     if (argset_flag & A_SAVE_RS)
     {
-        a_save_rs       = arg_lit0(NULL,"save-rs",save_rs_msg);
+        a_save_rs       = arg_lit0(NULL,"save_rs",save_rs_msg);
     }
     if (argset_flag & A_LOAD_RG)
     {
-        a_load_rg       = arg_str0("r","load-rg","FNAME",load_rg_msg);
+        a_load_rg       = arg_str0("r","load_rg","FNAME",load_rg_msg);
     }
     if (argset_flag & A_PLOT)
     {   
-        a_noplot        = arg_lit0(NULL,"no-plot",noplot_msg);
+        a_noplot        = arg_lit0(NULL,"no_plot",noplot_msg);
     }
     if (argset_flag & A_LATSPAC)
     {
-        a_latspac_fm    = arg_dbl0("L","lat-spac",NULL,latspac_fm_msg);
+        a_latspac_fm    = arg_dbl0("L","lat_spac",NULL,latspac_fm_msg);
     }
     if (argset_flag & A_QCOMP)
     {
-        a_qcomp         = arg_str1("m","qu-comp","Q1Q2",qcomp_msg);
+        a_qcomp         = arg_str1("m","qu_comp","Q1Q2",qcomp_msg);
     }
     if (argset_flag & A_PARTICLE)
     {
@@ -156,7 +156,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
     }
     if (argset_flag & A_PROP_LOAD)
     {
-        a_ss            = arg_str1("S","source-sink","SOURCE_TYPESINK_TYPE",\
+        a_ss            = arg_str1("S","source_sink","SOURCE_TYPESINK_TYPE",\
                                    ss_msg);
         a_binsize       = arg_int0("b","bin",NULL,binsize_msg);
         a_manf          = arg_file1(NULL,NULL,"<manifest file>",manf_msg);
@@ -167,7 +167,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], int argset_flag)
         a_range         = arg_strn("R","range","[min,max]",0,MAX_RANGES,\
                                    range_msg);
         a_uncorr        = arg_lit0(NULL,"uncorr",uncorr_msg);
-        a_rscan         = arg_int0("f","range-scan",NULL,rscan_msg);
+        a_rscan         = arg_int0("f","range_scan",NULL,rscan_msg);
     }
     a_end   = arg_end(A_MAX_NERROR);
     
