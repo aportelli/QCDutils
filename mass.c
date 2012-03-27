@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
     size_t i;
     bool first_elim;
     strbuf buf,range_info;
-    double rerr;
+    double rerr,uc_mass,uc_mass_err,dev;
 
     npar       = 2;
     d          = fit_data_create(nt,1,1);
@@ -181,8 +181,7 @@ int main(int argc, char* argv[])
     sigmass         = mat_create(npar,1);
    
     mass = rs_sample_pt_cent_val(s_mass);
-    fit_data_mass_fit_tune(d,rs_sample_pt_cent_val(s_mass),mprop,em,sigem,\
-                           h[0]->parity);
+    fit_data_mass_fit_tune(d,mass,mprop,em,sigem,h[0]->parity);
     if (opt->rscan_begin < 0)
     {
         qcd_printf(opt,"-- fitting and resampling %s mass...\n",full_name);
@@ -254,8 +253,12 @@ int main(int argc, char* argv[])
         sprintf(sample_name,"%s_mass_fit%s_%s.boot",full_name,range_info,\
                 manf_name);
         rs_sample_set_name(s_mass,sample_name);
+        rs_data_fit(s_mass,NULL,&s_mprop,d,NO_COR,NULL);
+        rs_sample_varp(sigmass,s_mass);
+        mat_eqsqrt(sigmass);
+        uc_mass     = mat_get(mass,0,0);
+        uc_mass_err = mat_get(sigmass,0,0);
         rs_data_fit(s_mass,NULL,&s_mprop,d,opt->corr,NULL);
-        
         if (opt->do_save_rs_sample)
         {
             rs_sample_save(s_mass->name,'w',s_mass);
@@ -264,6 +267,11 @@ int main(int argc, char* argv[])
         mat_eqsqrt(sigmass);
         mat_eqmuls(em,1.0/latspac_nu);
         mat_eqmuls(sigem,1.0/latspac_nu);
+        dev = fabs(mat_get(mass,0,0)-uc_mass)/uc_mass_err;
+        if (dev > 1.0)
+        {
+            fprintf(stderr,"warning: correlated mass moved %.1f sigmas away from the uncorrelated mass\n",dev);
+        }
         qcd_printf(opt,"M_%-10s= %.8f +/- %.8e %s\n",full_name,\
                    mat_get(mass,0,0)/latspac_nu,             \
                    mat_get(sigmass,0,0)/latspac_nu,unit);
