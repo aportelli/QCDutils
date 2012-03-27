@@ -332,7 +332,7 @@ int main(int argc, char* argv[])
                             mat_get(mass,0,0),mat_get(mass,1,0));
                     break;
                 case ODD:
-                    sprintf(plotcmd,"cosh(%e*(x-%e))*%e",                   \
+                    sprintf(plotcmd,"cosh(%e*(x-%e))*exp(%e)",                   \
                             mat_get(mass,0,0),DRATIO(nt,2),mat_get(mass,1,0));
                     break;
             }
@@ -362,7 +362,8 @@ int main(int argc, char* argv[])
             /* chi^2 plot */
             p = plot_create();
             
-            plot_set_scale_manual(p,0,(double)(nt/2),0,2.0);
+            plot_set_scale_manual(p,0,(double)(nt/2),0,5.0);
+            plot_add_hline(p,1.0,"rgb 'black'");
             plot_add_dat(p,scanres_t,scanres_chi2,NULL,NULL,"chi^2/dof",\
                          "rgb 'blue'");
             plot_disp(p);
