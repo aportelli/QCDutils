@@ -44,11 +44,11 @@ int main(int argc, char* argv[])
     spectrum *s;
     hadron *h;
     
-    if (strcmp(spec_name,"qcd") == 0)
+    if (strbufcmp(spec_name,"qcd") == 0)
     {
         s = spectrum_create_qcd();
     }
-    else if (strcmp(spec_name,"qcdqed") == 0)
+    else if (strbufcmp(spec_name,"qcdqed") == 0)
     {
         s = spectrum_create_qcdqed();
     }

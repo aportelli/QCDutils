@@ -27,7 +27,7 @@ static void load_res(rs_sample *s_res, double chi2_val[2], const strbuf fname)
     strncpy(pt,".chi2\0",6);
     BEGIN_FOR_LINE_TOK(field,buf," \t",nf,lc)
     {
-        if ((nf >= 4)&&(strcmp(field[0],"uncorrelated:") == 0)) 
+        if ((nf >= 4)&&(strbufcmp(field[0],"uncorrelated:") == 0)) 
         {
             chi2_val[0] = ATOF(field[2]);
             chi2_val[1] = ATOF(field[3]);

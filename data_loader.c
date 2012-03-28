@@ -49,7 +49,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
         bind   = ind_beta(ens_pt->beta,param);
         for (d=0;d<param->ndataset;d++)
         {
-            if (strcmp(param->dataset[d],ens_pt->dataset) == 0)
+            if (strbufcmp(param->dataset[d],ens_pt->dataset) == 0)
             {
                 /* scale setting quantity */
                 if (IS_AN(param,AN_SCALE))

@@ -13,19 +13,19 @@
 #define ATOI(str) ((int)strtol(str,(char **)NULL,10))
 
 #define GET_PARAM_I(param,name)\
-if (strcmp(field[0],#name) == 0)\
+if (strbufcmp(field[0],#name) == 0)\
 {\
     (param)->name = ATOI(field[1]);\
     continue;\
 }
 #define GET_PARAM_D(param,name)\
-if (strcmp(field[0],#name) == 0)\
+if (strbufcmp(field[0],#name) == 0)\
 {\
     (param)->name = ATOF(field[1]);\
     continue;\
 }
 #define GET_PARAM_S(param,name)\
-if (strcmp(field[0],#name) == 0)\
+if (strbufcmp(field[0],#name) == 0)\
 {\
     strbufcpy((param)->name,field[1]);\
     continue;\
@@ -33,14 +33,14 @@ if (strcmp(field[0],#name) == 0)\
 #define CHECK_MODEL(param,m,s_m)\
 if (IS_AN(param,AN_PHYPT))\
 {\
-    if (strcmp((param)->model,#m) == 0)\
+    if (strbufcmp((param)->model,#m) == 0)\
     {\
         (param)->fm.func[s] = &fm_phypt_##m##_func;\
-        strcat((param)->fm.name,#m);\
+        strbufcat((param)->fm.name,#m);\
         if (IS_AN(param,AN_SCALE))\
         {\
             (param)->fm.npar = &fm_comb_phypt_##m##_scaleset_##s_m##_npar;\
-            strcat((param)->fm.name,"/");\
+            strbufcat((param)->fm.name,"/");\
         }\
         else\
         {\
@@ -50,10 +50,10 @@ if (IS_AN(param,AN_PHYPT))\
 }\
 if (IS_AN(param,AN_SCALE))\
 {\
-    if (strcmp((param)->s_model,#s_m) == 0)\
+    if (strbufcmp((param)->s_model,#s_m) == 0)\
     {\
         (param)->fm.func[0] = &fm_scaleset_##s_m##_func;\
-        strcat((param)->fm.name,#s_m);\
+        strbufcat((param)->fm.name,#s_m);\
         if (!IS_AN(param,AN_PHYPT))\
         {\
             (param)->fm.npar = &fm_scaleset_##s_m##_npar;\
@@ -71,7 +71,7 @@ static int ind_dataset(const strbuf dataset, const fit_param *param)
     
     for (i=0;i<param->ndataset;i++)
     {
-        if (strcmp(dataset,param->dataset[i]) == 0)
+        if (strbufcmp(dataset,param->dataset[i]) == 0)
         {
             return (int)i;
         }
@@ -116,7 +116,7 @@ int ind_beta(const strbuf beta, const fit_param *param)
     
     for (i=0;i<param->nbeta;i++)
     {
-        if (strcmp(beta,param->beta[i]) == 0)
+        if (strbufcmp(beta,param->beta[i]) == 0)
         {
             return (int)i;
         }
@@ -225,13 +225,13 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_S(param,s_name);
             GET_PARAM_S(param,umd_name);
             GET_PARAM_S(param,manifest);
-            if ((strcmp(field[0],"q_target") == 0)&&(nf >= 2))
+            if ((strbufcmp(field[0],"q_target") == 0)&&(nf >= 2))
             {
                 param->q_target[0] = ATOF(field[1]);
                 param->q_target[1] = ATOF(field[2]);
                 continue;
             }
-            if ((strcmp(field[0],"dataset") == 0)&&(nf >= 2))
+            if ((strbufcmp(field[0],"dataset") == 0)&&(nf >= 2))
             {
                 for (i=1;i<nf;i++)
                 {
@@ -239,7 +239,7 @@ fit_param * fit_param_parse(const strbuf fname)
                 }
                 continue;
             }
-            if ((strcmp(field[0],"init_param") == 0)&&(nf >= 3))
+            if ((strbufcmp(field[0],"init_param") == 0)&&(nf >= 3))
             {
                 param->ninit_param++;
                 param->init_param = (fit_init *)realloc(param->init_param,    \
@@ -256,15 +256,15 @@ fit_param * fit_param_parse(const strbuf fname)
     END_FOR_LINE_TOK(field);
     
     /* set analyze program flag */
-    if (strcmp(param->analyze,"phypt") == 0) 
+    if (strbufcmp(param->analyze,"phypt") == 0) 
     {
         param->analyze_flag = AN_PHYPT;
     }
-    else if (strcmp(param->analyze,"scaleset") == 0)
+    else if (strbufcmp(param->analyze,"scaleset") == 0)
     {
         param->analyze_flag = AN_SCALE;
     }
-    else if (strcmp(param->analyze,"comb_phypt_scaleset") == 0)
+    else if (strbufcmp(param->analyze,"comb_phypt_scaleset") == 0)
     {
         param->analyze_flag = AN_PHYPT|AN_SCALE;
     }

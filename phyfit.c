@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
     for (i=0;i<param->nens;i++)
     for (j=i+1;j<param->nens;j++)
     {
-        if (strcmp(param->point[i].dir,param->point[j].dir) != 0)
+        if (strbufcmp(param->point[i].dir,param->point[j].dir) != 0)
         {
             fit_data_set_data_cor(d,i,j,false);
         }

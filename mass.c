@@ -72,11 +72,11 @@ int main(int argc, char* argv[])
     spectrum *s;
     hadron *h[2];
 
-    if (strcmp(spec_name,"qcd") == 0)
+    if (strbufcmp(spec_name,"qcd") == 0)
     {
         s = spectrum_create_qcd();
     }
-    else if (strcmp(spec_name,"qcdqed") == 0)
+    else if (strbufcmp(spec_name,"qcdqed") == 0)
     {
         s = spectrum_create_qcdqed();
     }
@@ -236,7 +236,7 @@ int main(int argc, char* argv[])
             qcd_printf(opt,"[%d,%d]%s ",(int)rmin,(int)rmax,buf);
             fit_data_fit_range(d,rmin,rmax,true);
             sprintf(buf,"_%d_%d",(int)inrmin,(int)inrmax);
-            strcat(range_info,buf);
+            strbufcat(range_info,buf);
         }
         printf("\n");
     }
@@ -341,7 +341,7 @@ int main(int argc, char* argv[])
                     break;
             }
 
-            strcat(plotcmd," t 'fit' lc rgb 'red'");
+            strbufcat(plotcmd," t 'fit' lc rgb 'red'");
             plot_add_plot(p,plotcmd);
             plot_disp(p);   
         
