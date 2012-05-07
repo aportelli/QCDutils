@@ -13,7 +13,8 @@
 
 #define ATOF(str) (strtod(str,(char **)NULL))
 
-static void load_res(rs_sample *s_res, double chi2_val[2], const strbuf fname)
+static void load_res(rs_sample *s_res, double chi2_val[2],\
+                     const strbuf latan_path)
 {
     char *pt;
     strbuf buf,*field;
@@ -21,8 +22,8 @@ static void load_res(rs_sample *s_res, double chi2_val[2], const strbuf fname)
     
     field = NULL;
     
-    strbufcpy(buf,fname);
-    rs_sample_load_subsamp(s_res,fname,"",0,0);
+    strbufcpy(buf,latan_path);
+    rs_sample_load_subsamp(s_res,latan_path,0,0,0,0);
     pt = strstr(buf,".boot");
     strncpy(pt,".chi2\0",6);
     BEGIN_FOR_LINE_TOK(field,buf," \t",nf,lc)
@@ -41,10 +42,11 @@ int main(int argc, char *argv[])
     rs_sample *s_res_i,*s_res,*s_med;
     mat *chi2_val,*w,*hist,*phist,*med_var,*res,*med;
     size_t nsample,nres,nbin;
-    size_t i,j,s,count;
+    size_t j,s,count;
     double target,target_err,xmin,xmax,l,ymax,stat_err,sys_err[2],tot_err[2],\
            med_s,final,cl[2];
     plot *p;
+    int i;
     
     if (argc <= 4)
     {
@@ -53,16 +55,16 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
     
-    rs_sample_load_nsample(&nsample,argv[3],"");
+    rs_sample_load(NULL,&nsample,NULL,argv[3]); //(&nsample,argv[3],"");
     nres       = (size_t)(argc) - 3;
     nbin       = 15;
     count      = 0;
     target     = ATOF(argv[1]);
     target_err = ATOF(argv[2]);
     
-    s_res_i  = rs_sample_create(1,nsample);
-    s_res    = rs_sample_create(nres,nsample);
-    s_med    = rs_sample_create(1,nsample);
+    s_res_i  = rs_sample_create(1,1,nsample);
+    s_res    = rs_sample_create(nres,1,nsample);
+    s_med    = rs_sample_create(1,1,nsample);
     chi2_val = mat_create(nres,2);
     w        = mat_create(nres,1);
     hist     = mat_create(nbin,1);
@@ -79,12 +81,12 @@ int main(int argc, char *argv[])
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
-    for (i=0;i<nres;i++) 
+    for (i=0;i<(int)(nres);i++) 
     {
         double chi2_val_i[2];
         
         load_res(s_res_i,chi2_val_i,argv[i+3]);
-        rs_sample_set_subsamp(s_res,s_res_i,i,i);
+        rs_sample_set_subsamp(s_res,s_res_i,i,0,i,0);
         mat_set(chi2_val,i,0,chi2_val_i[0]);
         mat_set(chi2_val,i,1,chi2_val_i[1]);
         mat_set(w,i,0,chi2_pvalue(chi2_val_i[0],(size_t)chi2_val_i[1]));
@@ -156,7 +158,7 @@ int main(int argc, char *argv[])
         plot_add_vlineaerr(p,final,sys_err,"rgb 'blue'");
         plot_add_vlineerr(p,final,stat_err,"rgb 'red'");
     }
-    plot_add_vlineerr(p,target,target_err,"rgb 'green   '");
+    plot_add_vlineerr(p,target,target_err,"rgb 'green'");
     plot_add_vline(p,final-tot_err[0],"rgb 'yellow'");
     plot_add_vline(p,final+tot_err[1],"rgb 'yellow'");
     plot_add_vline(p,final-stat_err,"rgb 'red'");

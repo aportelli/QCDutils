@@ -186,6 +186,7 @@ fit_param * fit_param_parse(const strbuf fname)
     strbufcpy(param->umd_name,"");
     strbufcpy(param->manifest,"");
     strbufcpy(param->s_manifest,"");
+    strbufcpy(param->dataset_cat,"");
     
     /* parse parameter file */
     BEGIN_FOR_LINE_TOK(field,fname," \t",nf,lc)
@@ -346,7 +347,7 @@ fit_param * fit_param_parse(const strbuf fname)
                     add_beta(param,field[2]);
                     if (param->nsample == 0)
                     {
-                        rs_sample_load_nsample(&(param->nsample),test_fname,"");
+                        rs_sample_load(NULL,&(param->nsample),NULL,test_fname);
                     }
                 }
                 else
@@ -360,7 +361,7 @@ fit_param * fit_param_parse(const strbuf fname)
     END_FOR_LINE_TOK(field);
     
     /* create sample for external scales */
-    param->a     = rs_sample_create(param->nbeta,param->nsample);
+    param->a     = rs_sample_create(param->nbeta,1,param->nsample);
     param->a_err = mat_create(param->nbeta,1);
     
     return param;

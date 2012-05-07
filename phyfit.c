@@ -57,6 +57,10 @@ enum
 /* main program */
 int main(int argc, char *argv[])
 {
+    /*               I/O init                   */
+    /********************************************/
+    io_init();
+    
     /*              argument parsing            */
     /********************************************/
     fit_param *param;
@@ -79,10 +83,10 @@ int main(int argc, char *argv[])
 
     for (i=0;i<N_EX_VAR;i++)
     {
-        s_x[i] = rs_sample_create(param->nens,param->nsample);
+        s_x[i] = rs_sample_create(param->nens,1,param->nsample);
     }
-    s_q[0] = rs_sample_create(param->nens,param->nsample);
-    s_q[1] = rs_sample_create(param->nens,param->nsample);
+    s_q[0] = rs_sample_create(param->nens,1,param->nsample);
+    s_q[1] = rs_sample_create(param->nens,1,param->nsample);
     printf("-- loading data...\n");
     data_load(s_x,s_q,param);
     printf("%-11s : %d\n","datasets",(int)param->ndataset);
@@ -98,7 +102,7 @@ int main(int argc, char *argv[])
     size_t j;
     rs_sample *s_fit,*s_tmp,**s_pt;
     mat *fit,*fit_var,**res;
-    strbuf resf_name, chi2f_name;
+    strbuf chi2f_name;
     bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false};
     FILE *chi2f,*tablef;
     
@@ -106,10 +110,10 @@ int main(int argc, char *argv[])
     nydim   = (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE)) ? 2 : 1;
     d       = fit_data_create(param->nens,N_EX_VAR,nydim);
     npar    = fit_model_get_npar(&param->fm,param);
-    s_fit   = rs_sample_create(npar,param->nsample);
+    s_fit   = rs_sample_create(npar,1,param->nsample);
     s       = (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE)) ? 1 : 0;
     s_pt    = (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)) ? s_q + 1 : s_q;
-    s_tmp   = rs_sample_create(1,param->nsample);
+    s_tmp   = rs_sample_create(1,1,param->nsample);
     fit_var = mat_create(npar,1);
     res     = mat_ar_create(2,param->nens,1);
     
@@ -168,7 +172,7 @@ int main(int argc, char *argv[])
     {
         printf("-- fitting and resampling %s...\n",param->q_name);
     }
-    rs_data_fit(s_fit,s_x,s_pt,d,NO_COR,use_x_var);
+    rs_data_fit(s_fit,NULL,s_x,s_pt,d,NO_COR,use_x_var);
     if (IS_AN(param,AN_PHYPT))
     {
         fit_residual(res[s],d,0,fit);
@@ -197,8 +201,8 @@ int main(int argc, char *argv[])
             {
                 bind = (size_t)(mat_get(rs_sample_pt_cent_val(s_x[i_bind]),\
                                         i,0));
-                rs_sample_get_subsamp(s_tmp,s_fit,bind,bind);
-                rs_sample_set_subsamp(s_x[i_a],s_tmp,i,i);
+                rs_sample_get_subsamp(s_tmp,s_fit,bind,0,bind,0);
+                rs_sample_set_subsamp(s_x[i_a],s_tmp,i,0,i,0);
             }
         }
         else if (param->with_ext_a)
@@ -207,9 +211,9 @@ int main(int argc, char *argv[])
             {
                 bind = (size_t)(mat_get(rs_sample_pt_cent_val(s_x[i_bind]),\
                                         i,0));
-                rs_sample_get_subsamp(s_tmp,s_fit,npar-param->nbeta+bind,\
-                                      npar-param->nbeta+bind);
-                rs_sample_set_subsamp(s_x[i_a],s_tmp,i,i);
+                rs_sample_get_subsamp(s_tmp,s_fit,npar-param->nbeta+bind,0,\
+                                      npar-param->nbeta+bind,0);
+                rs_sample_set_subsamp(s_x[i_a],s_tmp,i,0,i,0);
             }
         }
     }
@@ -265,7 +269,7 @@ int main(int argc, char *argv[])
                            ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE)))\
                            &&param->have_umd;
         printf("-- fitting and resampling %s...\n",param->q_name);
-        rs_data_fit(s_fit,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
+        rs_data_fit(s_fit,NULL,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
         /** save chi^2/dof **/
         if (param->save_result)
         {
@@ -286,8 +290,8 @@ int main(int argc, char *argv[])
                 {
                     bind = (size_t)(mat_get(rs_sample_pt_cent_val(s_x[i_bind]),\
                                             i,0));
-                    rs_sample_get_subsamp(s_tmp,s_fit,bind,bind);
-                    rs_sample_set_subsamp(s_x[i_a],s_tmp,i,i);
+                    rs_sample_get_subsamp(s_tmp,s_fit,bind,0,bind,0);
+                    rs_sample_set_subsamp(s_x[i_a],s_tmp,i,0,i,0);
                 }
             }
             else if (param->with_ext_a)
@@ -296,9 +300,9 @@ int main(int argc, char *argv[])
                 {
                     bind = (size_t)(mat_get(rs_sample_pt_cent_val(s_x[i_bind]),\
                                             i,0));
-                    rs_sample_get_subsamp(s_tmp,s_fit,npar-param->nbeta+bind,\
-                                          npar-param->nbeta+bind);
-                    rs_sample_set_subsamp(s_x[i_a],s_tmp,i,i);
+                    rs_sample_get_subsamp(s_tmp,s_fit,npar-param->nbeta+bind,0,\
+                                          npar-param->nbeta+bind,0);
+                    rs_sample_set_subsamp(s_x[i_a],s_tmp,i,0,i,0);
                 }
             }
         }
@@ -339,19 +343,23 @@ int main(int argc, char *argv[])
     
     /*              result output               */
     /********************************************/
-    /* extrapolation */
+    strbuf res_path;
+    char mode;
+    
     if (IS_AN(param,AN_PHYPT))
     {
         printf("extrapolation :\n");
         printf("%10s = %f +/- %e MeV^%d\n",param->q_name,mat_get(fit,s_par,0),\
                sqrt(mat_get(fit_var,s_par,0)),param->q_dim);
-        sprintf(resf_name,"%s_%s_%s_%s_%s.boot",param->q_name,         \
-                param->scale_part,param->s_manifest,param->dataset_cat,\
+        sprintf(res_path,"%s_%s_%s_%s_%s.boot%c%s_%s_%s_%s_%s",param->q_name,\
+                param->scale_part,param->s_manifest,param->dataset_cat,      \
+                param->manifest,LATAN_PATH_SEP,param->q_name,                \
+                param->scale_part,param->s_manifest,param->dataset_cat,      \
                 param->manifest);
         if (param->save_result)
         {
-            rs_sample_save_subsamp(resf_name,'w',s_fit,s_par,\
-                                   rs_sample_get_nrow(s_fit)-1);
+            rs_sample_save_subsamp(res_path,'w',s_fit,s_par,0, \
+                                   rs_sample_get_nrow(s_fit)-1,0);
         }
     }
     if (IS_AN(param,AN_SCALE))
@@ -359,11 +367,13 @@ int main(int argc, char *argv[])
         printf("scales :\n\n");
         for (i=0;i<param->nbeta;i++)
         {
-            sprintf(resf_name,"a_%s_%s_%s.boot",param->beta[i],\
-                    param->scale_part,param->s_manifest);
             if (param->save_result)
             {
-                rs_sample_save_subsamp(resf_name,'w',s_fit,i,i);
+                sprintf(res_path,"a_%s_%s.boot%ca_%s_%s_%s",              \
+                        param->scale_part,param->s_manifest,LATAN_PATH_SEP,\
+                        param->beta[i],param->scale_part,param->s_manifest);
+                mode = (i == 0) ? 'w' : 'a';
+                rs_sample_save_subsamp(res_path,mode,s_fit,i,0,i,0);
             }
             rs_sample_varp(fit_var,s_fit);
             printf("beta = %s\n",param->beta[i]);
@@ -378,6 +388,10 @@ int main(int argc, char *argv[])
         }
     }
     
+    /*               I/O finish                 */
+    /********************************************/
+    io_finish();
+    
     /*              desallocation               */
     /********************************************/
     for (i=0;i<N_EX_VAR;i++)
@@ -389,6 +403,7 @@ int main(int argc, char *argv[])
     fit_data_destroy(d);
     rs_sample_destroy(s_fit);
     rs_sample_destroy(s_tmp);
+    mat_ar_destroy(res,2);
     mat_destroy(fit_var);
     fit_param_destroy(param);
     

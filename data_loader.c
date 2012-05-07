@@ -17,14 +17,14 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
 {
     strbuf M_str,Msq_str,ext,sf_name;
     size_t nsample,nens;
-    size_t ens_ind,bind,d;
+    size_t ens_ind,bind,d,i;
     rs_sample *s_tmp;
     ens *ens_pt;
 
     nsample  = param->nsample;
     nens     = param->nens;
     
-    s_tmp    = rs_sample_create(1,nsample);
+    s_tmp    = rs_sample_create(1,1,nsample);
     
     strbufcpy(M_str,"M");
     strbufcpy(Msq_str,"Msq");
@@ -56,37 +56,37 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 {
                     sprintf(sf_name,"%s/M_%s_%s.boot%s",ens_pt->dir,\
                             param->scale_part,ens_pt->dataset,ext);
-                    rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                    rs_sample_set_subsamp(s_q[0],s_tmp,ens_ind,ens_ind);
+                    rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
+                    rs_sample_set_subsamp(s_q[0],s_tmp,ens_ind,0,ens_ind,0);
                 }
                 /* main quantity */
                 if (IS_AN(param,AN_PHYPT))
                 {
                     sprintf(sf_name,"%s/%s_%s.boot%s",ens_pt->dir,\
                             param->q_name,param->dataset[d],ext);
-                    rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                    rs_sample_set_subsamp(s_q[1],s_tmp,ens_ind,ens_ind);
+                    rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
+                    rs_sample_set_subsamp(s_q[1],s_tmp,ens_ind,0,ens_ind,0);
                 }
                 /* m_ud fixing quantity */
                 sprintf(sf_name,"%s/%s_%s_%s.boot%s",ens_pt->dir,Msq_str,\
                         param->ud_name,param->dataset[d],ext);
-                rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                rs_sample_set_subsamp(s_x[i_ud],s_tmp,ens_ind,ens_ind);
+                rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
+                rs_sample_set_subsamp(s_x[i_ud],s_tmp,ens_ind,0,ens_ind,0);
                 /* m_s fixing quantity */
                 sprintf(sf_name,"%s/%s_%s_%s.boot%s",ens_pt->dir,Msq_str,\
                         param->s_name,param->dataset[d],ext);
-                rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                rs_sample_set_subsamp(s_x[i_s],s_tmp,ens_ind,ens_ind);
+                rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
+                rs_sample_set_subsamp(s_x[i_s],s_tmp,ens_ind,0,ens_ind,0);
                 /* beta index */
                 rs_sample_cst(s_tmp,bind);
-                rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,ens_ind);
+                rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,0,ens_ind,0);
                 /* m_u - m_d fixing quantity if possible */
                 sprintf(sf_name,"%s/%s_%s.boot%s",ens_pt->dir,\
                         param->umd_name,param->dataset[d],ext);
                 if ((param->umd_deg > 0)||(access(sf_name,R_OK) == 0))
                 {
-                    rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                    rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,ens_ind);
+                    rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
+                    rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,0,ens_ind,0);
                     param->have_umd = 1;
                     if (latan_isnan(param->M_umd))
                     {
@@ -96,35 +96,56 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 }
                 /* spatial extent */
                 rs_sample_cst(s_tmp,1.0/((double)ens_pt->L));
-                rs_sample_set_subsamp(s_x[i_Linv],s_tmp,ens_ind,ens_ind);
+                rs_sample_set_subsamp(s_x[i_Linv],s_tmp,ens_ind,0,ens_ind,0);
                 /* lattice spacing */
                 if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE))
                 {
                     if (param->with_ext_a)
                     {
-                        sprintf(sf_name,"./a_%s_%s_%s.boot%s",ens_pt->beta,\
-                                param->scale_part,param->s_manifest,ext);
-                        rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
-                        rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,ens_ind);
-                        rs_sample_set_subsamp(param->a,s_tmp,bind,bind);
+                        sprintf(sf_name,"./a_%s_%s.boot%s%ca_%s_%s_%s",       \
+                                param->scale_part,param->s_manifest,ext,      \
+                                LATAN_PATH_SEP,ens_pt->beta,param->scale_part,\
+                                param->s_manifest);
+                        rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
+                        rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,0,\
+                                              ens_ind,0);
+                        rs_sample_set_subsamp(param->a,s_tmp,bind,0,bind,0);
                     }
                     else
                     {
                         sprintf(sf_name,"%s/%s_%s_%s.boot%s",ens_pt->dir,M_str,\
                                 param->scale_part,param->dataset[d],ext);
-                        rs_sample_load_subsamp(s_tmp,sf_name,"",0,0);
+                        rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
                         rs_sample_eqmuls(s_tmp,1.0/param->M_scale);
-                        rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,ens_ind);
+                        rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,0,\
+                                              ens_ind,0);
                     }
                 }
                 else if (IS_AN(param,AN_SCALE))
                 {
                     rs_sample_cst(s_tmp,1.0);
-                    rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,ens_ind);
+                    rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,0,ens_ind,0);
                 }
-                rs_sample_varp(param->a_err,param->a);
-                mat_eqsqrt(param->a_err);
             }
         }
+        printf("[");
+        for (i=0;i<60*(ens_ind+1)/nens;i++)
+        {
+            printf("=");
+        }
+        for (i=60*(ens_ind+1)/nens;i<60;i++)
+        {
+            printf(" ");
+        }
+        printf("]  %d/%d\r",(int)ens_ind+1,(int)nens);
+        fflush(stdout);
     }
+    if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&param->with_ext_a)
+    {
+        rs_sample_varp(param->a_err,param->a);
+        mat_eqsqrt(param->a_err);
+    }
+    printf("\n");
+    
+    rs_sample_destroy(s_tmp);
 }
