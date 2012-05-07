@@ -7,6 +7,7 @@ qcd_mass
 qcd_prop
 qcd_pcac
 qcd_phyfit
+qcd_splitsum
 
 # Apple stuffs
 *.xcodeproj
