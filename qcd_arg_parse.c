@@ -42,16 +42,30 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
            plot_msg,latspac_fm_msg,qcomp_msg,channel_msg,ss_msg,               \
            binsize_msg,minimizer_msg,range_msg,uncorr_msg,rscan_msg,           \
            manf_msg,model_msg;
-    strbuf defmin;
+    strbuf defmin,deffmt;
     int j;
     
     minalg_id_get(defmin,minimizer_get_alg());
+    switch (io_get_fmt())
+    {
+        case IO_ASCII:
+            strbufcpy(deffmt,"ASCII");
+            break;
+        case IO_XML:
+            strbufcpy(deffmt,"XML");
+            break;
+        default:
+            fprintf(stderr,"error: default LatAnalyze format unknown\n");
+            exit(EXIT_FAILURE);
+            break;
+    }
     
     sprintf(help_msg        ,"display this help"                            );
     sprintf(ver_msg         ,"display QCDutils version"                     );
     sprintf(verb_msg        ,"verbosity level (default: 1)"                 );
-    sprintf(fmt_msg         ,"I/O format"                                   );
-    sprintf(nboot_msg       ,"number of bootstrap samples"                  );
+    sprintf(fmt_msg         ,"I/O format (default: %s)",deffmt              );
+    sprintf(nboot_msg       ,"number of bootstrap samples (default: %d)",\
+            DEF_NBOOT);
     sprintf(save_rs_msg     ,"save resampled samples"                       );
     sprintf(load_rg_msg     ,"use saved random generator state"             );
     sprintf(plot_msg        ,"show plot"                                    );
@@ -62,7 +76,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     sprintf(binsize_msg     ,"data binning size (default: 1)"               );
     sprintf(minimizer_msg   ,"minimizer (default: %s)",defmin               );
     sprintf(range_msg       ,"manual fit range"                             );
-    sprintf(uncorr_msg      ,"use uncorrelated chi^2"                       );
+    sprintf(uncorr_msg      ,"use time-uncorrelated chi^2"                  );
     sprintf(rscan_msg       ,"perform fit range scan"                       );
     sprintf(manf_msg        ,"LatAnalyze data manifest"                     );
     sprintf(model_msg       ,"model name"                                   );
