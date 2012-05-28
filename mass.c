@@ -376,6 +376,9 @@ int main(int argc, char* argv[])
                    full_name,"error");
         for (i=tibeg;i<range[1]-1;i++)
         {
+            latan_set_warn(false);
+            rs_data_fit(s_mass,limit,NULL,&s_mprop,d,NO_COR,NULL);
+            latan_set_warn(true);
             rs_data_fit(s_mass,limit,NULL,&s_mprop,d,opt->corr,NULL);
             rs_sample_varp(sigmass,s_mass);
             mat_eqsqrt(sigmass);
