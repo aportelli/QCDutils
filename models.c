@@ -57,10 +57,12 @@ double a_error_chi2_ext(const mat *p, void *vd)
     size_t i,s;
     double a,a_err,res;
     fit_param *param;
+    fit_data *d;
     
     res   = 0.0;
-    param = (fit_param *)(((fit_data *)vd)->model_param); 
-    s     = fit_data_get_sample_counter((fit_data *)vd);
+    d     = (fit_data *)(vd);
+    param = (fit_param *)(d->model_param); 
+    s     = fit_data_get_sample_counter(d);
     
     for (i=0;i<param->nbeta;i++)
     {
@@ -74,6 +76,7 @@ double a_error_chi2_ext(const mat *p, void *vd)
         }
         a_err = mat_get(param->a_err,i,0);
         res  += SQ(mat_get(p,I_a(i),0) - a)/SQ(a_err);
+        d->matperf += 5.0;
     }
     
     return res;
@@ -103,7 +106,8 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
             /** a global parameter with error (with external scale samples) **/
             if (param->with_ext_a)
             {
-                a = (!param->plotting) ? mat_get(p,I_a(bind),0) : mat_get(X,i_a,0);
+                a = (!param->plotting) ? mat_get(p,I_a(bind),0) :\
+                                         mat_get(X,i_a,0);
             }
             /** a x coordinate (with the ratio method) **/
             else
