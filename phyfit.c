@@ -235,12 +235,8 @@ int main(int argc, char *argv[])
     /** print results **/   
     print_result(s_fit,param);
     /** display plots **/
-
     if (param->plot)
     {
-        use_x_var[i_ud]  = true;
-        use_x_var[i_s]   = true;
-        use_x_var[i_umd] = param->have_umd;
         if (IS_AN(param,AN_PHYPT))
         {
             plot_chi2_comp(d,param,s,"physical point fit");
@@ -248,7 +244,6 @@ int main(int argc, char *argv[])
             fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
             plot_fit(fit,fit_var,d,param,Q);
             SCALE_DATA(A);
-            fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
         }
         if (IS_AN(param,AN_SCALE))
         {
@@ -258,7 +253,6 @@ int main(int argc, char *argv[])
     }
     
     /* real fit */
-    
     if (param->correlated)
     {
         use_x_var[i_ud]  = ((param->M_ud_deg != 0)&&IS_AN(param,AN_PHYPT))\
@@ -270,10 +264,18 @@ int main(int argc, char *argv[])
                            &&param->have_umd;
         printf("-- fitting and resampling %s...\n",param->q_name);
         rs_data_fit(s_fit,NULL,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
+        if (IS_AN(param,AN_PHYPT))
+        {
+            fit_residual(res[s],d,0,fit);
+        }
+        if (IS_AN(param,AN_SCALE))
+        {
+            fit_residual(res[0],d,0,fit);
+        }
+        printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
         /** save chi^2/dof **/
         if (param->save_result)
         {
-            printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
             chi2f = fopen(chi2f_name,"a");
             fprintf(chi2f,"correlated: %e %e %d\n",fit_data_get_chi2pdof(d),\
                     fit_data_get_chi2(d),(int)fit_data_get_dof(d));
