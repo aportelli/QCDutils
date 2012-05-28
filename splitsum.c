@@ -202,8 +202,8 @@ int main(int argc, char* argv[])
     /********************************************/
     fit_data *d;
     rs_sample *s_par,*s_mass[2],*s_av_mass,*s_d_mass,*s_d_sqmass;
-    mat *par,*limit,*sigpar,*scanres_t,*scanres_chi2,*scanres_mass,\
-        *scanres_masserr;
+    mat *par,*limit,*sigpar,*scanres_t,*scanres_chi2,*scanres_av_mass,\
+        *scanres_av_mass_err,*scanres_d_mass,*scanres_d_mass_err;
     size_t npar,nti,tibeg,range[2];
     size_t i,j;
     strbuf buf,range_info,latan_path;
@@ -253,11 +253,13 @@ int main(int argc, char* argv[])
     }
     qcd_printf(opt,"\n");
     
-    nti             = MAX(range[1] - 1 - tibeg,1);
-    scanres_t       = mat_create(nti,1);
-    scanres_chi2    = mat_create(nti,1);
-    scanres_mass    = mat_create(nti,1);
-    scanres_masserr = mat_create(nti,1);
+    nti                 = MAX(range[1] - 1 - tibeg,1);
+    scanres_t           = mat_create(nti,1);
+    scanres_chi2        = mat_create(nti,1);
+    scanres_av_mass     = mat_create(nti,1);
+    scanres_av_mass_err = mat_create(nti,1);
+    scanres_d_mass      = mat_create(nti,1);
+    scanres_d_mass_err  = mat_create(nti,1);
     
     /** set model **/
     fit_data_set_model(d,fm_pt,fmpar_pt);
@@ -276,15 +278,20 @@ int main(int argc, char* argv[])
     }
     
     /** set initial parameter values **/
-    m_i  = 0.5*(mat_get(em[0],nt/8-(size_t)(mat_get(tem,0,0)),0)  \
-                + mat_get(em[1],nt/8-(size_t)(mat_get(tem,0,0)),0));
+    m_i  = 0.5*(log(mat_get(mprop[0],nt/8,0)/mat_get(mprop[0],nt/8+1,0))\
+                +log(mat_get(mprop[1],nt/8,0)/mat_get(mprop[1],nt/8+1,0)));
     dm_i = 0.5*(mat_get(em[0],nt/8-(size_t)(mat_get(tem,0,0)),0)  \
-                - mat_get(em[1],nt/8-(size_t)(mat_get(tem,0,0)),0));
+                -mat_get(em[1],nt/8-(size_t)(mat_get(tem,0,0)),0));
+    if (latan_isnan(dm_i))
+    {
+        dm_i = 0.0;
+    }
     mat_set(par,0,0,m_i);
     mat_set(par,1,0,dm_i);
-    for (i=2;i<nstate+1;i++)
+    for (i=2;i<2*nstate;i+=2)
     {
         mat_set(par,i,0,((double)(i/2+2))*m_i);
+        mat_set(par,i+1,0,((double)(i/2+2))*m_i);
     }
     if (emtype == EM_ACOSH)
     {
@@ -296,9 +303,10 @@ int main(int argc, char* argv[])
                           *exp((double)(nt)*m_i/8)));
     }
     pref_i -= log((double)(nstate));
-    for (i=nstate+1;i<npar;i++)
+    for (i=2*nstate;i<npar;i+=2)
     {
-        mat_set(par,i,0,pref_i);
+        mat_set(par,i,0,0.5*pref_i);
+        mat_set(par,i+1,0,0.5*pref_i);
     }
     qcd_printf(opt,"%-22sav_mass= %e -- d_mass= %e -- prefactor0,1_0= %e\n",\
                "initial parameters: ",mat_get(par,0,0),mat_get(par,1,0),\
@@ -311,11 +319,11 @@ int main(int argc, char* argv[])
     
     /** set parameter limits **/
     mat_cst(limit,latan_nan());
-    mat_set(limit,0,0,0.5*m_i);
-    mat_set(limit,0,1,1.4*m_i);
-    for (i=2;i<nstate+1;i++)
+    mat_set(limit,0,0,0.0);
+    for (i=2;i<2*nstate;i+=2)
     {
-        mat_set(limit,i,0,1.5*mat_get(par,i-((i==2)?2:1),0));
+        mat_set(limit,i,0,mat_get(par,i-2,0));
+        mat_set(limit,i+1,0,mat_get(par,i-2,0));
     }
     
     /** set x **/
@@ -330,7 +338,7 @@ int main(int argc, char* argv[])
         latan_set_warn(false);
         rs_data_fit(s_par,limit,NULL,s_mprop,d,NO_COR,NULL);
         latan_set_warn(true);
-        rs_data_fit(s_par,limit,NULL,s_mprop,d,DATA_COR,NULL);
+        rs_data_fit(s_par,limit,NULL,s_mprop,d,opt->corr,NULL);
         rs_sample_varp(sigpar,s_par);
         mat_eqsqrt(sigpar);
         if (fit_data_get_chi2pdof(d) > 2.0)
@@ -345,12 +353,16 @@ int main(int argc, char* argv[])
         qcd_printf(opt,"%-10s= %.8f +/- %.8e %s\n","d_mass", \
                    mat_get(par,1,0)/latspac_nu,             \
                    mat_get(sigpar,1,0)/latspac_nu,unit);
-        for (i=2;i<nstate+1;i++)
+        for (i=2;i<2*nstate;i+=2)
         {
-            sprintf(buf,"E_%d",(int)(i/2));
+            sprintf(buf,"E%d_0",(int)(i/2));
             qcd_printf(opt,"%-10s= %.8f +/- %.8e %s\n",buf, \
                        mat_get(par,i,0)/latspac_nu,        \
                        mat_get(sigpar,i,0)/latspac_nu,unit);
+            sprintf(buf,"E%d_1",(int)(i/2));
+            qcd_printf(opt,"%-10s= %.8f +/- %.8e %s\n",buf, \
+                       mat_get(par,i+1,0)/latspac_nu,        \
+                       mat_get(sigpar,i+1,0)/latspac_nu,unit);
         }
         qcd_printf(opt,"%-10s= %d\n","dof",fit_data_get_dof(d));
         qcd_printf(opt,"%-10s= %e\n","chi^2/dof",fit_data_get_chi2pdof(d));
@@ -374,7 +386,6 @@ int main(int argc, char* argv[])
                     manf_name);
             rs_sample_save(latan_path,'w',s_mass[1]);
         }
-        rs_sample_eqmuls(s_d_mass,2.0);
         if (opt->do_save_rs_sample)
         {
             sprintf(latan_path,"%s_%s_split_fit%s_%s.boot:%s_%s_split_fit%s_%s",\
@@ -396,19 +407,21 @@ int main(int argc, char* argv[])
     else
     {
         qcd_printf(opt,"\n%-5s %-12s a*av_M_%-5s %-12s a*d_M_%-6s %-12s",\
-                   "ti/a","chi^2/dof",full_name,"error",full_name,"error");
+                   "ti/a","chi^2/dof",full_name[0],"error",full_name[0],"error");
         for (i=tibeg;i<range[1]-1;i++)
         {
-            rs_data_fit(s_par,limit,NULL,s_mprop,d,DATA_COR,NULL);
+            rs_data_fit(s_par,limit,NULL,s_mprop,d,opt->corr,NULL);
             rs_sample_varp(sigpar,s_par);
             mat_eqsqrt(sigpar);
             mat_set(scanres_t,i-tibeg,0,(double)(i));
             mat_set(scanres_chi2,i-tibeg,0,fit_data_get_chi2pdof(d));
-            mat_set(scanres_mass,i-tibeg,0,mat_get(par,0,0));
-            mat_set(scanres_masserr,i-tibeg,0,mat_get(sigpar,0,0));
-            qcd_printf(opt,"\n% -4d % -.5e % -.5e % -.5e % -.5e % -.5e",(int)(i),\
-                       fit_data_get_chi2pdof(d),mat_get(par,0,0), \
-                       mat_get(sigpar,0,0),mat_get(par,1,0),     \
+            mat_set(scanres_av_mass,i-tibeg,0,mat_get(par,0,0));
+            mat_set(scanres_av_mass_err,i-tibeg,0,mat_get(sigpar,0,0));
+            mat_set(scanres_d_mass,i-tibeg,0,mat_get(par,1,0));
+            mat_set(scanres_d_mass_err,i-tibeg,0,mat_get(sigpar,1,0));
+            qcd_printf(opt,"\n% -4d % -.5e % -.5e % -.5e % -.5e % -.5e",  \
+                       (int)(i),fit_data_get_chi2pdof(d),mat_get(par,0,0),\
+                       mat_get(sigpar,0,0),mat_get(par,1,0),              \
                        mat_get(sigpar,1,0));
             fit_data_fit_point(d,i,false);
         }
@@ -422,7 +435,7 @@ int main(int argc, char* argv[])
         mat *pr_t,*mbuf,*em_i,*sigem_i,*prop_pt,*mass_pt,*mpar,*ft,*comp;
         plot *p;
         strbuf key,color[2];
-        size_t maxt,k,t,npt,prev;
+        size_t maxt,k,t,npt;
         double dmaxt,nmass,corr_prop;
         
         npt     = fit_data_fit_point_num(d);
@@ -509,18 +522,17 @@ int main(int argc, char* argv[])
                 nmass = mat_get(par,k,0)/latspac_nu;
                 plot_add_hlineerr(p,nmass, mat_get(sigpar,k,0)/latspac_nu,\
                                   color[k]);
-                for (i=2;i<nstate+1;i++)
+                for (i=2;i<2*nstate;i+=2)
                 {
-                    nmass = mat_get(par,i,0)/latspac_nu;
-                    plot_add_hlineerr(p,nmass,mat_get(sigpar,i,0)/latspac_nu,\
+                    nmass = mat_get(par,i+k,0)/latspac_nu;
+                    plot_add_hlineerr(p,nmass,mat_get(sigpar,i+k,0)/latspac_nu,\
                                       color[k]);
                 }
                 plot_set_scale_manual(p,0.0,dmaxt,0.0,1.5*nmass);
                 sprintf(key,"%s effective energies",full_name[k]);
                 plot_add_dat(p,tem,em[k],NULL,sigem[k],key,"rgb 'blue'");
-                for (i=2;i<nstate+1;i++)
+                for (i=2;i<2*nstate;i+=2)
                 {
-                    prev = (i == 2) ? i-2+k : i-1;
                     if (emtype == EM_ACOSH)
                     {
                         fm_pt = &fm_cosh;
@@ -535,8 +547,8 @@ int main(int argc, char* argv[])
                                          : rs_sample_pt_sample(s_mprop[k],j-1);
                         mass_pt = (j==0) ? rs_sample_pt_cent_val(s_par) \
                                          : rs_sample_pt_sample(s_par,j-1);
-                        mat_set(mpar,0,0,mat_get(mass_pt,prev,0));
-                        mat_set(mpar,1,0,mat_get(mass_pt,nstate+1+prev,0));
+                        mat_set(mpar,0,0,mat_get(mass_pt,i-2+k,0));
+                        mat_set(mpar,1,0,mat_get(mass_pt,2*nstate+i-2+k,0));
                         for (t=0;t<nt;t++)
                         {
                             mat_set(mbuf,0,0,(double)(t));
@@ -554,6 +566,35 @@ int main(int argc, char* argv[])
                 plot_disp(p);
                 plot_destroy(p);
             }
+        }
+        else
+        {
+            /* chi^2 plot */
+            p = plot_create();
+            plot_set_scale_manual(p,0,(double)(nt/2),0,5.0);
+            plot_add_hline(p,1.0,"rgb 'black'");
+            plot_add_dat(p,scanres_t,scanres_chi2,NULL,NULL,"chi^2/dof",\
+                         "rgb 'blue'");
+            plot_disp(p);
+            plot_destroy(p);
+            
+            /* average mass plot */
+            p = plot_create();
+            plot_set_scale_xmanual(p,0,(double)(nt/2));
+            sprintf(key,"a*av_M_%s",full_name[0]);
+            plot_add_dat(p,scanres_t,scanres_av_mass,NULL,scanres_av_mass_err,\
+                         key,"rgb 'red'");
+            plot_disp(p);
+            plot_destroy(p);
+            
+            /* difference mass plot */
+            p = plot_create();
+            plot_set_scale_xmanual(p,0,(double)(nt/2));
+            sprintf(key,"a*d_M_%s",full_name[0]);
+            plot_add_dat(p,scanres_t,scanres_d_mass,NULL,scanres_d_mass_err,\
+                         key,"rgb 'red'");
+            plot_disp(p);
+            plot_destroy(p);
         }
         
         mat_destroy(em_i);
@@ -590,8 +631,10 @@ int main(int argc, char* argv[])
     mat_destroy(sigpar);
     mat_destroy(scanres_t);
     mat_destroy(scanres_chi2);
-    mat_destroy(scanres_mass);
-    mat_destroy(scanres_masserr);
+    mat_destroy(scanres_av_mass);
+    mat_destroy(scanres_av_mass_err);
+    mat_destroy(scanres_d_mass);
+    mat_destroy(scanres_d_mass_err);
     
     return EXIT_SUCCESS;
 }
