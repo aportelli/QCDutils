@@ -12,6 +12,10 @@
 #include <latan/latan_statistics.h>
 
 #define ATOF(str) (strtod(str,(char **)NULL))
+#define STAT_ERR_COL "rgb 'red'"
+#define SYS_ERR_COL  "rgb 'blue'"
+#define TOT_ERR_COL  "rgb '#444444'"
+#define TARG_ERR_COL "rgb 'green'"
 
 static void load_res(rs_sample *s_res, double chi2_val[2],\
                      const strbuf latan_path)
@@ -28,7 +32,7 @@ static void load_res(rs_sample *s_res, double chi2_val[2],\
     strncpy(pt,".chi2\0",6);
     BEGIN_FOR_LINE_TOK(field,buf," \t",nf,lc)
     {
-        if ((nf >= 4)&&(strbufcmp(field[0],"uncorrelated:") == 0)) 
+        if ((nf >= 4)&&(strbufcmp(field[0],"correlated:") == 0)) 
         {
             chi2_val[0] = ATOF(field[2]);
             chi2_val[1] = ATOF(field[3]);
@@ -39,8 +43,8 @@ static void load_res(rs_sample *s_res, double chi2_val[2],\
 
 int main(int argc, char *argv[])
 {
-    rs_sample *s_res_i,*s_res,*s_med;
-    mat *chi2_val,*w,*hist,*phist,*med_var,*res,*med;
+    rs_sample *s_res,*s_med;
+    mat *chi2_val,*w,*hist,*hist_flat,*phist,*med_var,*res,*med;
     size_t nsample,nres,nbin;
     size_t j,s,count;
     double target,target_err,xmin,xmax,l,ymax,stat_err,sys_err[2],tot_err[2],\
@@ -55,21 +59,22 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
     
-    rs_sample_load(NULL,&nsample,NULL,argv[3]); //(&nsample,argv[3],"");
+    rs_sample_load(NULL,&nsample,NULL,argv[3]);
     nres       = (size_t)(argc) - 3;
-    nbin       = 15;
+    nbin       = 10;
     count      = 0;
     target     = ATOF(argv[1]);
     target_err = ATOF(argv[2]);
     
-    s_res_i  = rs_sample_create(1,1,nsample);
-    s_res    = rs_sample_create(nres,1,nsample);
-    s_med    = rs_sample_create(1,1,nsample);
-    chi2_val = mat_create(nres,2);
-    w        = mat_create(nres,1);
-    hist     = mat_create(nbin,1);
-    phist    = mat_create(20,1);
-    med_var  = mat_create(1,1);
+    
+    s_res     = rs_sample_create(nres,1,nsample);
+    s_med     = rs_sample_create(1,1,nsample);
+    chi2_val  = mat_create(nres,2);
+    w         = mat_create(nres,1);
+    hist      = mat_create(nbin,1);
+    hist_flat = mat_create(nbin,1);
+    phist     = mat_create(40,1);
+    med_var   = mat_create(1,1);
     
     res = rs_sample_pt_cent_val(s_res);
     med = rs_sample_pt_cent_val(s_med);
@@ -79,34 +84,43 @@ int main(int argc, char *argv[])
     /* load results */
     printf("-- loading results...\n");
 #ifdef _OPENMP
-    #pragma omp parallel for
+    #pragma omp parallel
 #endif
-    for (i=0;i<(int)(nres);i++) 
     {
-        double chi2_val_i[2];
+        rs_sample *s_res_i;
         
-        load_res(s_res_i,chi2_val_i,argv[i+3]);
-        rs_sample_set_subsamp(s_res,s_res_i,i,0,i,0);
-        mat_set(chi2_val,i,0,chi2_val_i[0]);
-        mat_set(chi2_val,i,1,chi2_val_i[1]);
-        mat_set(w,i,0,chi2_pvalue(chi2_val_i[0],(size_t)chi2_val_i[1]));
-        #ifdef _OPENMP
-        #pragma omp critical
-        #endif
+        s_res_i = rs_sample_create(1,1,nsample);
+#ifdef _OPENMP
+        #pragma omp for
+#endif
+        for (i=0;i<(int)(nres);i++) 
         {
-            count++;
-            printf("[");
-            for (j=0;j<60*count/nres;j++)
+            double chi2_val_i[2];
+            
+            load_res(s_res_i,chi2_val_i,argv[i+3]);
+            rs_sample_set_subsamp(s_res,s_res_i,i,0,i,0);
+            mat_set(chi2_val,i,0,chi2_val_i[0]);
+            mat_set(chi2_val,i,1,chi2_val_i[1]);
+            mat_set(w,i,0,chi2_pvalue(chi2_val_i[0],(size_t)chi2_val_i[1]));
+#ifdef _OPENMP
+            #pragma omp critical
+#endif
             {
-                printf("=");
+                count++;
+                printf("[");
+                for (j=0;j<60*count/nres;j++)
+                {
+                    printf("=");
+                }
+                for (j=60*count/nres;j<60;j++)
+                {
+                    printf(" ");
+                }
+                printf("]  %d/%d\r",(int)count,(int)nres);
+                fflush(stdout);
             }
-            for (j=60*count/nres;j<60;j++)
-            {
-                printf(" ");
-            }
-            printf("]  %d/%d\r",(int)count,(int)nres);
-            fflush(stdout);
         }
+        rs_sample_destroy(s_res_i);
     }
     printf("\n%d sample files successfully loaded\n",(int)nres);
     
@@ -133,41 +147,46 @@ int main(int argc, char *argv[])
            stat_err,sys_err[0],sys_err[1],tot_err[0],tot_err[1]);
     
     /* compute histograms */
-    xmin = mat_get_min(rs_sample_pt_cent_val(s_res));
-    xmax = mat_get_max(rs_sample_pt_cent_val(s_res));
+    xmin = MIN(target-target_err,final-tot_err[0]);
+    xmax = MAX(target+target_err,final+tot_err[1]);
     l    = xmax-xmin;
     xmin = xmin - 0.2*l;
     xmax = xmax + 0.2*l;
     histogram(hist,rs_sample_pt_cent_val(s_res),w,xmin,xmax,nbin);
-    histogram(phist,w,NULL,0.0,1.0,20);
+    histogram(hist_flat,rs_sample_pt_cent_val(s_res),NULL,xmin,xmax,nbin);
+    histogram(phist,w,NULL,0.0,1.0,40);
     
     /* make plot */
     /** result histogram **/
     p    = plot_create();
-    ymax = mat_get_max(hist);
+    ymax = MAX(mat_get_max(hist)*DRATIO(nbin,mat_elsum(w)*(xmax-xmin)),\
+               mat_get_max(hist_flat)*DRATIO(nbin,nres*(xmax-xmin)));
     ymax = 1.2*ymax;
     plot_set_scale_manual(p,xmin-0.3*l,xmax+0.3*l,0.0,ymax);
-    plot_add_vlineaerr(p,final,tot_err,"rgb 'yellow'");
+    plot_add_vlineaerr(p,final,tot_err,TOT_ERR_COL);
     if ((stat_err > sys_err[0])&&(stat_err > sys_err[1]))
     {
-        plot_add_vlineerr(p,final,stat_err,"rgb 'red'");
-        plot_add_vlineaerr(p,final,sys_err,"rgb 'blue'");
+        plot_add_vlineerr(p,final,stat_err,STAT_ERR_COL);
+        plot_add_vlineaerr(p,final,sys_err,SYS_ERR_COL);
     }
     else
     {
-        plot_add_vlineaerr(p,final,sys_err,"rgb 'blue'");
-        plot_add_vlineerr(p,final,stat_err,"rgb 'red'");
+        plot_add_vlineaerr(p,final,sys_err,SYS_ERR_COL);
+        plot_add_vlineerr(p,final,stat_err,STAT_ERR_COL);
     }
-    plot_add_vlineerr(p,target,target_err,"rgb 'green'");
-    plot_add_vline(p,final-tot_err[0],"rgb 'yellow'");
-    plot_add_vline(p,final+tot_err[1],"rgb 'yellow'");
-    plot_add_vline(p,final-stat_err,"rgb 'red'");
-    plot_add_vline(p,final+stat_err,"rgb 'red'");
-    plot_add_vline(p,final-sys_err[0],"rgb 'blue'");
-    plot_add_vline(p,final+sys_err[1],"rgb 'blue'");
+    plot_add_vlineerr(p,target,target_err,TARG_ERR_COL);
+    plot_add_vline(p,final-tot_err[0],TOT_ERR_COL);
+    plot_add_vline(p,final+tot_err[1],TOT_ERR_COL);
+    plot_add_vline(p,final-stat_err,STAT_ERR_COL);
+    plot_add_vline(p,final+stat_err,STAT_ERR_COL);
+    plot_add_vline(p,final-sys_err[0],SYS_ERR_COL);
+    plot_add_vline(p,final+sys_err[1],SYS_ERR_COL);
     plot_add_vline(p,final,"rgb 'black'");
-    plot_add_histogram(p,hist,xmin,xmax,mat_elsum(w),false,"","");
+    plot_add_histogram(p,hist_flat,xmin,xmax,(double)(nres),true,"",\
+                       "rgb 'dark-gray'");
+    plot_add_histogram(p,hist,xmin,xmax,mat_elsum(w),true,"","");
     plot_disp(p);
+    plot_save("qcd_error",p);
     plot_destroy(p);
     /** p-value histogram **/
     p     = plot_create();
@@ -185,7 +204,6 @@ int main(int argc, char *argv[])
     
     io_finish();
     
-    rs_sample_destroy(s_res_i);
     rs_sample_destroy(s_res);
     rs_sample_destroy(s_med);
     mat_destroy(chi2_val);
