@@ -128,17 +128,20 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 }
             }
         }
-        printf("[");
-        for (i=0;i<60*(ens_ind+1)/nens;i++)
+        if (param->verb > 0)
         {
-            printf("=");
+            printf("[");
+            for (i=0;i<60*(ens_ind+1)/nens;i++)
+            {
+                printf("=");
+            }
+            for (i=60*(ens_ind+1)/nens;i<60;i++)
+            {
+                printf(" ");
+            }
+            printf("]  %d/%d\r",(int)ens_ind+1,(int)nens);
+            fflush(stdout);
         }
-        for (i=60*(ens_ind+1)/nens;i<60;i++)
-        {
-            printf(" ");
-        }
-        printf("]  %d/%d\r",(int)ens_ind+1,(int)nens);
-        fflush(stdout);
     }
     if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&param->with_ext_a)
     {
