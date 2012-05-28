@@ -9,7 +9,7 @@
 #include <latan/latan_nunits.h>
 
 #define A_MAX_NERROR 20
-#define DEF_NBOOT 200
+#define DEF_NBOOT 100
 
 qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
                             const int max_npart)
