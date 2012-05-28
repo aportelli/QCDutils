@@ -337,10 +337,6 @@ int main(int argc, char* argv[])
                 rs_sample_destroy(s_buf[1]);
             }
         }
-        if (!is_split&&(emtype == EM_ACOSH))
-        {
-            
-        }
         rs_sample_varp(sigmass,s_mass);
         mat_eqsqrt(sigmass);
         if (fit_data_get_chi2pdof(d) > 2.0)
