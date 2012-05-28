@@ -153,7 +153,7 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     /* QED finite volume effect */
     if (param->with_qed_fvol)
     {
-        res += mat_get(p,I_qedfv(0)+s,0)*pow(Linv,param->q_dim);
+        res += mat_get(p,I_qedfv(0)+s,0)*Linv;
     }
     /* dimensional factor */
     res *= pow(dimfac,param->q_dim);
