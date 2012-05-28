@@ -72,6 +72,7 @@ typedef struct fit_param_s
     strbuf dataset_cat;
     strbuf manifest;
     strbuf *beta;
+    strbuf save_plot;
     size_t ndataset;
     size_t nbeta;
     size_t nens;

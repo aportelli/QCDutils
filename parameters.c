@@ -187,6 +187,7 @@ fit_param * fit_param_parse(const strbuf fname)
     strbufcpy(param->manifest,"");
     strbufcpy(param->s_manifest,"");
     strbufcpy(param->dataset_cat,"");
+    strbufcpy(param->save_plot,"");
     
     /* parse parameter file */
     BEGIN_FOR_LINE_TOK(field,fname," \t",nf,lc)
@@ -226,6 +227,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_S(param,s_name);
             GET_PARAM_S(param,umd_name);
             GET_PARAM_S(param,manifest);
+            GET_PARAM_S(param,save_plot);
             if ((strbufcmp(field[0],"q_target") == 0)&&(nf >= 2))
             {
                 param->q_target[0] = ATOF(field[1]);

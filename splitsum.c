@@ -465,15 +465,15 @@ int main(int argc, char* argv[])
                     }
                 }
                 plot_set_scale_manual(p,-1.0,dmaxt,-5.0,5.0);
-                plot_add_plot(p,"0.0 lt -1 lc rgb 'black' notitle");
-                plot_add_plot(p,"1.0 lt -1 lc rgb 'black' notitle");
-                plot_add_plot(p,"-1.0 lt -1 lc rgb 'black' notitle");
-                plot_add_plot(p,"2.0 lt -1 lc rgb 'dark-gray' notitle");
-                plot_add_plot(p,"-2.0 lt -1 lc rgb 'dark-gray' notitle");
-                plot_add_plot(p,"3.0 lt -1 lc rgb 'gray' notitle");
-                plot_add_plot(p,"-3.0 lt -1 lc rgb 'gray' notitle");
-                plot_add_plot(p,"4.0 lt -1 lc rgb 'light-gray' notitle");
-                plot_add_plot(p,"-4.0 lt -1 lc rgb 'light-gray' notitle");
+                plot_add_plot(p,"0.0 lt -1 lc rgb 'black' notitle","");
+                plot_add_plot(p,"1.0 lt -1 lc rgb 'black' notitle","");
+                plot_add_plot(p,"-1.0 lt -1 lc rgb 'black' notitle","");
+                plot_add_plot(p,"2.0 lt -1 lc rgb 'dark-gray' notitle","");
+                plot_add_plot(p,"-2.0 lt -1 lc rgb 'dark-gray' notitle","");
+                plot_add_plot(p,"3.0 lt -1 lc rgb 'gray' notitle","");
+                plot_add_plot(p,"-3.0 lt -1 lc rgb 'gray' notitle","");
+                plot_add_plot(p,"4.0 lt -1 lc rgb 'light-gray' notitle","");
+                plot_add_plot(p,"-4.0 lt -1 lc rgb 'light-gray' notitle","");
                 plot_set_ylabel(p,"standard deviations");
                 plot_add_points(p,ft,comp,"",color[k],"impulses");
                 plot_disp(p);

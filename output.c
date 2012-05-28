@@ -20,11 +20,17 @@ plot_add_datpoint(p[kx],mat_get(phy_pt,kx,0),mat_get(fit,s,0),     \
                   -1.0,sqrt(mat_get(fit_var,s,0)),"physical point",\
                   "rgb 'black'");
 
-#define PLOT_DISP(kx)\
+#define PLOT_DISP(kx,name)\
 plot_set_title(p[kx],gtitle);\
 plot_set_xlabel(p[kx],xlabel);\
 plot_set_ylabel(p[kx],ylabel);\
-plot_disp(p[kx]);
+plot_disp(p[kx]);\
+if (strlen(param->save_plot))\
+{\
+    strbuf dirname;\
+    sprintf(dirname,"%s_%s",param->save_plot,name);\
+    plot_save(dirname,p[kx]);\
+}
 
 
 void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
@@ -115,22 +121,22 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
         
         sprintf(xlabel,"M_%s^2 (MeV^2)",param->ud_name);
         PLOT_ADD_EX(i_ud,s);
-        PLOT_DISP(i_ud);
+        PLOT_DISP(i_ud,"ud");
         sprintf(xlabel,"M_%s^2 (MeV^2)",param->s_name);
         PLOT_ADD_EX(i_s,s);
-        PLOT_DISP(i_s);
+        PLOT_DISP(i_s,"s");
         strbufcpy(xlabel,"a (MeV^-1)");
         PLOT_ADD_EX(i_a,s);
-        PLOT_DISP(i_a);
+        PLOT_DISP(i_a,"a");
         if (param->have_umd)
         {
             sprintf(xlabel,"%s (MeV^2)",param->umd_name);
             PLOT_ADD_EX(i_umd,s);
-            PLOT_DISP(i_umd);
+            PLOT_DISP(i_umd,"umd");
         }
         strbufcpy(xlabel,"1/L (MeV)");
         PLOT_ADD_EX(i_Linv,s);
-        PLOT_DISP(i_Linv);
+        PLOT_DISP(i_Linv,"Linv");
     }
     else if (f == SCALE)
     {
@@ -160,16 +166,16 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
         }
         sprintf(ylabel,"(a*M_%s)^2",param->scale_part);
         sprintf(xlabel,"(a*M_%s)^2",param->ud_name);
-        PLOT_DISP(i_ud);
+        PLOT_DISP(i_ud,"ud");
         sprintf(xlabel,"(a*M_%s)^2",param->s_name);
-        PLOT_DISP(i_s);
+        PLOT_DISP(i_s,"s");
         if (param->have_umd)
         {
             sprintf(xlabel,"a^2*%s",param->umd_name);
-            PLOT_DISP(i_umd);
+            PLOT_DISP(i_umd,"umd");
         }
         strbufcpy(xlabel,"a/L");
-        PLOT_DISP(i_Linv);
+        PLOT_DISP(i_Linv,"Linv");
     }
     param->plotting = 0;
     
@@ -213,28 +219,23 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
     for (i=0;i<nbeta;i++)
     {
         fclose(tmpf[i]);
-        sprintf(plotcmd,"'%s' u 2:3:xtic(1) t '%s' w impulse",tmpfname[i],\
-                param->beta[i]);
-        plot_add_plot(p,plotcmd);
+        sprintf(plotcmd,"u 2:3:xtic(1) t '%s' w impulse",param->beta[i]);
+        plot_add_plot(p,plotcmd,tmpfname[i]);
     }
     plot_add_head(p,"set xtics rotate by -90 font 'courier, 10'");
     plot_set_scale_manual(p,-1.0,(double)(param->nens+1),-5.0,5.0);
-    plot_add_plot(p,"0.0 lt -1 lc rgb 'black' notitle");
-    plot_add_plot(p,"1.0 lt -1 lc rgb 'black' notitle");
-    plot_add_plot(p,"-1.0 lt -1 lc rgb 'black' notitle");
-    plot_add_plot(p,"2.0 lt -1 lc rgb 'dark-gray' notitle");
-    plot_add_plot(p,"-2.0 lt -1 lc rgb 'dark-gray' notitle");
-    plot_add_plot(p,"3.0 lt -1 lc rgb 'gray' notitle");
-    plot_add_plot(p,"-3.0 lt -1 lc rgb 'gray' notitle");
-    plot_add_plot(p,"4.0 lt -1 lc rgb 'light-gray' notitle");
-    plot_add_plot(p,"-4.0 lt -1 lc rgb 'light-gray' notitle");
+    plot_add_plot(p,"0.0 lt -1 lc rgb 'black' notitle","");
+    plot_add_plot(p,"1.0 lt -1 lc rgb 'black' notitle","");
+    plot_add_plot(p,"-1.0 lt -1 lc rgb 'black' notitle","");
+    plot_add_plot(p,"2.0 lt -1 lc rgb 'dark-gray' notitle","");
+    plot_add_plot(p,"-2.0 lt -1 lc rgb 'dark-gray' notitle","");
+    plot_add_plot(p,"3.0 lt -1 lc rgb 'gray' notitle","");
+    plot_add_plot(p,"-3.0 lt -1 lc rgb 'gray' notitle","");
+    plot_add_plot(p,"4.0 lt -1 lc rgb 'light-gray' notitle","");
+    plot_add_plot(p,"-4.0 lt -1 lc rgb 'light-gray' notitle","");
     plot_set_ylabel(p,"standard deviations");
     plot_set_title(p,title);
     plot_disp(p);
-    for (i=0;i<nbeta;i++)
-    {
-        remove(tmpfname[i]);
-    }
     
     free(tmpf);
     free(tmpfname);
