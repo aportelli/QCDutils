@@ -280,8 +280,8 @@ int main(int argc, char* argv[])
     /** set initial parameter values **/
     m_i  = 0.5*(log(mat_get(mprop[0],nt/8,0)/mat_get(mprop[0],nt/8+1,0))\
                 +log(mat_get(mprop[1],nt/8,0)/mat_get(mprop[1],nt/8+1,0)));
-    dm_i = 0.5*(mat_get(em[0],nt/8-(size_t)(mat_get(tem,0,0)),0)  \
-                -mat_get(em[1],nt/8-(size_t)(mat_get(tem,0,0)),0));
+    dm_i = mat_get(em[0],nt/8-(size_t)(mat_get(tem,0,0)),0)\
+           -mat_get(em[1],nt/8-(size_t)(mat_get(tem,0,0)),0);
     if (latan_isnan(dm_i))
     {
         dm_i = 0.0;
@@ -368,11 +368,12 @@ int main(int argc, char* argv[])
         qcd_printf(opt,"%-10s= %e\n","chi^2/dof",fit_data_get_chi2pdof(d));
         rs_sample_get_subsamp(s_av_mass,s_par,0,0,0,0);
         rs_sample_get_subsamp(s_d_mass,s_par,1,0,1,0);
-        rs_sample_add(s_mass[0],s_av_mass,s_d_mass);
-        rs_sample_sub(s_mass[1],s_av_mass,s_d_mass);
+        rs_sample_muls(s_mass[0],s_d_mass,0.5);
+        rs_sample_eqadd(s_mass[0],s_av_mass);
+        rs_sample_muls(s_mass[1],s_d_mass,-0.5);
+        rs_sample_eqadd(s_mass[1],s_av_mass);
         if (opt->do_save_rs_sample)
         {
-            
             sprintf(latan_path,"%s_%s_av_mass_fit%s_%s.boot:%s_%s_av_mass_fit%s_%s",\
                     full_name[0],full_name[1],range_info,manf_name,\
                     full_name[0],full_name[1],range_info,manf_name);
@@ -385,9 +386,6 @@ int main(int argc, char* argv[])
                     full_name[1],range_info,manf_name,full_name[1],range_info,\
                     manf_name);
             rs_sample_save(latan_path,'w',s_mass[1]);
-        }
-        if (opt->do_save_rs_sample)
-        {
             sprintf(latan_path,"%s_%s_split_fit%s_%s.boot:%s_%s_split_fit%s_%s",\
                     full_name[0],full_name[1],range_info,manf_name,\
                     full_name[0],full_name[1],range_info,manf_name);
