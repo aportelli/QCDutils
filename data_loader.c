@@ -83,7 +83,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 /* m_u - m_d fixing quantity if possible */
                 sprintf(sf_name,"%s/%s_%s.boot%s",ens_pt->dir,\
                         param->umd_name,param->dataset[d],ext);
-                if ((param->umd_deg > 0)||(access(sf_name,R_OK) == 0))
+                if ((param->umd_deg > 0)||(param->with_udumd)        \
+                    ||(param->with_sumd)||(access(sf_name,R_OK) == 0))
                 {
                     rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
                     rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,0,ens_ind,0);

@@ -337,7 +337,11 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         }
         if (param->a_deg > 0)
         {
-            PRINT_PAR("p_a");
+            for (j=0;j<param->a_deg;j++)
+            {
+                sprintf(buf,"p_a_%d",j+1);
+                PRINT_PAR(buf);
+            }
         }
         if (param->with_a2M_ud)
         {
@@ -355,9 +359,21 @@ void print_result(const rs_sample *s_fit, fit_param *param)
                 PRINT_PAR(buf);
             }
         }
+        if (param->with_udumd)
+        {
+            PRINT_PAR("p_udumd");
+        }
+        if (param->with_sumd)
+        {
+            PRINT_PAR("p_sumd");
+        }
         if (param->with_qed_fvol)
         {
-            PRINT_PAR("p_fvol_L");
+            for (j=0;j<param->with_qed_fvol;j++)
+            {
+                sprintf(buf,"p_Linv_%d",j+1);
+                PRINT_PAR(buf);
+            }
         }
         if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&(param->with_ext_a))
         {

@@ -9,48 +9,30 @@
 #include <latan/latan_math.h>
 #include <latan/latan_tabfunc.h>
 
-/* physical point Taylor expansion models */
-#define uds_taylor(res,p,s,M_ud,M_ud_deg,M_s,M_s_deg,umd,umd_deg)\
+/* polynom macro */
+#define polynom(res,p,i0,x,deg)\
+if ((deg) > 0)\
 {\
     int d_;\
     size_t i_;\
-    if ((M_ud_deg) > 0)\
+    res += mat_get(p,i0,0)*(x);\
+    for (d_=2;d_<=(deg);d_++)\
     {\
-        res += mat_get(p,I_ud(0)+(s),0)*(M_ud);\
-        for (d_=2;d_<=(M_ud_deg);d_++)\
-        {\
-            i_    = (size_t)(d_) - 1;\
-            res  += mat_get(p,I_ud(i_)+(s),0)*pow(M_ud,(double)(d_));\
-        }\
+        i_    = (size_t)(d_) - 1;\
+        res  += mat_get(p,(i0)+i_,0)*pow(x,(double)(d_));\
     }\
-    if ((M_s_deg) > 0)\
-    {\
-        res += mat_get(p,I_s(0)+(s),0)*(M_s);\
-        for (d_=2;d_<=(M_s_deg);d_++)\
-        {\
-            i_   = (size_t)(d_) - 1;\
-            res += mat_get(p,I_s(i_)+(s),0)*pow(M_s,(double)(d_));\
-        }\
-    }\
-    if ((umd_deg) > 0)\
-    {\
-        res += mat_get(p,I_umd(0)+(s),0)*(umd);\
-        for (d_=2;d_<=(umd_deg);d_++)\
-        {\
-            i_   = (size_t)(d_) - 1;\
-            res += mat_get(p,I_umd(i_)+(s),0)*pow(umd,(double)(d_));\
-        }\
-    }\
-}
+}\
 
 #define I_ud(i)         (i+1)
 #define I_s(i)          (I_ud(i)+(param)->M_ud_deg)
 #define I_discr(i)      (I_s(i)+(param)->M_s_deg)
-#define I_dis_a2M_ud(i) (I_discr(i)+(((param)->a_deg > 0) ? 1 : 0))
+#define I_dis_a2M_ud(i) (I_discr(i)+(param)->a_deg)
 #define I_dis_a2M_s(i)  (I_dis_a2M_ud(i)+((param)->with_a2M_ud ? 1 : 0))
 #define I_umd(i)        (I_dis_a2M_s(i)+((param)->with_a2M_s ? 1 : 0))
-#define I_qedfv(i)      (I_umd(i)+(param)->umd_deg)
-#define I_a(i)          (I_qedfv(i)+((param)->with_qed_fvol ? 1 : 0))
+#define I_udumd(i)      (I_umd(i)+(param)->umd_deg)
+#define I_sumd(i)       (I_udumd(i)+((param)->with_udumd ? 1 : 0))
+#define I_qedfv(i)      (I_sumd(i)+((param)->with_sumd ? 1 : 0))
+#define I_a(i)          (I_qedfv(i)+param->with_qed_fvol)
 
 double a_error_chi2_ext(const mat *p, void *vd)
 {
@@ -135,13 +117,20 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     /* constant term (extrapolated quantity) */
     res += mat_get(p,s,0);
     /* Taylor expansion around the physical masses */
-    uds_taylor(res,p,s,M_ud,param->M_ud_deg,M_s,param->M_s_deg,umd,\
-               param->umd_deg);
-    /* discretization effects */
-    if (param->a_deg > 0)
+    polynom(res,p,I_ud(0)+s,M_ud,param->M_ud_deg);
+    polynom(res,p,I_s(0)+s,M_s,param->M_s_deg);
+    polynom(res,p,I_umd(0)+s,umd,param->umd_deg);
+    /* m_q*(m_u-m_d) crossed terms */
+    if (param->with_udumd)
     {
-        res += mat_get(p,I_discr(0)+s,0)*pow(a,(double)(param->a_deg));
+        res += mat_get(p,I_udumd(0)+s,0)*M_ud*umd;
     }
+    if (param->with_sumd)
+    {
+        res += mat_get(p,I_sumd(0)+s,0)*M_s*umd;
+    }
+    /* discretization effects */
+    polynom(res,p,I_discr(0)+s,a,param->a_deg);
     if (param->with_a2M_ud)
     {
         res += mat_get(p,I_dis_a2M_ud(0)+s,0)*a2mud;
@@ -151,10 +140,7 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
         res += mat_get(p,I_dis_a2M_s(0)+s,0)*a2ms;
     }
     /* QED finite volume effect */
-    if (param->with_qed_fvol)
-    {
-        res += mat_get(p,I_qedfv(0)+s,0)*Linv;
-    }
+    polynom(res,p,I_qedfv(0)+s,Linv,param->with_qed_fvol);
     /* dimensional factor */
     res *= pow(dimfac,param->q_dim);
     
@@ -172,10 +158,15 @@ size_t fm_phypt_taylor_npar(void* vparam)
     npar += param->M_ud_deg;
     npar += param->M_s_deg;
     npar += param->umd_deg;
-    if (param->a_deg > 0)
+    if (param->with_udumd)
     {
         npar++;
     }
+    if (param->with_sumd)
+    {
+        npar++;
+    }
+    npar += param->a_deg;
     if (param->with_a2M_ud) 
     {
         npar++;
@@ -184,10 +175,7 @@ size_t fm_phypt_taylor_npar(void* vparam)
     {
         npar++;
     }
-    if (param->with_qed_fvol)
-    {
-        npar++;
-    }
+    npar += param->with_qed_fvol;
     if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&(param->with_ext_a))
     {
         npar += param->nbeta;
@@ -202,7 +190,10 @@ size_t fm_phypt_taylor_npar(void* vparam)
 #undef I_dis_a2M_ud
 #undef I_dis_a2M_s
 #undef I_umd
+#undef I_udumd
+#undef I_sumd
 #undef I_qedfv
+
 #define I_ud(i)         (i+(param)->nbeta)
 #define I_s(i)          (I_ud(i)+(param)->s_M_ud_deg)
 #define I_dis_a2M_ud(i) (I_s(i)+(param)->s_M_s_deg)
@@ -229,8 +220,9 @@ double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     umd     = mat_get(X,i_umd,0)/SQ(a*M_scale)-param->M_umd/SQ(M_scale);
     
     res += 1.0;
-    uds_taylor(res,p,0,M_ud,param->s_M_ud_deg,M_s,param->s_M_s_deg,\
-               umd,param->s_umd_deg);
+    polynom(res,p,I_ud(0),M_ud,param->s_M_ud_deg);
+    polynom(res,p,I_s(0),M_s,param->s_M_s_deg);
+    polynom(res,p,I_umd(0),umd,param->s_umd_deg);
     if (param->s_with_qed_fvol > 0)
     {
         res += mat_get(p,I_qedfv(0),0)*SQ(Linv);

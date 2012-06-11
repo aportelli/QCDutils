@@ -42,6 +42,8 @@ typedef struct fit_param_s
     int umd_deg;
     int s_umd_deg;
     int have_umd;
+    int with_udumd;
+    int with_sumd;
     int with_qed_fvol;
     int s_with_qed_fvol;
     int with_ext_a;
