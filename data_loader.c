@@ -11,6 +11,7 @@
 #include <latan/latan_math.h>
 #include <latan/latan_nunits.h>
 
+#define ATOF(str) (strtod(str,(char **)NULL))
 #define ATOI(str) ((int)strtol(str,(char **)NULL,10))
 
 void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
@@ -19,6 +20,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
     size_t nsample,nens;
     size_t ens_ind,bind,d,i;
     rs_sample *s_tmp;
+    FILE *ef;
+    double e;
     ens *ens_pt;
 
     nsample  = param->nsample;
@@ -84,7 +87,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 sprintf(sf_name,"%s/%s_%s.boot%s",ens_pt->dir,\
                         param->umd_name,param->dataset[d],ext);
                 if ((param->umd_deg > 0)||(param->with_udumd)        \
-                    ||(param->with_sumd)||(access(sf_name,R_OK) == 0))
+                    ||(param->with_sumd)||(access(sf_name,R_OK) == 0)\
+                    ||(param->have_umd))
                 {
                     rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
                     rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,0,ens_ind,0);
@@ -95,6 +99,34 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                         exit(EXIT_FAILURE);
                     }
                 }
+                /* electric charge if possible */
+                sprintf(sf_name,"%s/emcoupl_%s",ens_pt->dir,param->dataset[d]);
+                if ((param->alpha_deg > 0)||(param->with_udalpha)      \
+                    ||(param->with_salpha)||(access(sf_name,R_OK) == 0)\
+                    ||(param->have_alpha))
+                {
+                    ef = fopen(sf_name,"r");
+                    if (!ef)
+                    {
+                        fprintf(stderr,"error: impossible to load charge file %s\n",
+                                sf_name);
+                        exit(EXIT_FAILURE);
+                    }
+                    fscanf(ef,"%lf",&e);
+                    e = SQ(e)/(4.0*C_PI);
+                    fclose(ef);
+                    param->have_alpha = 1;
+                    if (latan_isnan(param->alpha))
+                    {
+                        param->alpha = NU_ALPHA_EM;
+                    }
+                }
+                else
+                {
+                    e = 0.0;
+                }
+                rs_sample_cst(s_tmp,e);
+                rs_sample_set_subsamp(s_x[i_alpha],s_tmp,ens_ind,0,ens_ind,0);
                 /* spatial extent */
                 rs_sample_cst(s_tmp,1.0/((double)ens_pt->L));
                 rs_sample_set_subsamp(s_x[i_Linv],s_tmp,ens_ind,0,ens_ind,0);

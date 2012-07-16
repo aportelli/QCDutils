@@ -139,45 +139,52 @@ fit_param * fit_param_parse(const strbuf fname)
     param = (fit_param *)malloc(sizeof(fit_param));
     
     /* initialization */
-    param->analyze_flag    = AN_NOTHING;
-    param->M_ud            = latan_nan();
-    param->M_ud_deg        = 0;
-    param->s_M_ud_deg      = 0;
-    param->M_s             = latan_nan();
-    param->M_s_deg         = 0;
-    param->s_M_s_deg       = 0;
-    param->M_umd           = latan_nan();
-    param->M_scale         = latan_nan();
-    param->a_deg           = 0;
-    param->with_a2M_ud     = 0;
-    param->s_with_a2M_ud   = 0;
-    param->with_a2M_s      = 0;
-    param->s_with_a2M_s    = 0;
-    param->umd_deg         = 0;
-    param->s_umd_deg       = 0;
-    param->have_umd        = 0;
-    param->with_udumd      = 0;
-    param->with_sumd       = 0;
-    param->with_qed_fvol   = 0;
-    param->s_with_qed_fvol = 0;
-    param->with_ext_a      = 0;
-    param->q_dim           = 0;
-    param->q_target[0]     = latan_nan();
-    param->q_target[1]     = latan_nan();
-    param->verb            = 0;
-    param->correlated      = 0;
-    param->save_result     = 0;
-    param->plot            = 0;
-    param->plotting        = 0;
-    param->dataset         = NULL;
-    param->ndataset        = 0;
-    param->beta            = NULL;
-    param->nbeta           = 0;
-    param->init_param      = NULL;
-    param->ninit_param     = 0;
-    param->point           = NULL;
-    param->nens            = 0;
-    param->nsample         = 0;
+    param->analyze_flag      = AN_NOTHING;
+    param->M_ud              = latan_nan();
+    param->M_ud_deg          = 0;
+    param->s_M_ud_deg        = 0;
+    param->M_s               = latan_nan();
+    param->M_s_deg           = 0;
+    param->s_M_s_deg         = 0;
+    param->M_umd             = latan_nan();
+    param->alpha             = latan_nan();
+    param->M_scale           = latan_nan();
+    param->a_deg             = 0;
+    param->with_a2M_ud       = 0;
+    param->s_with_a2M_ud     = 0;
+    param->with_a2M_s        = 0;
+    param->s_with_a2M_s      = 0;
+    param->umd_deg           = 0;
+    param->s_umd_deg         = 0;
+    param->have_umd          = 0;
+    param->with_udumd        = 0;
+    param->with_sumd         = 0;
+    param->alpha_deg         = 0;
+    param->s_alpha_deg       = 0;
+    param->have_alpha        = 0;
+    param->with_udalpha      = 0;
+    param->with_salpha       = 0;
+    param->with_qed_fvol     = 0;
+    param->s_with_qed_fvol   = 0;
+    param->with_ext_a        = 0;
+    param->q_dim             = 0;
+    param->q_target[0]       = latan_nan();
+    param->q_target[1]       = latan_nan();
+    param->verb              = 0;
+    param->correlated        = 0;
+    param->save_result       = 0;
+    param->plot              = 0;
+    param->warn_missing_data = 0;
+    param->plotting          = 0;
+    param->dataset           = NULL;
+    param->ndataset          = 0;
+    param->beta              = NULL;
+    param->nbeta             = 0;
+    param->init_param        = NULL;
+    param->ninit_param       = 0;
+    param->point             = NULL;
+    param->nens              = 0;
+    param->nsample           = 0;
     strbufcpy(param->analyze,"");
     strbufcpy(param->model,"");
     strbufcpy(param->s_model,"");
@@ -204,6 +211,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_D(param,M_s);
             GET_PARAM_D(param,M_scale);
             GET_PARAM_D(param,M_umd);
+            GET_PARAM_D(param,alpha);
             GET_PARAM_I(param,a_deg);
             GET_PARAM_I(param,with_a2M_ud);
             GET_PARAM_I(param,s_with_a2M_ud);
@@ -213,6 +221,10 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_I(param,s_umd_deg);
             GET_PARAM_I(param,with_udumd);
             GET_PARAM_I(param,with_sumd);
+            GET_PARAM_I(param,alpha_deg);
+            GET_PARAM_I(param,s_alpha_deg);
+            GET_PARAM_I(param,with_udalpha);
+            GET_PARAM_I(param,with_salpha);
             GET_PARAM_I(param,with_qed_fvol);
             GET_PARAM_I(param,s_with_qed_fvol);
             GET_PARAM_I(param,with_ext_a);
@@ -221,6 +233,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_I(param,correlated);
             GET_PARAM_I(param,save_result);
             GET_PARAM_I(param,plot);
+            GET_PARAM_I(param,warn_missing_data);
             GET_PARAM_S(param,analyze);
             GET_PARAM_S(param,model);
             GET_PARAM_S(param,s_model);
@@ -242,6 +255,10 @@ fit_param * fit_param_parse(const strbuf fname)
             {
                 for (i=1;i<nf;i++)
                 {
+                    if (field[i][0] == '#')
+                    {
+                        break;
+                    }
                     add_dataset(param,field[i]);
                 }
                 continue;
@@ -356,7 +373,7 @@ fit_param * fit_param_parse(const strbuf fname)
                         rs_sample_load(NULL,&(param->nsample),NULL,test_fname);
                     }
                 }
-                else
+                else if (param->warn_missing_data)
                 {
                     fprintf(stderr,"warning: no data found for dataset %s in ensemble %s (unable to read file %s)\n",\
                             param->dataset[j],ens_dir,test_fname);

@@ -29,9 +29,12 @@ if ((deg) > 0)\
 #define I_dis_a2M_ud(i) (I_discr(i)+(param)->a_deg)
 #define I_dis_a2M_s(i)  (I_dis_a2M_ud(i)+((param)->with_a2M_ud ? 1 : 0))
 #define I_umd(i)        (I_dis_a2M_s(i)+((param)->with_a2M_s ? 1 : 0))
-#define I_udumd(i)      (I_umd(i)+(param)->umd_deg)
+#define I_udumd(i)      (I_umd(i)+(param)->umd_deg) 
 #define I_sumd(i)       (I_udumd(i)+((param)->with_udumd ? 1 : 0))
-#define I_qedfv(i)      (I_sumd(i)+((param)->with_sumd ? 1 : 0))
+#define I_alpha(i)      (I_sumd(i)+((param)->with_sumd ? 1 : 0))
+#define I_udalpha(i)    (I_alpha(i)+(param)->alpha_deg)
+#define I_salpha(i)     (I_udalpha(i)+((param)->with_udalpha ? 1 : 0))
+#define I_qedfv(i)      (I_salpha(i)+((param)->with_salpha ? 1 : 0))
 #define I_a(i)          (I_qedfv(i)+param->with_qed_fvol)
 
 double a_error_chi2_ext(const mat *p, void *vd)
@@ -66,7 +69,7 @@ double a_error_chi2_ext(const mat *p, void *vd)
 
 double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,M_ud,M_s,a,dimfac,umd,Linv,a2mud,a2ms;
+    double res,M_ud,M_s,a,dimfac,umd,Linv,a2mud,a2ms,alpha,dalpha;
     size_t s,bind;
     fit_param *param;
     
@@ -113,14 +116,17 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     Linv   = mat_get(X,i_Linv,0)/dimfac;
     a2mud  = SQ(a)*mat_get(X,i_ud,0)/SQ(dimfac);
     a2ms   = SQ(a)*mat_get(X,i_s,0)/SQ(dimfac);
+    alpha  = mat_get(X,i_alpha,0);
+    dalpha = alpha - param->alpha;
     
     /* constant term (extrapolated quantity) */
     res += mat_get(p,s,0);
-    /* Taylor expansion around the physical masses */
+    /* Taylor expansion around the physical isospin masses */
     polynom(res,p,I_ud(0)+s,M_ud,param->M_ud_deg);
     polynom(res,p,I_s(0)+s,M_s,param->M_s_deg);
+    /* m_u-m_d isospin breaking terms */
     polynom(res,p,I_umd(0)+s,umd,param->umd_deg);
-    /* m_q*(m_u-m_d) crossed terms */
+    /* m_q*(m_u-m_d) isospin breaking terms */
     if (param->with_udumd)
     {
         res += mat_get(p,I_udumd(0)+s,0)*M_ud*umd;
@@ -128,6 +134,17 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     if (param->with_sumd)
     {
         res += mat_get(p,I_sumd(0)+s,0)*M_s*umd;
+    }
+    /* alpha isospin breaking terms */
+    polynom(res,p,I_alpha(0)+s,dalpha,param->alpha_deg);
+    /* m_q*alpha isospin breaking terms */
+    if (param->with_udalpha)
+    {
+        res += mat_get(p,I_udalpha(0)+s,0)*M_ud*dalpha;
+    }
+    if (param->with_salpha)
+    {
+        res += mat_get(p,I_salpha(0)+s,0)*M_s*dalpha;
     }
     /* discretization effects */
     polynom(res,p,I_discr(0)+s,a,param->a_deg);
@@ -140,7 +157,7 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
         res += mat_get(p,I_dis_a2M_s(0)+s,0)*a2ms;
     }
     /* QED finite volume effect */
-    polynom(res,p,I_qedfv(0)+s,Linv,param->with_qed_fvol);
+    polynom(res,p,I_qedfv(0)+s,alpha*Linv,param->with_qed_fvol);
     /* dimensional factor */
     res *= pow(dimfac,param->q_dim);
     
@@ -163,6 +180,15 @@ size_t fm_phypt_taylor_npar(void* vparam)
         npar++;
     }
     if (param->with_sumd)
+    {
+        npar++;
+    }
+    npar += param->alpha_deg;
+    if (param->with_udalpha)
+    {
+        npar++;
+    }
+    if (param->with_salpha)
     {
         npar++;
     }
@@ -192,6 +218,9 @@ size_t fm_phypt_taylor_npar(void* vparam)
 #undef I_umd
 #undef I_udumd
 #undef I_sumd
+#undef I_alpha
+#undef I_udalpha
+#undef I_salpha
 #undef I_qedfv
 
 #define I_ud(i)         (i+(param)->nbeta)

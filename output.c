@@ -81,6 +81,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
         mat_set(phy_pt,i_ud,0,SQ(param->M_ud));
         mat_set(phy_pt,i_s,0,SQ(param->M_s));
         mat_set(phy_pt,i_umd,0,param->M_umd);
+        mat_set(phy_pt,i_alpha,0,param->alpha);
         mat_set(phy_pt,i_bind,0,0.0);
         mat_set(phy_pt,i_a,0,0.0);
         mat_set(phy_pt,i_Linv,0,0.0);
@@ -96,6 +97,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
             PLOT_ADD_FIT(PF_DATA,i_ud,phy_ind,title,color);
             PLOT_ADD_FIT(PF_DATA,i_s,phy_ind,title,color);
             PLOT_ADD_FIT(PF_DATA,i_umd,phy_ind,title,color);
+            PLOT_ADD_FIT(PF_DATA,i_alpha,phy_ind,title,color);
             PLOT_ADD_FIT(PF_DATA,i_a,phy_ind,title,color);
             PLOT_ADD_FIT(PF_DATA,i_Linv,phy_ind,title,color);
             fit_data_fit_all_points(d,true);
@@ -103,6 +105,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
         PLOT_ADD_FIT(PF_FIT,i_ud,phy_ind,"","rgb 'black'");
         PLOT_ADD_FIT(PF_FIT,i_s,phy_ind,"","rgb 'black'");
         PLOT_ADD_FIT(PF_FIT,i_umd,phy_ind,"","rgb 'black'");
+        PLOT_ADD_FIT(PF_FIT,i_alpha,phy_ind,"","rgb 'black'");
         PLOT_ADD_FIT(PF_FIT,i_a,phy_ind,"","rgb 'black'");
         PLOT_ADD_FIT(PF_FIT,i_Linv,phy_ind,"","rgb 'black'");
         switch (param->q_dim) 
@@ -133,6 +136,12 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
             sprintf(xlabel,"%s (MeV^2)",param->umd_name);
             PLOT_ADD_EX(i_umd,s);
             PLOT_DISP(i_umd,"umd");
+        }
+        if (param->have_alpha)
+        {
+            strbufcpy(xlabel,"alpha");
+            PLOT_ADD_EX(i_alpha,s);
+            PLOT_DISP(i_alpha,"alpha");
         }
         strbufcpy(xlabel,"1/L (MeV)");
         PLOT_ADD_EX(i_Linv,s);
@@ -367,6 +376,22 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         {
             PRINT_PAR("p_sumd");
         }
+        if (param->alpha_deg > 0)
+        {
+            for (j=0;j<param->alpha_deg;j++)
+            {
+                sprintf(buf,"p_alpha_%d",j+1);
+                PRINT_PAR(buf);
+            }
+        }
+        if (param->with_udalpha)
+        {
+            PRINT_PAR("p_udalpha");
+        }
+        if (param->with_salpha)
+        {
+            PRINT_PAR("p_salpha");
+        }
         if (param->with_qed_fvol)
         {
             for (j=0;j<param->with_qed_fvol;j++)
@@ -394,7 +419,7 @@ void print_result(const rs_sample *s_fit, fit_param *param)
 #define PRINT_DLABEL_WERR(name) fprintf(stream,"%-12s %-12s  ",name,"error")
 #define PRINT_D(value) fprintf(stream,"% .5e  ",value)
 #define PRINT_D_WERR(value,err) fprintf(stream,"% .5e % .5e  ",value,err)
-#define PRINT_X(ind,dim)\
+#define PRINT_X(ind)\
 PRINT_D(mat_get(rs_sample_pt_cent_val(s_x[ind]),ens_ind,0))
 #define PRINT_CV_WERR(s,s_err)\
 PRINT_D_WERR(mat_get(rs_sample_pt_cent_val(s),ens_ind,0),\
@@ -441,6 +466,10 @@ void fprint_table(FILE* stream, rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2],\
     {
         PRINT_DLABEL_WERR(param->umd_name);
     }
+    if (param->have_alpha)
+    {
+        PRINT_DLABEL_WERR("alpha");
+    }
     PRINT_DLABEL_WERR("1/L");
     if (f == Q)
     {
@@ -464,6 +493,10 @@ void fprint_table(FILE* stream, rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2],\
         if (param->have_umd)
         {
             PRINT_X_WERR(i_umd);
+        }
+        if (param->have_alpha)
+        {
+            PRINT_X(i_alpha);
         }
         PRINT_X_WERR(i_Linv);
         PRINT_CV_WERR(s_q_pt,q_err);

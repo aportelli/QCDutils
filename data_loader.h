@@ -5,15 +5,16 @@
 #include <latan/latan_statistics.h>
 
 /* indices */
-#define N_EX_VAR 6
+#define N_EX_VAR 7
 enum
 {
-    i_ud   = 0,
-    i_s    = 1,
-    i_bind = 2,
-    i_a    = 3,
-    i_umd  = 4,
-    i_Linv = 5
+    i_ud    = 0,
+    i_s     = 1,
+    i_bind  = 2,
+    i_a     = 3,
+    i_umd   = 4,
+    i_alpha = 5,
+    i_Linv  = 6
 };
 
 /* functions */

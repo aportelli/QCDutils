@@ -44,6 +44,11 @@ typedef struct fit_param_s
     int have_umd;
     int with_udumd;
     int with_sumd;
+    int alpha_deg;
+    int s_alpha_deg;
+    int have_alpha;
+    int with_udalpha;
+    int with_salpha;
     int with_qed_fvol;
     int s_with_qed_fvol;
     int with_ext_a;
@@ -51,6 +56,7 @@ typedef struct fit_param_s
     int correlated;
     int save_result;
     int plot;
+    int warn_missing_data;
     int plotting;
     int q_dim;
     unsigned int analyze_flag;
@@ -60,6 +66,7 @@ typedef struct fit_param_s
     double M_s;
     double M_umd;
     double M_scale;
+    double alpha;
     double q_target[2];
     strbuf analyze;
     strbuf model;

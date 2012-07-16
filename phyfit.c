@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
     rs_sample *s_fit,*s_tmp,**s_pt;
     mat *fit,*fit_var,**res;
     strbuf chi2f_name;
-    bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false};
+    bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false,false};
     FILE *chi2f,*tablef;
     
     
@@ -255,12 +255,14 @@ int main(int argc, char *argv[])
     /* real fit */
     if (param->correlated)
     {
-        use_x_var[i_ud]  = ((param->M_ud_deg != 0)&&IS_AN(param,AN_PHYPT))\
+        use_x_var[i_ud]  = (((param->M_ud_deg != 0)||(param->with_udumd)       \
+                             ||(param->with_udalpha))&&IS_AN(param,AN_PHYPT))  \
                            ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
-        use_x_var[i_s]   = ((param->M_s_deg != 0)&&IS_AN(param,AN_PHYPT))\
-                           ||((param->s_M_s_deg != 0)&&IS_AN(param,AN_SCALE));
-        use_x_var[i_umd] = (((param->umd_deg != 0)&&IS_AN(param,AN_PHYPT))\
-                           ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE)))\
+        use_x_var[i_s]   = (((param->M_s_deg != 0)||(param->with_sumd)         \
+                             ||(param->with_salpha))&&IS_AN(param,AN_PHYPT))   \
+                           ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
+        use_x_var[i_umd] = (((param->umd_deg != 0)&&IS_AN(param,AN_PHYPT))     \
+                           ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE))) \
                            &&param->have_umd;
         printf("-- fitting and resampling %s...\n",param->q_name);
         rs_data_fit(s_fit,NULL,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
