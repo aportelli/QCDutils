@@ -10,7 +10,6 @@ AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 AM_CONFIG_HEADER([config.h])
 
 # Check for OpenMP
-AC_OPENMP
 AM_CFLAGS="$AM_CFLAGS $OPENMP_CFLAGS"
 CFLAGS="$AM_CFLAGS $CFLAGS"
 
@@ -31,7 +30,7 @@ AC_ARG_WITH([argtable],
 	[try this for a non-standard install prefix of the argtable library])],
     [AM_CFLAGS="$AM_CFLAGS -I$with_argtable/include"]
 	[AM_LDFLAGS="$AM_LDFLAGS -L$with_argtable/lib"],
-	[AC_MSG_ERROR([please specify the full prefix of libargtable2.a using --with-argtable=<prefix> for static linking])]
+	[]
 )
 
 CFLAGS="$AM_CFLAGS $CFLAGS"
@@ -40,7 +39,7 @@ LDFLAGS="$AM_LDFLAGS $LDFLAGS"
 # Checks for libraries.
 AC_CHECK_LIB([m],[cos],[],[AC_MSG_ERROR([libm library not found])])
 AC_CHECK_LIB([latan],[latan_get_version],[],[AC_MSG_ERROR([LatAnalyze library not found])])
-AC_CHECK_LIB([argtable2],[arg_parse],[LIBS="$LIBS $with_argtable/lib/libargtable2.a"],[AC_MSG_ERROR([argtable library not found])])
+AC_CHECK_LIB([argtable2],[arg_parse],[],[AC_MSG_ERROR([argtable library not found])])
 
 LDFLAGS="$LDFLAGS $ARGTABLE_LDFLAGS"
 
