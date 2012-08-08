@@ -26,7 +26,8 @@ if ((deg) > 0)\
 #define I_ud(i)         (i+1)
 #define I_s(i)          (I_ud(i)+(param)->M_ud_deg)
 #define I_discr(i)      (I_s(i)+(param)->M_s_deg)
-#define I_dis_a2M_ud(i) (I_discr(i)+(param)->a_deg)
+#define I_dis_aalpha(i) (I_discr(i)+(param)->a_deg)
+#define I_dis_a2M_ud(i) (I_dis_aalpha(i)+((param)->with_aalpha ? 1 : 0))
 #define I_dis_a2M_s(i)  (I_dis_a2M_ud(i)+((param)->with_a2M_ud ? 1 : 0))
 #define I_umd(i)        (I_dis_a2M_s(i)+((param)->with_a2M_s ? 1 : 0))
 #define I_udumd(i)      (I_umd(i)+(param)->umd_deg) 
@@ -35,6 +36,7 @@ if ((deg) > 0)\
 #define I_udalpha(i)    (I_alpha(i)+(param)->alpha_deg)
 #define I_salpha(i)     (I_udalpha(i)+((param)->with_udalpha ? 1 : 0))
 #define I_qedfv(i)      (I_salpha(i)+((param)->with_salpha ? 1 : 0))
+#define LAST_IND        (I_qedfv(0)+param->with_qed_fvol-1)
 #define I_a(i)          (I_qedfv(i)+param->with_qed_fvol)
 
 double a_error_chi2_ext(const mat *p, void *vd)
@@ -148,6 +150,10 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     }
     /* discretization effects */
     polynom(res,p,I_discr(0)+s,a,param->a_deg);
+    if (param->with_aalpha)
+    {
+        res += mat_get(p,I_dis_aalpha(0)+s,0)*alpha*a;
+    }
     if (param->with_a2M_ud)
     {
         res += mat_get(p,I_dis_a2M_ud(0)+s,0)*a2mud;
@@ -171,37 +177,7 @@ size_t fm_phypt_taylor_npar(void* vparam)
     
     param = (fit_param *)vparam;
     
-    npar  = 1;
-    npar += param->M_ud_deg;
-    npar += param->M_s_deg;
-    npar += param->umd_deg;
-    if (param->with_udumd)
-    {
-        npar++;
-    }
-    if (param->with_sumd)
-    {
-        npar++;
-    }
-    npar += param->alpha_deg;
-    if (param->with_udalpha)
-    {
-        npar++;
-    }
-    if (param->with_salpha)
-    {
-        npar++;
-    }
-    npar += param->a_deg;
-    if (param->with_a2M_ud) 
-    {
-        npar++;
-    }
-    if (param->with_a2M_s) 
-    {
-        npar++;
-    }
-    npar += param->with_qed_fvol;
+    npar  = LAST_IND + 1;
     if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&(param->with_ext_a))
     {
         npar += param->nbeta;
@@ -213,6 +189,7 @@ size_t fm_phypt_taylor_npar(void* vparam)
 #undef I_ud
 #undef I_s
 #undef I_discr
+#undef I_dis_aalpha
 #undef I_dis_a2M_ud
 #undef I_dis_a2M_s
 #undef I_umd
@@ -222,6 +199,8 @@ size_t fm_phypt_taylor_npar(void* vparam)
 #undef I_udalpha
 #undef I_salpha
 #undef I_qedfv
+#undef LAST_IND
+#undef I_a
 
 #define I_ud(i)         (i+(param)->nbeta)
 #define I_s(i)          (I_ud(i)+(param)->s_M_ud_deg)
