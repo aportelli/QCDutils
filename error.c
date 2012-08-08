@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199506L /* strtok_r is used here */
+
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
