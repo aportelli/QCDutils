@@ -71,7 +71,7 @@ double a_error_chi2_ext(const mat *p, void *vd)
 
 double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,M_ud,M_s,a,dimfac,umd,Linv,a2mud,a2ms,alpha,dalpha;
+    double res,buf,M_ud,M_s,a,dimfac,umd,Linv,a2mud,a2ms,alpha,dalpha;
     size_t s,bind;
     fit_param *param;
     
@@ -163,7 +163,12 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
         res += mat_get(p,I_dis_a2M_s(0)+s,0)*a2ms;
     }
     /* QED finite volume effect */
-    polynom(res,p,I_qedfv(0)+s,alpha*Linv,param->with_qed_fvol);
+    if (param->have_alpha)
+    {
+        buf  = 0.0;
+        polynom(buf,p,I_qedfv(0)+s,Linv,param->with_qed_fvol);
+        res += alpha*buf;
+    }
     /* dimensional factor */
     res *= pow(dimfac,param->q_dim);
     
