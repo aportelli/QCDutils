@@ -212,11 +212,11 @@ size_t fm_phypt_taylor_npar(void* vparam)
 #define I_dis_a2M_ud(i) (I_s(i)+(param)->s_M_s_deg)
 #define I_dis_a2M_s(i)  (I_dis_a2M_ud(i)+(((param)->s_with_a2M_ud) ? 1 : 0))
 #define I_umd(i)        (I_dis_a2M_s(i)+(((param)->s_with_a2M_s) ? 1 : 0))
-#define I_qedfv(i)      (I_umd(i)+(param)->s_umd_deg)
+#define LAST_IND        (I_umd(0)+(param)->s_umd_deg-1)
 
 double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,a,M_ud,M_s,umd,M_scale,Linv,a2mud,a2ms;
+    double res,a,M_ud,M_s,umd,M_scale,a2mud,a2ms;
     fit_param *param;
     size_t bind;
     
@@ -227,7 +227,6 @@ double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     a       = mat_get(p,bind,0);
     a2ms    = mat_get(X,i_s,0)/M_scale;
     a2mud   = mat_get(X,i_ud,0)/M_scale;
-    Linv    = mat_get(X,i_Linv,0)/(a*M_scale);
     M_ud    = mat_get(X,i_ud,0)/SQ(a*M_scale)-SQ(param->M_ud)/SQ(M_scale);
     M_s     = mat_get(X,i_s,0)/SQ(a*M_scale)-SQ(param->M_s)/SQ(M_scale);
     umd     = mat_get(X,i_umd,0)/SQ(a*M_scale)-param->M_umd/SQ(M_scale);
@@ -236,10 +235,6 @@ double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     polynom(res,p,I_ud(0),M_ud,param->s_M_ud_deg);
     polynom(res,p,I_s(0),M_s,param->s_M_s_deg);
     polynom(res,p,I_umd(0),umd,param->s_umd_deg);
-    if (param->s_with_qed_fvol > 0)
-    {
-        res += mat_get(p,I_qedfv(0),0)*SQ(Linv);
-    }
     if (param->s_with_a2M_ud)
     {
         res += mat_get(p,I_dis_a2M_ud(0),0)*a2mud;
@@ -256,30 +251,16 @@ double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
 size_t fm_scaleset_taylor_npar(void* vparam)
 {
     fit_param *param;
-    size_t npar;
     
     param = (fit_param *)vparam;
     
-    npar  = param->nbeta;
-    npar += param->s_M_ud_deg;
-    npar += param->s_M_s_deg;
-    npar += param->s_umd_deg;
-    if (param->s_with_qed_fvol)
-    {
-        npar++;
-    }
-    if (param->s_with_a2M_ud)
-    {
-        npar++;
-    }
-    if (param->s_with_a2M_s)
-    {
-        npar++;
-    }
-    
-    return npar;
+    return LAST_IND + 1;
 }
 
+#undef I_ud
+#undef I_s
+#undef I_umd
+#undef LAST_IND
 
 size_t fm_comb_phypt_taylor_scaleset_taylor_npar(void* vparam)
 {
