@@ -350,8 +350,7 @@ fit_param * fit_param_parse(const strbuf fname)
     {
         if ((nf>0)&&(field[0][0] != '#'))
         {
-            sprintf(ens_dir,"%s_%s_%s_%s_%s",field[0],field[1],field[2],\
-                    field[3],field[4]);
+            strbufcpy(ens_dir,_line);
             for (j=0;j<param->ndataset;j++)
             {
                 sprintf(test_fname,"%s/%s_%s.boot%s",ens_dir,param->q_name,\
