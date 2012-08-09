@@ -352,6 +352,10 @@ void print_result(const rs_sample *s_fit, fit_param *param)
                 PRINT_PAR(buf);
             }
         }
+        if (param->with_aalpha)
+        {
+            PRINT_PAR("p_aalpha");
+        }
         if (param->with_a2M_ud)
         {
             PRINT_PAR("p_a2M_ud");
@@ -455,7 +459,7 @@ void fprint_table(FILE* stream, rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2],\
     mat_eqsqrt(q_err);
     
     /* display */
-    fprintf(stream,"#%29s  ","ensemble");
+    fprintf(stream,"#%49s  ","ensemble");
     PRINT_DLABEL_WERR(param->ud_name);
     PRINT_DLABEL_WERR(param->s_name);
     if (f == Q)
@@ -468,7 +472,7 @@ void fprint_table(FILE* stream, rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2],\
     }
     if (param->have_alpha)
     {
-        PRINT_DLABEL_WERR("alpha");
+        PRINT_DLABEL("alpha");
     }
     PRINT_DLABEL_WERR("1/L");
     if (f == Q)
@@ -483,7 +487,7 @@ void fprint_table(FILE* stream, rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2],\
     fprintf(stream,"\n");
     for(ens_ind=0;ens_ind<nens;ens_ind++)
     {
-        fprintf(stream,"%30s  ",param->point[ens_ind].dir);
+        fprintf(stream,"%50s  ",param->point[ens_ind].dir);
         PRINT_X_WERR(i_ud);
         PRINT_X_WERR(i_s);
         if (f == Q)
