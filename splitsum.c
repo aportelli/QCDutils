@@ -287,7 +287,7 @@ int main(int argc, char* argv[])
         dm_i = 0.0;
     }
     mat_set(par,0,0,m_i);
-    mat_set(par,1,0,dm_i);
+    mat_set(par,1,0,0.01*m_i);
     for (i=2;i<2*nstate;i+=2)
     {
         mat_set(par,i,0,((double)(i/2+2))*m_i);
@@ -319,7 +319,9 @@ int main(int argc, char* argv[])
     
     /** set parameter limits **/
     mat_cst(limit,latan_nan());
-    mat_set(limit,0,0,0.0);
+    mat_set(limit,0,0,0.5*m_i);
+    mat_set(limit,1,0,-0.5*m_i);
+    mat_set(limit,1,1,0.5*m_i);
     for (i=2;i<2*nstate;i+=2)
     {
         mat_set(limit,i,0,mat_get(par,i-2,0));
