@@ -23,7 +23,7 @@ if ((deg) > 0)\
     }\
 }\
 
-#define I_ud(i)         (i+1)
+#define I_ud(i)         (i+((param)->with_const ? 1 : 0))
 #define I_s(i)          (I_ud(i)+(param)->M_ud_deg)
 #define I_discr(i)      (I_s(i)+(param)->M_s_deg)
 #define I_dis_aalpha(i) (I_discr(i)+(param)->a_deg)
@@ -31,11 +31,11 @@ if ((deg) > 0)\
 #define I_dis_a2M_s(i)  (I_dis_a2M_ud(i)+((param)->with_a2M_ud ? 1 : 0))
 #define I_umd(i)        (I_dis_a2M_s(i)+((param)->with_a2M_s ? 1 : 0))
 #define I_udumd(i)      (I_umd(i)+(param)->umd_deg) 
-#define I_sumd(i)       (I_udumd(i)+((param)->with_udumd ? 1 : 0))
-#define I_alpha(i)      (I_sumd(i)+((param)->with_sumd ? 1 : 0))
+#define I_sumd(i)       (I_udumd(i)+(param)->with_udumd)
+#define I_alpha(i)      (I_sumd(i)+(param)->with_sumd)
 #define I_udalpha(i)    (I_alpha(i)+(param)->alpha_deg)
-#define I_salpha(i)     (I_udalpha(i)+((param)->with_udalpha ? 1 : 0))
-#define I_qedfv(i)      (I_salpha(i)+((param)->with_salpha ? 1 : 0))
+#define I_salpha(i)     (I_udalpha(i)+(param)->with_udalpha)
+#define I_qedfv(i)      (I_salpha(i)+(param)->with_salpha)
 #define LAST_IND        (I_qedfv(0)+param->with_qed_fvol-1)
 #define I_a(i)          (I_qedfv(i)+param->with_qed_fvol)
 
@@ -55,11 +55,11 @@ double a_error_chi2_ext(const mat *p, void *vd)
     {
         if (s == 0)
         {
-            a = mat_get(rs_sample_pt_cent_val(param->a),i,0);
+            a = mat_get(rs_sample_pt_cent_val(param->s_a),i,0);
         }
         else
         {
-            a = mat_get(rs_sample_pt_sample(param->a,s-1),i,0);
+            a = mat_get(rs_sample_pt_sample(param->s_a,s-1),i,0);
         }
         a_err = mat_get(param->a_err,i,0);
         res  += SQ(mat_get(p,I_a(i),0) - a)/SQ(a_err);
@@ -71,7 +71,7 @@ double a_error_chi2_ext(const mat *p, void *vd)
 
 double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,buf,M_ud,M_s,a,dimfac,umd,Linv,a2mud,a2ms,alpha,dalpha;
+    double res,buf,M_ud,M_s,a,dimfac,umd,Linv,a2mud,a2ms,alpha;
     size_t s,bind;
     fit_param *param;
     
@@ -85,7 +85,7 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
         if (IS_AN(param,AN_SCALE))
         {
             /** a fit parameter from the scale setting model **/
-            a = (!param->plotting) ? mat_get(p,bind,0) : mat_get(X,i_a,0);
+            a = (!param->scale_model) ? mat_get(p,bind,0) : mat_get(X,i_a,0);
             s = fm_scaleset_taylor_npar(param);
         }
         else
@@ -93,8 +93,8 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
             /** a global parameter with error (with external scale samples) **/
             if (param->with_ext_a)
             {
-                a = (!param->plotting) ? mat_get(p,I_a(bind),0) :\
-                                         mat_get(X,i_a,0);
+                a = (!param->scale_model) ? mat_get(p,I_a(bind),0) :\
+                                            mat_get(X,i_a,0);
             }
             /** a x coordinate (with the ratio method) **/
             else
@@ -111,48 +111,58 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
         exit(EXIT_FAILURE);
     }
     /* x values */
-    dimfac = (!param->plotting) ? a : 1.0;
-    M_ud   = mat_get(X,i_ud,0)/SQ(dimfac) - SQ(param->M_ud);
-    M_s    = mat_get(X,i_s,0)/SQ(dimfac) - SQ(param->M_s);
-    umd    = mat_get(X,i_umd,0)/SQ(dimfac) - param->M_umd;
+    dimfac = (!param->scale_model) ? a : 1.0;
+    M_ud   = mat_get(X,i_ud,0)/SQ(dimfac);
+    M_s    = mat_get(X,i_s,0)/SQ(dimfac);
+    umd    = mat_get(X,i_umd,0)/SQ(dimfac);
     Linv   = mat_get(X,i_Linv,0)/dimfac;
     a2mud  = SQ(a)*mat_get(X,i_ud,0)/SQ(dimfac);
     a2ms   = SQ(a)*mat_get(X,i_s,0)/SQ(dimfac);
     alpha  = mat_get(X,i_alpha,0);
-    dalpha = alpha - param->alpha;
     
-    /* constant term (extrapolated quantity) */
-    res += mat_get(p,s,0);
+    /* constant term */
+    if (param->with_const)
+    {
+        res += mat_get(p,s,0);
+    }
     /* Taylor expansion around the physical isospin masses */
-    polynom(res,p,I_ud(0)+s,M_ud,param->M_ud_deg);
-    polynom(res,p,I_s(0)+s,M_s,param->M_s_deg);
+    polynom(res,p,I_ud(0)+s,M_ud-SQ(param->M_ud),param->M_ud_deg);
+    polynom(res,p,I_s(0)+s,M_s-SQ(param->M_s),param->M_s_deg);
     /* m_u-m_d isospin breaking terms */
     polynom(res,p,I_umd(0)+s,umd,param->umd_deg);
     /* m_q*(m_u-m_d) isospin breaking terms */
     if (param->with_udumd)
     {
-        res += mat_get(p,I_udumd(0)+s,0)*M_ud*umd;
+        buf  = 0.0;
+        polynom(buf,p,I_udumd(0)+s,M_ud-SQ(param->M_ud),param->with_udumd);
+        res += umd*buf;
     }
     if (param->with_sumd)
     {
-        res += mat_get(p,I_sumd(0)+s,0)*M_s*umd;
+        buf  = 0.0;
+        polynom(buf,p,I_sumd(0)+s,M_s-SQ(param->M_s),param->with_sumd);
+        res += umd*buf;
     }
     /* alpha isospin breaking terms */
-    polynom(res,p,I_alpha(0)+s,dalpha,param->alpha_deg);
+    polynom(res,p,I_alpha(0)+s,alpha,param->alpha_deg);
     /* m_q*alpha isospin breaking terms */
     if (param->with_udalpha)
     {
-        res += mat_get(p,I_udalpha(0)+s,0)*M_ud*dalpha;
+        buf  = 0.0;
+        polynom(buf,p,I_udalpha(0)+s,M_ud-SQ(param->M_ud),param->with_udalpha);
+        res += alpha*buf;
     }
     if (param->with_salpha)
     {
-        res += mat_get(p,I_salpha(0)+s,0)*M_s*dalpha;
+        buf  = 0.0;
+        polynom(buf,p,I_salpha(0)+s,M_s-SQ(param->M_s),param->with_salpha);
+        res += alpha*buf;
     }
     /* discretization effects */
-    polynom(res,p,I_discr(0)+s,a,param->a_deg);
+    polynom(res,p,I_discr(0)+s,SQ(a),param->a_deg);
     if (param->with_aalpha)
     {
-        res += mat_get(p,I_dis_aalpha(0)+s,0)*alpha*a;
+        res += mat_get(p,I_dis_aalpha(0)+s,0)*a*alpha;
     }
     if (param->with_a2M_ud)
     {
@@ -229,7 +239,7 @@ double fm_scaleset_taylor_func(const mat *X, const mat *p, void *vparam)
     a2mud   = mat_get(X,i_ud,0)/M_scale;
     M_ud    = mat_get(X,i_ud,0)/SQ(a*M_scale)-SQ(param->M_ud)/SQ(M_scale);
     M_s     = mat_get(X,i_s,0)/SQ(a*M_scale)-SQ(param->M_s)/SQ(M_scale);
-    umd     = mat_get(X,i_umd,0)/SQ(a*M_scale)-param->M_umd/SQ(M_scale);
+    umd     = mat_get(X,i_umd,0)/SQ(a*M_scale)-param->M_umd_val/SQ(M_scale);
     
     res += 1.0;
     polynom(res,p,I_ud(0),M_ud,param->s_M_ud_deg);

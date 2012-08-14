@@ -30,6 +30,7 @@ enum
 
 typedef struct fit_param_s
 {
+    int with_const;
     int M_ud_deg;
     int s_M_ud_deg;
     int M_s_deg;
@@ -53,19 +54,20 @@ typedef struct fit_param_s
     int with_qed_fvol;
     int s_with_qed_fvol;
     int with_ext_a;
+    int with_ext_M_umd;
     int verb;
     int correlated;
     int save_result;
     int plot;
     int warn_missing_data;
-    int plotting;
+    int scale_model;
     int q_dim;
     unsigned int analyze_flag;
     fit_init *init_param;
     ens *point;
     double M_ud;
     double M_s;
-    double M_umd;
+    double M_umd_val;
     double M_scale;
     double alpha;
     double q_target[2];
@@ -83,14 +85,20 @@ typedef struct fit_param_s
     strbuf manifest;
     strbuf *beta;
     strbuf save_plot;
+    strbuf M_umd;
     size_t ndataset;
     size_t nbeta;
     size_t nens;
     size_t nsample;
     size_t ninit_param;
+    size_t *save_param;
+    size_t nsave_param;
     fit_model fm;
-    rs_sample *a;
+    rs_sample *s_a;
     mat *a_err;
+    rs_sample *s_M_umd;
+    rs_sample *s_ex;
+    mat *ex_err;
 } fit_param;
 
 #define IS_AN(param,prog_flag) ((param)->analyze_flag & (prog_flag))

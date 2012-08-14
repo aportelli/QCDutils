@@ -128,7 +128,7 @@ int ind_beta(const strbuf beta, const fit_param *param)
 fit_param * fit_param_parse(const strbuf fname)
 {
     fit_param *param;
-    strbuf *field,ens_dir,test_fname;
+    strbuf *field,ens_dir,test_fname,name;
     int nf,lc;
     int i;
     size_t s;
@@ -140,13 +140,14 @@ fit_param * fit_param_parse(const strbuf fname)
     
     /* initialization */
     param->analyze_flag      = AN_NOTHING;
+    param->with_const        = 0;
     param->M_ud              = latan_nan();
     param->M_ud_deg          = 0;
     param->s_M_ud_deg        = 0;
     param->M_s               = latan_nan();
     param->M_s_deg           = 0;
     param->s_M_s_deg         = 0;
-    param->M_umd             = latan_nan();
+    param->M_umd_val         = latan_nan();
     param->alpha             = latan_nan();
     param->M_scale           = latan_nan();
     param->a_deg             = 0;
@@ -168,6 +169,7 @@ fit_param * fit_param_parse(const strbuf fname)
     param->with_qed_fvol     = 0;
     param->s_with_qed_fvol   = 0;
     param->with_ext_a        = 0;
+    param->with_ext_M_umd    = 0;
     param->q_dim             = 0;
     param->q_target[0]       = latan_nan();
     param->q_target[1]       = latan_nan();
@@ -176,13 +178,15 @@ fit_param * fit_param_parse(const strbuf fname)
     param->save_result       = 0;
     param->plot              = 0;
     param->warn_missing_data = 0;
-    param->plotting          = 0;
+    param->scale_model       = 0;
     param->dataset           = NULL;
     param->ndataset          = 0;
     param->beta              = NULL;
     param->nbeta             = 0;
     param->init_param        = NULL;
     param->ninit_param       = 0;
+    param->save_param        = NULL;
+    param->nsave_param       = 0;
     param->point             = NULL;
     param->nens              = 0;
     param->nsample           = 0;
@@ -204,14 +208,15 @@ fit_param * fit_param_parse(const strbuf fname)
     {
         if (field[0][0] != '#')
         {
+            GET_PARAM_I(param,with_const);
             GET_PARAM_I(param,M_ud_deg);
             GET_PARAM_I(param,s_M_ud_deg);
             GET_PARAM_D(param,M_ud);
             GET_PARAM_I(param,M_s_deg);
             GET_PARAM_I(param,s_M_s_deg);
             GET_PARAM_D(param,M_s);
+            GET_PARAM_S(param,M_umd);
             GET_PARAM_D(param,M_scale);
-            GET_PARAM_D(param,M_umd);
             GET_PARAM_D(param,alpha);
             GET_PARAM_D(param,with_aalpha);
             GET_PARAM_I(param,a_deg);
@@ -230,6 +235,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_I(param,with_qed_fvol);
             GET_PARAM_I(param,s_with_qed_fvol);
             GET_PARAM_I(param,with_ext_a);
+            GET_PARAM_I(param,with_ext_M_umd);
             GET_PARAM_I(param,q_dim);
             GET_PARAM_I(param,verb);
             GET_PARAM_I(param,correlated);
@@ -271,8 +277,16 @@ fit_param * fit_param_parse(const strbuf fname)
                 param->init_param = (fit_init *)realloc(param->init_param,    \
                                          param->ninit_param*sizeof(fit_init));
                 param->init_param[param->ninit_param-1].ind   =\
-                                                        (size_t)ATOI(field[1]);
+                    (size_t)ATOI(field[1]);
                 param->init_param[param->ninit_param-1].value = ATOF(field[2]);
+                continue;
+            }
+            if ((strbufcmp(field[0],"save_param") == 0)&&(nf >= 2))
+            {
+                param->nsave_param++;
+                param->save_param = (size_t *)realloc(param->save_param,    \
+                                            param->nsave_param*sizeof(size_t));
+                param->save_param[param->nsave_param-1]=(size_t)ATOI(field[1]);
                 continue;
             }
             fprintf(stderr,"warning: line %d of %s ignored (syntax error)\n",\
@@ -384,9 +398,31 @@ fit_param * fit_param_parse(const strbuf fname)
     }
     END_FOR_LINE_TOK(field);
     
-    /* create sample for external scales */
-    param->a     = rs_sample_create(param->nbeta,1,param->nsample);
-    param->a_err = mat_create(param->nbeta,1);
+    /* create samples */
+    if (param->with_ext_a)
+    {
+        param->s_a    = rs_sample_create(param->nbeta,1,param->nsample);
+        param->a_err  = mat_create(param->nbeta,1);
+    }
+    if (param->with_ext_M_umd)
+    {
+        param->s_M_umd = rs_sample_create(1,1,param->nsample);
+    }
+    param->s_ex   = rs_sample_create(1,1,param->nsample);
+    param->ex_err = mat_create(1,1);
+    
+    /* take care of M_umd input */
+    if (param->with_ext_M_umd)
+    {
+        sprintf(name,"%s_%s_%s_%s_%s.boot",param->M_umd,param->scale_part,\
+                param->s_manifest,param->dataset_cat,param->manifest);
+        rs_sample_load(param->s_M_umd,NULL,NULL,name);
+        param->M_umd_val = mat_get(rs_sample_pt_cent_val(param->s_M_umd),0,0);
+    }
+    else
+    {
+        param->M_umd_val = ATOF(param->M_umd);
+    }
     
     return param;
 }
@@ -394,10 +430,14 @@ fit_param * fit_param_parse(const strbuf fname)
 void fit_param_destroy(fit_param *param)
 {
     free(param->init_param);
+    free(param->save_param);
     free(param->point);
     free(param->dataset);
     free(param->beta);
-    rs_sample_destroy(param->a);
+    rs_sample_destroy(param->s_a);
     mat_destroy(param->a_err);
+    rs_sample_destroy(param->s_M_umd);
+    rs_sample_destroy(param->s_ex);
+    mat_destroy(param->ex_err);
     free(param);
 }

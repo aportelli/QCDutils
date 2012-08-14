@@ -16,8 +16,9 @@ if ((!latan_isnan(param->q_target[0]))&&(!latan_isnan(param->q_target[1])))\
     plot_add_datpoint(p[kx],mat_get(phy_pt,kx,0),param->q_target[0],      \
                       -1.0,param->q_target[1],"target","rgb 'dark-blue'");\
 }\
-plot_add_datpoint(p[kx],mat_get(phy_pt,kx,0),mat_get(fit,s,0),     \
-                  -1.0,sqrt(mat_get(fit_var,s,0)),"physical point",\
+plot_add_datpoint(p[kx],mat_get(phy_pt,kx,0),\
+                  mat_get(rs_sample_pt_cent_val(param->s_ex),s,0), \
+                  -1.0,mat_get(param->ex_err,s,0),"physical point",\
                   "rgb 'black'");
 
 #define PLOT_DISP(kx,name)\
@@ -33,11 +34,10 @@ if (strlen(param->save_plot))\
 }
 
 
-void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
-              fit_param *param, const plot_flag f)
+void plot_fit(const mat *fit, fit_data *d, fit_param *param, const plot_flag f)
 {
     plot *p[N_EX_VAR];
-    double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL};
+    double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL};
     double x_range[N_EX_VAR][2],b_int[2],dbind,a;
     size_t bind,k,phy_ind,s;
     strbuf color,gtitle,title,xlabel,ylabel;
@@ -50,7 +50,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
         p[k] = plot_create();
     }
     
-    param->plotting = 1;
+    param->scale_model = 1;
     if (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE))
     {
         phy_ind = 1;
@@ -80,7 +80,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
                 param->q_name,param->scale_part,param->dataset_cat,param->manifest);
         mat_set(phy_pt,i_ud,0,SQ(param->M_ud));
         mat_set(phy_pt,i_s,0,SQ(param->M_s));
-        mat_set(phy_pt,i_umd,0,param->M_umd);
+        mat_set(phy_pt,i_umd,0,param->M_umd_val);
         mat_set(phy_pt,i_alpha,0,param->alpha);
         mat_set(phy_pt,i_bind,0,0.0);
         mat_set(phy_pt,i_a,0,0.0);
@@ -161,7 +161,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
             fit_data_fit_region(d,xb);
             mat_set(phy_pt,i_ud,0,SQ(a*param->M_ud));
             mat_set(phy_pt,i_s,0,SQ(a*param->M_s));
-            mat_set(phy_pt,i_umd,0,SQ(a)*param->M_umd);
+            mat_set(phy_pt,i_umd,0,SQ(a)*param->M_umd_val);
             mat_set(phy_pt,i_bind,0,bind);
             mat_set(phy_pt,i_a,0,a);
             mat_set(phy_pt,i_Linv,0,0.0);
@@ -186,7 +186,7 @@ void plot_fit(const mat *fit, const mat *fit_var, fit_data *d,\
         strbufcpy(xlabel,"a/L");
         PLOT_DISP(i_Linv,"Linv");
     }
-    param->plotting = 0;
+    param->scale_model = 0;
     
     mat_destroy(phy_pt);
     mat_destroy(x_k);
@@ -327,7 +327,10 @@ void print_result(const rs_sample *s_fit, fit_param *param)
     }
     if (IS_AN(param,AN_PHYPT))
     {
-        PRINT_PAR(param->q_name);
+        if (param->with_const)
+        {
+            PRINT_PAR("const");
+        }
         if (param->M_ud_deg > 0)
         {
             for (j=0;j<param->M_ud_deg;j++)
@@ -374,11 +377,19 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         }
         if (param->with_udumd)
         {
-            PRINT_PAR("p_udumd");
+            for (j=0;j<param->with_udumd;j++)
+            {
+                sprintf(buf,"p_udumd_%d",j+1);
+                PRINT_PAR(buf);
+            }
         }
         if (param->with_sumd)
         {
-            PRINT_PAR("p_sumd");
+            for (j=0;j<param->with_sumd;j++)
+            {
+                sprintf(buf,"p_sumd_%d",j+1);
+                PRINT_PAR(buf);
+            }
         }
         if (param->alpha_deg > 0)
         {
@@ -390,11 +401,19 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         }
         if (param->with_udalpha)
         {
-            PRINT_PAR("p_udalpha");
+            for (j=0;j<param->with_udalpha;j++)
+            {
+                sprintf(buf,"p_udalpha_%d",j+1);
+                PRINT_PAR(buf);
+            }
         }
         if (param->with_salpha)
         {
-            PRINT_PAR("p_salpha");
+            for (j=0;j<param->with_salpha;j++)
+            {
+                sprintf(buf,"p_salpha_%d",j+1);
+                PRINT_PAR(buf);
+            }
         }
         if (param->with_qed_fvol)
         {

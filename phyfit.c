@@ -98,25 +98,28 @@ int main(int argc, char *argv[])
     /*              data fitting                */
     /********************************************/
     fit_data *d;
-    size_t npar,nydim,bind,s,s_par;
+    size_t npar,nydim,bind,s;
     size_t j;
     rs_sample *s_fit,*s_tmp,**s_pt;
-    mat *fit,*fit_var,**res;
+    mat *fit,*fit_var,**res,*phy_pt,*ex,*ex_err;
     strbuf chi2f_name;
     bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false,false};
     FILE *chi2f,*tablef;
-    
+    double buf;
     
     nydim   = (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE)) ? 2 : 1;
     d       = fit_data_create(param->nens,N_EX_VAR,nydim);
     npar    = fit_model_get_npar(&param->fm,param);
     s_fit   = rs_sample_create(npar,1,param->nsample);
+    fit     = rs_sample_pt_cent_val(s_fit);
     s       = (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE)) ? 1 : 0;
     s_pt    = (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)) ? s_q + 1 : s_q;
     s_tmp   = rs_sample_create(1,1,param->nsample);
+    ex      = rs_sample_pt_cent_val(param->s_ex);
+    ex_err  = param->ex_err;
     fit_var = mat_create(npar,1);
+    phy_pt  = mat_create(N_EX_VAR,1);
     res     = mat_ar_create(2,param->nens,1);
-    
     
     if (IS_AN(param,AN_PHYPT))
     {
@@ -131,19 +134,11 @@ int main(int argc, char *argv[])
     fit_data_fit_all_points(d,true);
     fit_data_set_model(d,&param->fm,param);
     mat_cst(rs_sample_pt_cent_val(s_fit),0.00001);
-    if (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE))
-    {
-        s_par = fm_scaleset_taylor_npar(param);
-    }
-    else
-    {
-        s_par = 0;
-    }
     if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&(param->with_ext_a))
     {
         fit_data_set_chi2_ext(d,&a_error_chi2_ext);
         mat_set_subm(rs_sample_pt_cent_val(s_fit),   \
-                     rs_sample_pt_cent_val(param->a),\
+                     rs_sample_pt_cent_val(param->s_a),\
                      npar-param->nbeta,0,npar-1,0);
         fit_data_set_ndumbpar(d,param->nbeta);
     }
@@ -153,7 +148,6 @@ int main(int argc, char *argv[])
                 param->init_param[i].value);
     }
     minimizer_set_alg(MIN_MIGRAD);
-    fit = rs_sample_pt_cent_val(s_fit);
     for (i=0;i<param->nens;i++)
     for (j=i+1;j<param->nens;j++)
     {
@@ -234,6 +228,46 @@ int main(int argc, char *argv[])
     }
     /** print results **/   
     print_result(s_fit,param);
+    if (IS_AN(param,AN_PHYPT))
+    {
+        mat_set(phy_pt,i_ud,0,SQ(param->M_ud));
+        mat_set(phy_pt,i_s,0,SQ(param->M_s));
+        mat_set(phy_pt,i_umd,0,param->M_umd_val);
+        mat_set(phy_pt,i_alpha,0,param->alpha);
+        mat_set(phy_pt,i_bind,0,0.0);
+        mat_set(phy_pt,i_a,0,0.0);
+        mat_set(phy_pt,i_Linv,0,0.0);
+        param->scale_model = 1;
+        mat_set(phy_pt,i_umd,0,param->M_umd_val);
+        buf = fit_data_model_xeval(d,s,phy_pt,rs_sample_pt_cent_val(s_fit));
+        mat_set(rs_sample_pt_cent_val(param->s_ex),0,0,buf);
+        for (i=0;i<param->nsample;i++)
+        {
+            if (param->with_ext_M_umd)
+            {
+                mat_set(phy_pt,i_umd,0,                                    \
+                        mat_get(rs_sample_pt_sample(param->s_M_umd,i),0,0));
+            }
+            buf = fit_data_model_xeval(d,s,phy_pt,                  \
+                                       rs_sample_pt_sample(s_fit,i));
+            mat_set(rs_sample_pt_sample(param->s_ex,i),0,0,buf);
+        }
+        param->scale_model = 0;
+        rs_sample_varp(ex_err,param->s_ex);
+        mat_eqsqrt(ex_err);
+        printf("extrapolation :\n");
+        printf("%10s = %f +/- %e (%4.1f%%) MeV^%d\n",param->q_name,\
+               mat_get(ex,0,0),mat_get(ex_err,0,0),                \
+               mat_get(ex_err,0,0)/fabs(mat_get(ex,0,0))*100.0,    \
+               param->q_dim);
+        if ((!latan_isnan(param->q_target[0]))  \
+            &&(!latan_isnan(param->q_target[1])))
+        {
+            printf("\ncompatible with target within %4.2f sigmas\n\n",  \
+                   fabs(mat_get(ex,0,0)-param->q_target[0])             \
+                   /sqrt(SQ(mat_get(ex_err,0,0))+SQ(param->q_target[1])));
+        }
+    }
     /** display plots **/
     if (param->plot)
     {
@@ -242,13 +276,13 @@ int main(int argc, char *argv[])
             plot_chi2_comp(d,param,s,"physical point fit");
             SCALE_DATA(AINV);
             fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
-            plot_fit(fit,fit_var,d,param,Q);
+            plot_fit(fit,d,param,Q);
             SCALE_DATA(A);
         }
         if (IS_AN(param,AN_SCALE))
         {
             plot_chi2_comp(d,param,0,"scale setting");
-            plot_fit(fit,fit_var,d,param,SCALE);
+            plot_fit(fit,d,param,SCALE);
         }
     }
     
@@ -327,6 +361,39 @@ int main(int argc, char *argv[])
         }
         /** print results **/
         print_result(s_fit,param);
+        if (IS_AN(param,AN_PHYPT))
+        {
+            param->scale_model = 1;
+            mat_set(phy_pt,i_umd,0,param->M_umd_val);
+            buf = fit_data_model_xeval(d,s,phy_pt,rs_sample_pt_cent_val(s_fit));
+            mat_set(rs_sample_pt_cent_val(param->s_ex),0,0,buf);
+            for (i=0;i<param->nsample;i++)
+            {
+                if (param->with_ext_M_umd)
+                {
+                    mat_set(phy_pt,i_umd,0,                                    \
+                            mat_get(rs_sample_pt_sample(param->s_M_umd,i),0,0));
+                }
+                buf = fit_data_model_xeval(d,s,phy_pt,                  \
+                                           rs_sample_pt_sample(s_fit,i));
+                mat_set(rs_sample_pt_sample(param->s_ex,i),0,0,buf);
+            }
+            param->scale_model = 0;
+            rs_sample_varp(ex_err,param->s_ex);
+            mat_eqsqrt(ex_err);
+            printf("extrapolation :\n");
+            printf("%10s = %f +/- %e (%4.1f%%) MeV^%d\n",param->q_name,\
+                   mat_get(ex,0,0),mat_get(ex_err,0,0),                \
+                   mat_get(ex_err,0,0)/fabs(mat_get(ex,0,0))*100.0,    \
+                   param->q_dim);
+            if ((!latan_isnan(param->q_target[0]))  \
+                &&(!latan_isnan(param->q_target[1])))
+            {
+                printf("\ncompatible with target within %4.2f sigmas\n\n",  \
+                       fabs(mat_get(ex,0,0)-param->q_target[0])             \
+                       /sqrt(SQ(mat_get(ex_err,0,0))+SQ(param->q_target[1])));
+            }
+        }
         /** display plots **/
         if (param->plot)
         {
@@ -334,48 +401,42 @@ int main(int argc, char *argv[])
             {
                 SCALE_DATA(AINV);
                 fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
-                plot_fit(fit,fit_var,d,param,Q);
+                plot_fit(fit,d,param,Q);
                 SCALE_DATA(A);
                 fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
             }
             if (IS_AN(param,AN_SCALE))
             {
-                plot_fit(fit,fit_var,d,param,SCALE);
+                plot_fit(fit,d,param,SCALE);
             }
         }
     }
     
     /*              result output               */
     /********************************************/
-    strbuf res_path;
+    strbuf name,res_path;
     char mode;
     
     if (IS_AN(param,AN_PHYPT))
     {
-        printf("extrapolation :\n");
-        printf("%10s = %f +/- %e MeV^%d\n",param->q_name,mat_get(fit,s_par,0),\
-               sqrt(mat_get(fit_var,s_par,0)),param->q_dim);
-        sprintf(res_path,"%s_%s_%s_%s_%s.boot%c%s_%s_%s_%s_%s",param->q_name,\
-                param->scale_part,param->s_manifest,param->dataset_cat,      \
-                param->manifest,LATAN_PATH_SEP,param->q_name,                \
-                param->scale_part,param->s_manifest,param->dataset_cat,      \
-                param->manifest);
+        sprintf(name,"%s_%s_%s_%s_%s",param->q_name,param->scale_part,\
+                param->s_manifest,param->dataset_cat,param->manifest);
         if (param->save_result)
         {
-            rs_sample_save_subsamp(res_path,'w',s_fit,s_par,0, \
-                                   rs_sample_get_nrow(s_fit)-1,0);
+            sprintf(res_path,"%s.boot%c%s",name,LATAN_PATH_SEP,name);
+            rs_sample_save(res_path,'w',param->s_ex);
         }
     }
     if (IS_AN(param,AN_SCALE))
     {
+        sprintf(name,"a_%s_%s",param->scale_part,param->s_manifest);
         printf("scales :\n\n");
         for (i=0;i<param->nbeta;i++)
         {
             if (param->save_result)
             {
-                sprintf(res_path,"a_%s_%s.boot%ca_%s_%s_%s",              \
-                        param->scale_part,param->s_manifest,LATAN_PATH_SEP,\
-                        param->beta[i],param->scale_part,param->s_manifest);
+                sprintf(res_path,"%s.boot%c%s_%s",name,LATAN_PATH_SEP,name,\
+                        param->beta[i]);
                 mode = (i == 0) ? 'w' : 'a';
                 rs_sample_save_subsamp(res_path,mode,s_fit,i,0,i,0);
             }
@@ -390,6 +451,14 @@ int main(int argc, char *argv[])
             printf("\n");
             rs_sample_eqinvp(s_fit);
         }
+    }
+    for (i=0;i<param->nsave_param;i++)
+    {
+        mode = ((i == 0)&&!param->save_result) ? 'w' : 'a';
+        sprintf(res_path,"%s.boot%c%s_p_%d",name,LATAN_PATH_SEP,name,\
+                (int)param->save_param[i]);
+        rs_sample_save_subsamp(res_path,mode,s_fit,param->save_param[i],0,\
+                               param->save_param[i],0);
     }
     
     /*               I/O finish                 */
@@ -409,6 +478,7 @@ int main(int argc, char *argv[])
     rs_sample_destroy(s_tmp);
     mat_ar_destroy(res,2);
     mat_destroy(fit_var);
+    mat_destroy(phy_pt);
     fit_param_destroy(param);
     
     return EXIT_SUCCESS;

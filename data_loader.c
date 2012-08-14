@@ -93,7 +93,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                     rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
                     rs_sample_set_subsamp(s_x[i_umd],s_tmp,ens_ind,0,ens_ind,0);
                     param->have_umd = 1;
-                    if (latan_isnan(param->M_umd))
+                    if (latan_isnan(param->M_umd_val))
                     {
                         fprintf(stderr,"error: %s data found but no physical value specified (parameter M_umd)\n",param->umd_name);
                         exit(EXIT_FAILURE);
@@ -137,12 +137,12 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                     {
                         sprintf(sf_name,"./a_%s_%s.boot%s%ca_%s_%s_%s",       \
                                 param->scale_part,param->s_manifest,ext,      \
-                                LATAN_PATH_SEP,ens_pt->beta,param->scale_part,\
-                                param->s_manifest);
+                                LATAN_PATH_SEP,param->scale_part,             \
+                                param->s_manifest,ens_pt->beta);
                         rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
                         rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,0,\
                                               ens_ind,0);
-                        rs_sample_set_subsamp(param->a,s_tmp,bind,0,bind,0);
+                        rs_sample_set_subsamp(param->s_a,s_tmp,bind,0,bind,0);
                     }
                     else
                     {
@@ -178,7 +178,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
     }
     if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&param->with_ext_a)
     {
-        rs_sample_varp(param->a_err,param->a);
+        rs_sample_varp(param->a_err,param->s_a);
         mat_eqsqrt(param->a_err);
     }
     printf("\n");
