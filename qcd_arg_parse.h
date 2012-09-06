@@ -50,6 +50,7 @@ typedef struct
     bool qcd_verb;
     bool have_latspac;
     bool do_plot;
+    bool do_save_plot;
     bool do_save_rs_sample;
     bool do_range_scan;
     bool have_randgen_state;
@@ -65,6 +66,7 @@ typedef struct
     strbuf channel[2];
     strbuf quark[2];
     strbuf model;
+    strbuf save_plot_dir;
     cor_flag corr;
     minalg_no minimizer;
     unsigned int range[MAX_RANGES][2];

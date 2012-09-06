@@ -26,6 +26,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     struct arg_lit*  a_save_rs       = NULL;
     struct arg_str*  a_load_rg       = NULL;
     struct arg_lit*  a_plot          = NULL;
+    struct arg_str*  a_save_plot     = NULL;
     struct arg_dbl*  a_latspac_fm    = NULL;
     struct arg_str*  a_qcomp         = NULL;
     struct arg_str*  a_channel       = NULL;
@@ -39,7 +40,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     struct arg_file* a_manf          = NULL;
     struct arg_end*  a_end           = NULL;
     strbuf help_msg,ver_msg,verb_msg,fmt_msg,nboot_msg,save_rs_msg,load_rg_msg,\
-           plot_msg,latspac_fm_msg,qcomp_msg,channel_msg,ss_msg,               \
+           plot_msg,save_plot_msg,latspac_fm_msg,qcomp_msg,channel_msg,ss_msg, \
            binsize_msg,minimizer_msg,range_msg,uncorr_msg,rscan_msg,           \
            manf_msg,model_msg;
     strbuf defmin,deffmt;
@@ -69,6 +70,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     sprintf(save_rs_msg     ,"save resampled samples"                       );
     sprintf(load_rg_msg     ,"use saved random generator state"             );
     sprintf(plot_msg        ,"show plot"                                    );
+    sprintf(save_plot_msg   ,"save plot to directory"                       );
     sprintf(latspac_fm_msg  ,"lattice spacing (in fm)"                      );
     sprintf(qcomp_msg       ,"quark composition"                            );
     sprintf(channel_msg     ,"channel"                                      );
@@ -96,7 +98,8 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     }
     if (argset_flag & A_PLOT)
     {   
-        a_plot        = arg_lit0(NULL,"plot",plot_msg);
+        a_plot          = arg_lit0(NULL,"plot",plot_msg);
+        a_save_plot     = arg_str0(NULL,"save_plot","DIRSUFFIX",save_plot_msg);
     }
     if (argset_flag & A_LATSPAC)
     {
@@ -153,10 +156,11 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     }
     if (argset_flag & A_PLOT)
     {
-        a_table_size += 1;
+        a_table_size += 2;
         QCD_REALLOC(a_table,a_table,void**,a_table_size);
-        a_table[i] = a_plot;
-        i += 1;
+        a_table[i]   = a_plot;
+        a_table[i+1] = a_save_plot;
+        i += 2;
     }
     if (argset_flag & A_LATSPAC)
     {
@@ -230,6 +234,11 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
         opt->have_randgen_state = false;
         randgen_init_from_time();
         randgen_get_state(opt->state);
+    }
+    if (argset_flag & A_PLOT)
+    {
+        opt->do_save_plot = false;
+        strbufcpy(opt->save_plot_dir,"");
     }
     if (argset_flag & A_LATSPAC)
     {
@@ -342,7 +351,12 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     }
     if (argset_flag & A_PLOT)
     {
-        opt->do_plot = (a_plot->count > 0);
+        opt->do_plot      = (a_plot->count > 0);
+        opt->do_save_plot = (a_save_plot->count >0);
+        if (opt->do_save_plot)
+        {
+            strbufcpy(opt->save_plot_dir,a_save_plot->sval[0]);
+        }
     }
     if (argset_flag & A_LATSPAC)
     {

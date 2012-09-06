@@ -191,7 +191,10 @@ int main(int argc, char* argv[])
         mat_set_step(pr_t,1.0,1.0);
         plot_add_dat(p,pr_t,effmass_pcac,NULL,sigem,key,"rgb 'blue'");
         plot_disp(p);   
-        
+        if (opt->do_save_plot)
+        {
+            plot_save(opt->save_plot_dir,p);
+        }
         plot_destroy(p);
         mat_destroy(pr_t);
     }

@@ -434,7 +434,7 @@ int main(int argc, char* argv[])
     {
         mat *pr_t,*mbuf,*em_i,*sigem_i,*prop_pt,*mass_pt,*mpar,*ft,*comp;
         plot *p;
-        strbuf key,color[2];
+        strbuf key,color[2],dirname;
         size_t maxt,k,t,npt;
         double dmaxt,nmass,corr_prop;
         
@@ -490,6 +490,11 @@ int main(int argc, char* argv[])
                 plot_set_ylabel(p,"standard deviations");
                 plot_add_points(p,ft,comp,"",color[k],"impulses");
                 plot_disp(p);
+                if (opt->do_save_plot)
+                {
+                    sprintf(dirname,"%s_%d_dev",opt->save_plot_dir,(int)k);
+                    plot_save(dirname,p);
+                }
                 plot_destroy(p);
             }
             
@@ -505,7 +510,12 @@ int main(int argc, char* argv[])
                 mat_set_step(pr_t,0.0,1.0);
                 plot_add_fit(p,d,k,mbuf,0,par,0,dmaxt,1000,false,\
                              PF_FIT|PF_DATA,key,"",color[k],color[k]);
-                plot_disp(p);   
+                plot_disp(p);
+                if (opt->do_save_plot)
+                {
+                    sprintf(dirname,"%s_%d_prop",opt->save_plot_dir,(int)k);
+                    plot_save(dirname,p);
+                }
                 plot_destroy(p);
             }
             
@@ -564,6 +574,11 @@ int main(int argc, char* argv[])
                     plot_add_dat(p,tem,em[k],NULL,sigem[k],"","rgb 'blue'");
                 }
                 plot_disp(p);
+                if (opt->do_save_plot)
+                {
+                    sprintf(dirname,"%s_%d_em",opt->save_plot_dir,(int)k);
+                    plot_save(dirname,p);
+                }
                 plot_destroy(p);
             }
         }
@@ -576,6 +591,11 @@ int main(int argc, char* argv[])
             plot_add_dat(p,scanres_t,scanres_chi2,NULL,NULL,"chi^2/dof",\
                          "rgb 'blue'");
             plot_disp(p);
+            if (opt->do_save_plot)
+            {
+                sprintf(dirname,"%s_chi2",opt->save_plot_dir);
+                plot_save(dirname,p);
+            }
             plot_destroy(p);
             
             /* average mass plot */
@@ -585,15 +605,25 @@ int main(int argc, char* argv[])
             plot_add_dat(p,scanres_t,scanres_av_mass,NULL,scanres_av_mass_err,\
                          key,"rgb 'red'");
             plot_disp(p);
+            if (opt->do_save_plot)
+            {
+                sprintf(dirname,"%s_av_mass",opt->save_plot_dir);
+                plot_save(dirname,p);
+            }
             plot_destroy(p);
             
-            /* difference mass plot */
+            /* difference of mass plot */
             p = plot_create();
             plot_set_scale_xmanual(p,0,(double)(nt/2));
             sprintf(key,"a*d_M_%s",full_name[0]);
             plot_add_dat(p,scanres_t,scanres_d_mass,NULL,scanres_d_mass_err,\
                          key,"rgb 'red'");
             plot_disp(p);
+            if (opt->do_save_plot)
+            {
+                sprintf(dirname,"%s_dmass",opt->save_plot_dir);
+                plot_save(dirname,p);
+            }
             plot_destroy(p);
         }
         

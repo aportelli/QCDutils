@@ -396,7 +396,7 @@ int main(int argc, char* argv[])
     {
         mat *pr_t,*mbuf,*em_i,*sigem_i,*prop_pt,*mass_pt,*par,*ft,*comp;
         plot *p;
-        strbuf key;
+        strbuf key,dirname;
         size_t maxt,j,t;
         double dmaxt,nmass,corr_prop;
         
@@ -445,6 +445,11 @@ int main(int argc, char* argv[])
             plot_set_ylabel(p,"standard deviations");
             plot_add_points(p,ft,comp,"","rgb 'red'","impulses");
             plot_disp(p);
+            if (opt->do_save_plot)
+            {
+                sprintf(dirname,"%s_dev",opt->save_plot_dir);
+                plot_save(dirname,p);
+            }
             plot_destroy(p);
             
             /** propagator plot **/
@@ -464,7 +469,12 @@ int main(int argc, char* argv[])
             mat_set_step(pr_t,0.0,1.0);
             plot_add_fit(p,d,0,mbuf,0,mass,0,dmaxt,1000,false,\
                          PF_FIT|PF_DATA,key,"","rgb 'red'","rgb 'red'");
-            plot_disp(p);   
+            plot_disp(p);
+            if (opt->do_save_plot)
+            {
+                sprintf(dirname,"%s_prop",opt->save_plot_dir);
+                plot_save(dirname,p);
+            }
             plot_destroy(p);
             
             /** effective mass plot **/
@@ -519,6 +529,11 @@ int main(int argc, char* argv[])
                 plot_add_dat(p,tem,em,NULL,sigem,"","rgb 'blue'");
             }
             plot_disp(p);
+            if (opt->do_save_plot)
+            {
+                sprintf(dirname,"%s_em",opt->save_plot_dir);
+                plot_save(dirname,p);
+            }
             plot_destroy(p);
         }
         else
@@ -530,6 +545,11 @@ int main(int argc, char* argv[])
             plot_add_dat(p,scanres_t,scanres_chi2,NULL,NULL,"chi^2/dof",\
                          "rgb 'blue'");
             plot_disp(p);
+            if (opt->do_save_plot)
+            {
+                sprintf(dirname,"%s_chi2",opt->save_plot_dir);
+                plot_save(dirname,p);
+            }
             plot_destroy(p);
             
             /* mass plot */
@@ -539,6 +559,11 @@ int main(int argc, char* argv[])
             plot_add_dat(p,scanres_t,scanres_mass,NULL,scanres_masserr,key,\
                          "rgb 'red'");
             plot_disp(p);
+            if (opt->do_save_plot)
+            {
+                sprintf(dirname,"%s_mass",opt->save_plot_dir);
+                plot_save(dirname,p);
+            }
             plot_destroy(p);
         }
 
