@@ -429,15 +429,18 @@ fit_param * fit_param_parse(const strbuf fname)
 
 void fit_param_destroy(fit_param *param)
 {
-    free(param->init_param);
-    free(param->save_param);
-    free(param->point);
-    free(param->dataset);
-    free(param->beta);
-    rs_sample_destroy(param->s_a);
-    mat_destroy(param->a_err);
-    rs_sample_destroy(param->s_M_umd);
-    rs_sample_destroy(param->s_ex);
-    mat_destroy(param->ex_err);
-    free(param);
+    if (param)
+    {
+        free(param->init_param);
+        free(param->save_param);
+        free(param->point);
+        free(param->dataset);
+        free(param->beta);
+        rs_sample_destroy(param->s_a);
+        mat_destroy(param->a_err);
+        rs_sample_destroy(param->s_M_umd);
+        rs_sample_destroy(param->s_ex);
+        mat_destroy(param->ex_err);
+        free(param);
+    }
 }

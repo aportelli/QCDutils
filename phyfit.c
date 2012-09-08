@@ -58,59 +58,9 @@ enum
     }\
 }
 
-/* main program */
-int main(int argc, char *argv[])
+/* analysis routine */
+static void analysis(fit_param *param, const int nproc)
 {
-    /*                 init                     */
-    /********************************************/
-    io_init();
-#ifdef HAVE_MPI
-    int status;
-    
-    status = MPI_Init(&argc,&argv);
-    if (status != MPI_SUCCESS)
-    {
-        MPI_Abort(MPI_COMM_WORLD,status);
-    }
-#endif
-    
-    /*              argument parsing            */
-    /********************************************/
-    fit_param *param;
-    int proc,nproc;
-    
-    if (argc < 2)
-    {
-        fprintf(stderr,"usage: %s <par_file_1> [<par_file_2> ...]\n",argv[0]);
-        return EXIT_FAILURE;
-    }
-#ifdef HAVE_MPI
-    MPI_Comm_rank(MPI_COMM_WORLD,&proc);
-    MPI_Comm_size(MPI_COMM_WORLD,&nproc);
-    if (nproc != argc - 1)
-    {
-        fprintf(stderr,"error: %d processus for %d parameter files\n",nproc,\
-                argc-1);
-        return EXIT_FAILURE;
-    }
-    if (nproc > 1)
-    {
-        mpi_printf("*** parameter file %s\n",argv[proc+1]);
-        param       = fit_param_parse(argv[proc+1]);
-        param->verb = 0;
-        param->plot = 0;
-        strbufcpy(param->save_plot,"");
-    }
-    else
-    {
-        param = fit_param_parse(argv[1]);
-    }
-#else
-    proc  = 0;
-    nproc = 1;
-    param = fit_param_parse(argv[1]);
-#endif
-    
     /*              global settings             */
     /********************************************/
     latan_set_verb(param->verb);
@@ -119,7 +69,7 @@ int main(int argc, char *argv[])
     /********************************************/
     rs_sample *s_x[N_EX_VAR],*s_q[2];
     size_t i;
-
+    
     for (i=0;i<N_EX_VAR;i++)
     {
         s_x[i] = rs_sample_create(param->nens,1,param->nsample);
@@ -188,13 +138,13 @@ int main(int argc, char *argv[])
     }
     minimizer_set_alg(MIN_MIGRAD);
     for (i=0;i<param->nens;i++)
-    for (j=i+1;j<param->nens;j++)
-    {
-        if (strbufcmp(param->point[i].dir,param->point[j].dir) != 0)
+        for (j=i+1;j<param->nens;j++)
         {
-            fit_data_set_data_cor(d,i,j,false);
+            if (strbufcmp(param->point[i].dir,param->point[j].dir) != 0)
+            {
+                fit_data_set_data_cor(d,i,j,false);
+            }
         }
-    }
     
     /* uncorrelated fit without x errors */
     if (param->correlated)
@@ -301,7 +251,7 @@ int main(int argc, char *argv[])
         mpi_printf("%10s = %f +/- %e (%4.1f%%) MeV^%d\n",param->q_name,\
                    mat_get(ex,0,0),mat_get(ex_err,0,0),                \
                    mat_get(ex_err,0,0)/fabs(mat_get(ex,0,0))*100.0,    \
-               param->q_dim);
+                   param->q_dim);
         if ((!latan_isnan(param->q_target[0]))  \
             &&(!latan_isnan(param->q_target[1])))
         {
@@ -334,13 +284,13 @@ int main(int argc, char *argv[])
     {
         use_x_var[i_ud]  = (((param->M_ud_deg != 0)||(param->with_udumd)       \
                              ||(param->with_udalpha))&&IS_AN(param,AN_PHYPT))  \
-                           ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
+        ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
         use_x_var[i_s]   = (((param->M_s_deg != 0)||(param->with_sumd)         \
                              ||(param->with_salpha))&&IS_AN(param,AN_PHYPT))   \
-                           ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
+        ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
         use_x_var[i_umd] = (((param->umd_deg != 0)&&IS_AN(param,AN_PHYPT))     \
-                           ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE))) \
-                           &&param->have_umd;
+                            ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE))) \
+        &&param->have_umd;
         mpi_printf("-- fitting and resampling %s...\n",param->q_name);
         rs_data_fit(s_fit,NULL,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
         if (IS_AN(param,AN_PHYPT))
@@ -429,16 +379,16 @@ int main(int argc, char *argv[])
             mat_eqsqrt(ex_err);
             mpi_printf("extrapolation :\n");
             mpi_printf("%10s = %f +/- %e (%4.1f%%) MeV^%d\n",param->q_name,\
-                   mat_get(ex,0,0),mat_get(ex_err,0,0),                \
-                   mat_get(ex_err,0,0)/fabs(mat_get(ex,0,0))*100.0,    \
-                   param->q_dim);
+                       mat_get(ex,0,0),mat_get(ex_err,0,0),                \
+                       mat_get(ex_err,0,0)/fabs(mat_get(ex,0,0))*100.0,    \
+                       param->q_dim);
             if ((!latan_isnan(param->q_target[0]))  \
                 &&(!latan_isnan(param->q_target[1])))
             {
                 mpi_printf("\n");
                 mpi_printf("compatible with target within %4.2f sigmas\n\n",  \
-                       fabs(mat_get(ex,0,0)-param->q_target[0])             \
-                       /sqrt(SQ(mat_get(ex_err,0,0))+SQ(param->q_target[1])));
+                           fabs(mat_get(ex,0,0)-param->q_target[0])             \
+                           /sqrt(SQ(mat_get(ex_err,0,0))+SQ(param->q_target[1])));
             }
         }
         /** display plots **/
@@ -490,11 +440,11 @@ int main(int argc, char *argv[])
             rs_sample_varp(fit_var,s_fit);
             mpi_printf("beta = %s\n",param->beta[i]);
             mpi_printf("a    = %f +/- %e fm\n",mat_get(fit,i,0)/NU_FM,\
-                   sqrt(mat_get(fit_var,i,0))/NU_FM);
+                       sqrt(mat_get(fit_var,i,0))/NU_FM);
             rs_sample_eqinvp(s_fit);
             rs_sample_varp(fit_var,s_fit);
             mpi_printf("a^-1 = %f +/- %e MeV\n",mat_get(fit,i,0),\
-                   sqrt(mat_get(fit_var,i,0)));
+                       sqrt(mat_get(fit_var,i,0)));
             mpi_printf("\n");
             rs_sample_eqinvp(s_fit);
         }
@@ -507,13 +457,6 @@ int main(int argc, char *argv[])
         rs_sample_save_subsamp(res_path,mode,s_fit,param->save_param[i],0,\
                                param->save_param[i],0);
     }
-    
-    /*                finish                    */
-    /********************************************/
-    io_finish();
-#ifdef HAVE_MPI
-    MPI_Finalize();
-#endif
     
     /*              desallocation               */
     /********************************************/
@@ -529,6 +472,83 @@ int main(int argc, char *argv[])
     mat_ar_destroy(res,2);
     mat_destroy(fit_var);
     mat_destroy(phy_pt);
+}
+                     
+/* main program */
+int main(int argc, char *argv[])
+{
+    /* initialization */
+    io_init();
+#ifdef HAVE_MPI
+    int status;
+    
+    status = MPI_Init(&argc,&argv);
+    if (status != MPI_SUCCESS)
+    {
+        MPI_Abort(MPI_COMM_WORLD,status);
+    }
+#endif
+    
+    /* argument parsing */
+    fit_param *param;
+    int proc,nproc;
+    bool active;
+    
+    if (argc < 2)
+    {
+        fprintf(stderr,"usage: %s <par_file_1> [<par_file_2> ...]\n",argv[0]);
+        return EXIT_FAILURE;
+    }
+#ifdef HAVE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD,&proc);
+    MPI_Comm_size(MPI_COMM_WORLD,&nproc);
+    if (nproc < argc - 1)
+    {
+        fprintf(stderr,"error: %d processus for %d parameter files\n",nproc,\
+                argc-1);
+        return EXIT_FAILURE;
+    }
+    if (nproc > 1)
+    {
+        if (proc+1 < argc)
+        {
+            active = true;
+            mpi_printf("*** parameter file %s\n",argv[proc+1]);
+            param       = fit_param_parse(argv[proc+1]);
+            param->verb = 0;
+            param->plot = 0;
+            strbufcpy(param->save_plot,"");
+        }
+        else
+        {
+            active = false;
+            mpi_printf("*** processus inactive\n");
+            param = NULL;
+        }
+    }
+    else
+    {
+        active = true;
+        param = fit_param_parse(argv[1]);
+    }
+#else
+    proc   = 0;
+    nproc  = 1;
+    param  = fit_param_parse(argv[1]);
+    active = true;
+#endif
+    
+    /* analysis */
+    if (active)
+    {
+        analysis(param,nproc);
+    }
+    
+    /* finalization */
+    io_finish();
+#ifdef HAVE_MPI
+    MPI_Finalize();
+#endif
     fit_param_destroy(param);
     
     return EXIT_SUCCESS;
