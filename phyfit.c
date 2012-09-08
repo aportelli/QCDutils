@@ -1,3 +1,4 @@
+#include "config.h"
 #include "data_loader.h"
 #include "models.h"
 #include "output.h"
@@ -7,6 +8,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
+#ifdef HAVE_MPI
+#include <mpi.h>
+#endif
 #include <latan/latan_fit.h>
 #include <latan/latan_io.h>
 #include <latan/latan_math.h>
@@ -57,20 +61,55 @@ enum
 /* main program */
 int main(int argc, char *argv[])
 {
-    /*               I/O init                   */
+    /*                 init                     */
     /********************************************/
     io_init();
+#ifdef HAVE_MPI
+    int status;
+    
+    status = MPI_Init(&argc,&argv);
+    if (status != MPI_SUCCESS)
+    {
+        MPI_Abort(MPI_COMM_WORLD,status);
+    }
+#endif
     
     /*              argument parsing            */
     /********************************************/
     fit_param *param;
+    int proc,nproc;
     
-    if (argc != 2)
+    if (argc < 2)
     {
-        fprintf(stderr,"usage: %s <parameter file>\n",argv[0]);
+        fprintf(stderr,"usage: %s <par_file_1> [<par_file_2> ...]\n",argv[0]);
         return EXIT_FAILURE;
     }
+#ifdef HAVE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD,&proc);
+    MPI_Comm_size(MPI_COMM_WORLD,&nproc);
+    if (nproc != argc - 1)
+    {
+        fprintf(stderr,"error: %d processus for %d parameter files\n",nproc,\
+                argc-1);
+        return EXIT_FAILURE;
+    }
+    if (nproc > 1)
+    {
+        mpi_printf("*** parameter file %s\n",argv[proc+1]);
+        param       = fit_param_parse(argv[proc+1]);
+        param->verb = 0;
+        param->plot = 0;
+        strbufcpy(param->save_plot,"");
+    }
+    else
+    {
+        param = fit_param_parse(argv[1]);
+    }
+#else
+    proc  = 0;
+    nproc = 1;
     param = fit_param_parse(argv[1]);
+#endif
     
     /*              global settings             */
     /********************************************/
@@ -87,13 +126,13 @@ int main(int argc, char *argv[])
     }
     s_q[0] = rs_sample_create(param->nens,1,param->nsample);
     s_q[1] = rs_sample_create(param->nens,1,param->nsample);
-    printf("-- loading data...\n");
+    mpi_printf("-- loading data...\n");
     data_load(s_x,s_q,param);
-    printf("%-11s : %d\n","datasets",(int)param->ndataset);
-    printf("%-11s : %d\n","points",(int)param->nens);
-    printf("%-11s : %d\n","betas",(int)param->nbeta);
-    printf("%-11s : %d\n","samples",(int)param->nsample);
-    printf("\n");
+    mpi_printf("%-11s : %d\n","datasets",(int)param->ndataset);
+    mpi_printf("%-11s : %d\n","points",(int)param->nens);
+    mpi_printf("%-11s : %d\n","betas",(int)param->nbeta);
+    mpi_printf("%-11s : %d\n","samples",(int)param->nsample);
+    mpi_printf("\n");
     
     /*              data fitting                */
     /********************************************/
@@ -160,11 +199,11 @@ int main(int argc, char *argv[])
     /* uncorrelated fit without x errors */
     if (param->correlated)
     {
-        printf("-- pre-fit...\n");
+        mpi_printf("-- pre-fit...\n");
     }
     else
     {
-        printf("-- fitting and resampling %s...\n",param->q_name);
+        mpi_printf("-- fitting and resampling %s...\n",param->q_name);
     }
     rs_data_fit(s_fit,NULL,s_x,s_pt,d,NO_COR,use_x_var);
     if (IS_AN(param,AN_PHYPT))
@@ -176,7 +215,7 @@ int main(int argc, char *argv[])
         fit_residual(res[0],d,0,fit);
     }
     /** save chi^2/dof **/
-    printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
+    mpi_printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
     if (param->save_result)
     {
         chi2f = fopen(chi2f_name,"w");
@@ -212,21 +251,24 @@ int main(int argc, char *argv[])
         }
     }
     /** save tables **/
-    if (IS_AN(param,AN_PHYPT))
+    if (nproc == 1)
     {
-        tablef = fopen("qcd_phyfit_q.dat","w");
-        SCALE_DATA(AINV);
-        fprint_table(tablef,s_x,s_q,res[s],param,Q);
-        SCALE_DATA(A);
-        fclose(tablef);
+        if (IS_AN(param,AN_PHYPT))
+        {
+            tablef = fopen("qcd_phyfit_q.dat","w");
+            SCALE_DATA(AINV);
+            fprint_table(tablef,s_x,s_q,res[s],param,Q);
+            SCALE_DATA(A);
+            fclose(tablef);
+        }
+        if (IS_AN(param,AN_SCALE))
+        {
+            tablef = fopen("qcd_phyfit_scale.dat","w");
+            fprint_table(tablef,s_x,s_q,res[0],param,SCALE);
+            fclose(tablef);
+        }
     }
-    if (IS_AN(param,AN_SCALE))
-    {
-        tablef = fopen("qcd_phyfit_scale.dat","w");
-        fprint_table(tablef,s_x,s_q,res[0],param,SCALE);
-        fclose(tablef);
-    }
-    /** print results **/   
+    /** print results **/
     print_result(s_fit,param);
     if (IS_AN(param,AN_PHYPT))
     {
@@ -255,17 +297,18 @@ int main(int argc, char *argv[])
         param->scale_model = 0;
         rs_sample_varp(ex_err,param->s_ex);
         mat_eqsqrt(ex_err);
-        printf("extrapolation :\n");
-        printf("%10s = %f +/- %e (%4.1f%%) MeV^%d\n",param->q_name,\
-               mat_get(ex,0,0),mat_get(ex_err,0,0),                \
-               mat_get(ex_err,0,0)/fabs(mat_get(ex,0,0))*100.0,    \
+        mpi_printf("extrapolation :\n");
+        mpi_printf("%10s = %f +/- %e (%4.1f%%) MeV^%d\n",param->q_name,\
+                   mat_get(ex,0,0),mat_get(ex_err,0,0),                \
+                   mat_get(ex_err,0,0)/fabs(mat_get(ex,0,0))*100.0,    \
                param->q_dim);
         if ((!latan_isnan(param->q_target[0]))  \
             &&(!latan_isnan(param->q_target[1])))
         {
-            printf("\ncompatible with target within %4.2f sigmas\n\n",  \
-                   fabs(mat_get(ex,0,0)-param->q_target[0])             \
-                   /sqrt(SQ(mat_get(ex_err,0,0))+SQ(param->q_target[1])));
+            mpi_printf("\n");
+            mpi_printf("compatible with target within %4.2f sigmas\n\n",    \
+                       fabs(mat_get(ex,0,0)-param->q_target[0])             \
+                       /sqrt(SQ(mat_get(ex_err,0,0))+SQ(param->q_target[1])));
         }
     }
     /** display plots **/
@@ -298,7 +341,7 @@ int main(int argc, char *argv[])
         use_x_var[i_umd] = (((param->umd_deg != 0)&&IS_AN(param,AN_PHYPT))     \
                            ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE))) \
                            &&param->have_umd;
-        printf("-- fitting and resampling %s...\n",param->q_name);
+        mpi_printf("-- fitting and resampling %s...\n",param->q_name);
         rs_data_fit(s_fit,NULL,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
         if (IS_AN(param,AN_PHYPT))
         {
@@ -308,7 +351,7 @@ int main(int argc, char *argv[])
         {
             fit_residual(res[0],d,0,fit);
         }
-        printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
+        mpi_printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
         /** save chi^2/dof **/
         if (param->save_result)
         {
@@ -345,19 +388,22 @@ int main(int argc, char *argv[])
             }
         }
         /** save tables **/
-        if (IS_AN(param,AN_PHYPT))
+        if (nproc == 1)
         {
-            tablef = fopen("qcd_phyfit_q.dat","w");
-            SCALE_DATA(AINV);
-            fprint_table(tablef,s_x,s_q,res[s],param,Q);
-            SCALE_DATA(A);
-            fclose(tablef);
-        }
-        if (IS_AN(param,AN_SCALE))
-        {
-            tablef = fopen("qcd_phyfit_scale.dat","w");
-            fprint_table(tablef,s_x,s_q,res[0],param,SCALE);
-            fclose(tablef);
+            if (IS_AN(param,AN_PHYPT))
+            {
+                tablef = fopen("qcd_phyfit_q.dat","w");
+                SCALE_DATA(AINV);
+                fprint_table(tablef,s_x,s_q,res[s],param,Q);
+                SCALE_DATA(A);
+                fclose(tablef);
+            }
+            if (IS_AN(param,AN_SCALE))
+            {
+                tablef = fopen("qcd_phyfit_scale.dat","w");
+                fprint_table(tablef,s_x,s_q,res[0],param,SCALE);
+                fclose(tablef);
+            }
         }
         /** print results **/
         print_result(s_fit,param);
@@ -381,15 +427,16 @@ int main(int argc, char *argv[])
             param->scale_model = 0;
             rs_sample_varp(ex_err,param->s_ex);
             mat_eqsqrt(ex_err);
-            printf("extrapolation :\n");
-            printf("%10s = %f +/- %e (%4.1f%%) MeV^%d\n",param->q_name,\
+            mpi_printf("extrapolation :\n");
+            mpi_printf("%10s = %f +/- %e (%4.1f%%) MeV^%d\n",param->q_name,\
                    mat_get(ex,0,0),mat_get(ex_err,0,0),                \
                    mat_get(ex_err,0,0)/fabs(mat_get(ex,0,0))*100.0,    \
                    param->q_dim);
             if ((!latan_isnan(param->q_target[0]))  \
                 &&(!latan_isnan(param->q_target[1])))
             {
-                printf("\ncompatible with target within %4.2f sigmas\n\n",  \
+                mpi_printf("\n");
+                mpi_printf("compatible with target within %4.2f sigmas\n\n",  \
                        fabs(mat_get(ex,0,0)-param->q_target[0])             \
                        /sqrt(SQ(mat_get(ex_err,0,0))+SQ(param->q_target[1])));
             }
@@ -430,7 +477,7 @@ int main(int argc, char *argv[])
     if (IS_AN(param,AN_SCALE))
     {
         sprintf(name,"a_%s_%s",param->scale_part,param->s_manifest);
-        printf("scales :\n\n");
+        mpi_printf("scales :\n\n");
         for (i=0;i<param->nbeta;i++)
         {
             if (param->save_result)
@@ -441,14 +488,14 @@ int main(int argc, char *argv[])
                 rs_sample_save_subsamp(res_path,mode,s_fit,i,0,i,0);
             }
             rs_sample_varp(fit_var,s_fit);
-            printf("beta = %s\n",param->beta[i]);
-            printf("a    = %f +/- %e fm\n",mat_get(fit,i,0)/NU_FM,\
+            mpi_printf("beta = %s\n",param->beta[i]);
+            mpi_printf("a    = %f +/- %e fm\n",mat_get(fit,i,0)/NU_FM,\
                    sqrt(mat_get(fit_var,i,0))/NU_FM);
             rs_sample_eqinvp(s_fit);
             rs_sample_varp(fit_var,s_fit);
-            printf("a^-1 = %f +/- %e MeV\n",mat_get(fit,i,0),\
+            mpi_printf("a^-1 = %f +/- %e MeV\n",mat_get(fit,i,0),\
                    sqrt(mat_get(fit_var,i,0)));
-            printf("\n");
+            mpi_printf("\n");
             rs_sample_eqinvp(s_fit);
         }
     }
@@ -461,9 +508,12 @@ int main(int argc, char *argv[])
                                param->save_param[i],0);
     }
     
-    /*               I/O finish                 */
+    /*                finish                    */
     /********************************************/
     io_finish();
+#ifdef HAVE_MPI
+    MPI_Finalize();
+#endif
     
     /*              desallocation               */
     /********************************************/

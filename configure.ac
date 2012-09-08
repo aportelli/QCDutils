@@ -33,8 +33,10 @@ AC_ARG_WITH([argtable],
 	[]
 )
 
-CFLAGS="$AM_CFLAGS $CFLAGS"
-LDFLAGS="$AM_LDFLAGS $LDFLAGS"
+LX_FIND_MPI
+
+CFLAGS="$AM_CFLAGS $MPI_CFLAGS $CFLAGS"
+LDFLAGS="$AM_LDFLAGS $MPI_CLDFLAGS $LDFLAGS"
 
 # Checks for libraries.
 AC_CHECK_LIB([m],[cos],[],[AC_MSG_ERROR([libm library not found])])

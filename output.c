@@ -1,6 +1,11 @@
+#include "config.h"
 #include "output.h"
 #include <math.h>
+#include <stdarg.h>
 #include <string.h>
+#ifdef HAVE_MPI
+#include <mpi.h>
+#endif
 #include <latan/latan_math.h>
 #include <latan/latan_plot.h>
 #include "data_loader.h"
@@ -33,6 +38,31 @@ if (strlen(param->save_plot))\
     plot_save(dirname,p[kx]);\
 }
 
+/* MPI friendly printf function */
+void mpi_printf(const strbuf fmt, ...)
+{
+    va_list args;
+    int proc,nproc;
+    strbuf buf;
+    
+#ifdef HAVE_MPI
+    MPI_Comm_size(MPI_COMM_WORLD,&nproc);
+    if (nproc > 1)
+    {
+        MPI_Comm_rank(MPI_COMM_WORLD,&proc);
+        sprintf(buf,"[%d] %s",proc,fmt);
+    }
+    else
+    {
+        strbufcpy(buf,fmt);
+    }
+#else
+    strbufcpy(buf,fmt);
+#endif
+    va_start(args,fmt);
+    vprintf(buf,args);
+    va_end(args);
+}
 
 void plot_fit(const mat *fit, fit_data *d, fit_param *param, const plot_flag f)
 {
@@ -253,8 +283,8 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
 
 #define PRINT_PAR(name)\
 {\
-    printf("%12s = % e (%4.0f%%)\n",name,mat_get(fit,i,0),            \
-           sqrt(mat_get(fit_var,i,0))/fabs(mat_get(fit,i,0))*100.0);\
+    mpi_printf("%12s = % e (%4.0f%%)\n",name,mat_get(fit,i,0),          \
+               sqrt(mat_get(fit_var,i,0))/fabs(mat_get(fit,i,0))*100.0);\
     i++;\
 }
 #define PRINT_SCALE(name)\
@@ -262,8 +292,8 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
     double sig_,p_;\
     sig_ = sqrt(mat_get(fit_var,i,0));\
     p_   = mat_get(fit,i,0);\
-    printf("%12s = % e (%4.1f%%) [%12s^-1 = %5.0f(%4.0f) MeV]\n",name,\
-           p_,sig_/fabs(p_)*100.0,name,1.0/p_,sig_/SQ(p_));\
+    mpi_printf("%12s = % e (%4.1f%%) [%12s^-1 = %5.0f(%4.0f) MeV]\n",name,\
+               p_,sig_/fabs(p_)*100.0,name,1.0/p_,sig_/SQ(p_));\
     i++;\
 }
 
@@ -280,7 +310,8 @@ void print_result(const rs_sample *s_fit, fit_param *param)
     fit_var = mat_create(fit_model_get_npar(&(param->fm),param),1);
     
     rs_sample_varp(fit_var,s_fit);
-    printf("\nfit parameters :\n");
+    mpi_printf("\n");
+    mpi_printf("fit parameters :\n");
     if (IS_AN(param,AN_SCALE))
     {
         for(j=0;j<(int)param->nbeta;j++)
@@ -432,7 +463,7 @@ void print_result(const rs_sample *s_fit, fit_param *param)
             }
         }
     }
-    printf("\n");
+    mpi_printf("\n");
     
     mat_destroy(fit_var);
 }
