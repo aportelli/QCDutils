@@ -59,7 +59,7 @@ enum
 }
 
 /* analysis routine */
-static void analysis(fit_param *param, const int nproc)
+static void analysis(fit_param *param)
 {
     /*              global settings             */
     /********************************************/
@@ -201,7 +201,7 @@ static void analysis(fit_param *param, const int nproc)
         }
     }
     /** save tables **/
-    if (nproc == 1)
+    if (param->nproc == 1)
     {
         if (IS_AN(param,AN_PHYPT))
         {
@@ -338,7 +338,7 @@ static void analysis(fit_param *param, const int nproc)
             }
         }
         /** save tables **/
-        if (nproc == 1)
+        if (param->nproc == 1)
         {
             if (IS_AN(param,AN_PHYPT))
             {
@@ -493,6 +493,7 @@ int main(int argc, char *argv[])
     fit_param *param;
     int proc,nproc;
     bool active;
+    strbuf prefix;
     
     if (argc < 2)
     {
@@ -515,8 +516,10 @@ int main(int argc, char *argv[])
             active = true;
             mpi_printf("*** parameter file %s\n",argv[proc+1]);
             param       = fit_param_parse(argv[proc+1]);
-            param->verb = 0;
             param->plot = 0;
+            sprintf(prefix,"[%d] ",proc);
+            latan_set_use_car_ret(false);
+            latan_set_msg_prefix(prefix);
             strbufcpy(param->save_plot,"");
         }
         else
@@ -539,9 +542,10 @@ int main(int argc, char *argv[])
 #endif
     
     /* analysis */
+    param->nproc = nproc;
     if (active)
     {
-        analysis(param,nproc);
+        analysis(param);
     }
     
     /* finalization */

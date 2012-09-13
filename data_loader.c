@@ -161,7 +161,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 }
             }
         }
-        if (param->verb > 0)
+        if ((param->verb > 0)&&(param->nproc == 1))
         {
             printf("[");
             for (i=0;i<60*(ens_ind+1)/nens;i++)

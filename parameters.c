@@ -190,6 +190,7 @@ fit_param * fit_param_parse(const strbuf fname)
     param->point             = NULL;
     param->nens              = 0;
     param->nsample           = 0;
+    param->nproc             = 0;
     strbufcpy(param->analyze,"");
     strbufcpy(param->model,"");
     strbufcpy(param->s_model,"");

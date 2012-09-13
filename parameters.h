@@ -62,6 +62,7 @@ typedef struct fit_param_s
     int warn_missing_data;
     int scale_model;
     int q_dim;
+    int nproc;
     unsigned int analyze_flag;
     fit_init *init_param;
     ens *point;
