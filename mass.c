@@ -215,7 +215,7 @@ int main(int argc, char* argv[])
     size_t npar,nti,tibeg,range[2];
     size_t i;
     strbuf buf,range_info,latan_path;
-    double pref_i;
+    double pref_i,mass_i;
 
     d        = fit_data_create(nt,1,1);
     tibeg    = (size_t)(opt->range[0][0]); 
@@ -265,10 +265,14 @@ int main(int argc, char* argv[])
     fit_data_set_model(d,fm_pt,fmpar_pt);
     
     /** set initial parameter values **/
+    mass_i = mat_get(em,nt/8-(size_t)(mat_get(tem,0,0)),0);
+    if (latan_isnan(mass_i))
+    {
+        mass_i = 0.3;
+    }
     for (i=0;i<nstate;i++)
     {
-        mat_set(mass,i,0,((double)(i+1))                       \
-                *mat_get(em,nt/8-(size_t)(mat_get(tem,0,0)),0));
+        mat_set(mass,i,0,((double)(i+1))*mass_i);
     }
     if (emtype == EM_ACOSH)
     {
@@ -280,6 +284,10 @@ int main(int argc, char* argv[])
                           *exp((double)(nt)*mat_get(mass,0,0)/8)));
     }
     pref_i += log((double)(nstate));
+    if (latan_isnan(pref_i))
+    {
+        pref_i = 1.0;
+    }
     for (i=nstate;i<npar;i++)
     {
         mat_set(mass,i,0,pref_i);

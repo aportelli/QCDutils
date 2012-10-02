@@ -280,14 +280,13 @@ int main(int argc, char* argv[])
     /** set initial parameter values **/
     m_i  = 0.5*(log(mat_get(mprop[0],nt/8,0)/mat_get(mprop[0],nt/8+1,0))\
                 +log(mat_get(mprop[1],nt/8,0)/mat_get(mprop[1],nt/8+1,0)));
-    dm_i = mat_get(em[0],nt/8-(size_t)(mat_get(tem,0,0)),0)\
-           -mat_get(em[1],nt/8-(size_t)(mat_get(tem,0,0)),0);
-    if (latan_isnan(dm_i))
+    if (latan_isnan(m_i))
     {
-        dm_i = 0.0;
+        m_i = 0.3;
     }
+    dm_i = 0.01*m_i;
     mat_set(par,0,0,m_i);
-    mat_set(par,1,0,0.01*m_i);
+    mat_set(par,1,0,dm_i);
     for (i=2;i<2*nstate;i+=2)
     {
         mat_set(par,i,0,((double)(i/2+2))*m_i);
@@ -303,6 +302,10 @@ int main(int argc, char* argv[])
                           *exp((double)(nt)*m_i/8)));
     }
     pref_i -= log((double)(nstate));
+    if (latan_isnan(pref_i))
+    {
+        pref_i = 1.0;
+    }
     for (i=2*nstate;i<npar;i+=2)
     {
         mat_set(par,i,0,0.5*pref_i);
