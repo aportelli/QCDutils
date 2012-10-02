@@ -14,6 +14,7 @@
 #include <latan/latan_statistics.h>
 
 #define ATOF(str) (strtod(str,(char **)NULL))
+#define ATOI(str) ((int)strtol(str,(char **)NULL,10))
 #define STAT_ERR_COL "rgb 'red'"
 #define SYS_ERR_COL  "rgb 'blue'"
 #define TOT_ERR_COL  "rgb '#444444'"
@@ -27,7 +28,7 @@ static void load_res(rs_sample *s_res, double chi2_val[2],\
     size_t nf,lc;
     
     field = NULL;
-    
+
     strbufcpy(buf,latan_path);
     rs_sample_load_subsamp(s_res,latan_path,0,0,0,0);
     pt = strstr(buf,".boot");
@@ -54,19 +55,19 @@ int main(int argc, char *argv[])
     plot *p;
     int i;
     
-    if (argc <= 4)
+    if (argc <= 5)
     {
-        fprintf(stderr,"usage: %s <target> <target_err> <result_1> <result_2> ...\n",\
+        fprintf(stderr,"usage: %s <nbin> <target> <target_err> <result_1> <result_2> ...\n",\
                 argv[0]);
         return EXIT_FAILURE;
     }
     
-    rs_sample_load(NULL,&nsample,NULL,argv[3]);
-    nres       = (size_t)(argc) - 3;
-    nbin       = 10;
+    rs_sample_load(NULL,&nsample,NULL,argv[4]);
+    nres       = (size_t)(argc) - 4;
+    nbin       = ATOF(argv[1]);
     count      = 0;
-    target     = ATOF(argv[1]);
-    target_err = ATOF(argv[2]);
+    target     = ATOF(argv[2]);
+    target_err = ATOF(argv[3]);
     
     
     s_res     = rs_sample_create(nres,1,nsample);
@@ -99,7 +100,7 @@ int main(int argc, char *argv[])
         {
             double chi2_val_i[2];
             
-            load_res(s_res_i,chi2_val_i,argv[i+3]);
+            load_res(s_res_i,chi2_val_i,argv[i+4]);
             rs_sample_set_subsamp(s_res,s_res_i,i,0,i,0);
             mat_set(chi2_val,i,0,chi2_val_i[0]);
             mat_set(chi2_val,i,1,chi2_val_i[1]);
@@ -152,10 +153,9 @@ int main(int argc, char *argv[])
     xmin = MIN(target-target_err,final-tot_err[0]);
     xmax = MAX(target+target_err,final+tot_err[1]);
     l    = xmax-xmin;
-    xmin = xmin - 0.2*l;
-    xmax = xmax + 0.2*l;
-    histogram(hist,rs_sample_pt_cent_val(s_res),w,xmin,xmax,nbin);
-    histogram(hist_flat,rs_sample_pt_cent_val(s_res),NULL,xmin,xmax,nbin);
+    histogram(hist,rs_sample_pt_cent_val(s_res),w,xmin-0.3*l,xmax+0.3*l,nbin);
+    histogram(hist_flat,rs_sample_pt_cent_val(s_res),NULL,xmin-0.3*l,\
+              xmax+0.3*l,nbin);
     histogram(phist,w,NULL,0.0,1.0,40);
     
     /* make plot */
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
     ymax = MAX(mat_get_max(hist)*DRATIO(nbin,mat_elsum(w)*(xmax-xmin)),\
                mat_get_max(hist_flat)*DRATIO(nbin,nres*(xmax-xmin)));
     ymax = 1.2*ymax;
-    plot_set_scale_manual(p,xmin-0.3*l,xmax+0.3*l,0.0,ymax);
+    plot_set_scale_manual(p,xmin-0.2*l,xmax+0.2*l,0.0,ymax);
     plot_add_vlineaerr(p,final,tot_err,TOT_ERR_COL);
     if ((stat_err > sys_err[0])&&(stat_err > sys_err[1]))
     {
