@@ -63,6 +63,7 @@ typedef struct
     rg_state state;
     strbuf source;
     strbuf sink;
+    strbuf ss;
     strbuf channel[2];
     strbuf quark[2];
     strbuf model;

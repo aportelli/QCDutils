@@ -391,6 +391,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
                 strbufcpy(opt->quark[1],opt->quark[0]);
             }
         }
+        strbufcpy(opt->ss,a_ss->sval[0]);
         cpt = strchr(a_ss->sval[0],':');
         if (cpt == NULL)
         {
