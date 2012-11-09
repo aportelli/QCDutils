@@ -204,7 +204,7 @@ int main(int argc, char* argv[])
     rs_sample *s_par,*s_mass[2],*s_av_mass,*s_d_mass,*s_d_sqmass;
     mat *par,*limit,*sigpar,*scanres_t,*scanres_chi2,*scanres_av_mass,\
         *scanres_av_mass_err,*scanres_d_mass,*scanres_d_mass_err;
-    size_t npar,nti,tibeg,range[2];
+    size_t npar,nti,tibeg,ta,range[2];
     size_t i,j;
     strbuf buf,range_info,latan_path;
     double pref_i,m_i,dm_i;
@@ -278,8 +278,8 @@ int main(int argc, char* argv[])
     }
     
     /** set initial parameter values **/
-    m_i  = 0.5*(log(mat_get(mprop[0],nt/8,0)/mat_get(mprop[0],nt/8+1,0))\
-                +log(mat_get(mprop[1],nt/8,0)/mat_get(mprop[1],nt/8+1,0)));
+    ta  = nt/8-(size_t)(mat_get(tem,0,0));
+    m_i = mat_get(em[0],ta,0);
     if (latan_isnan(m_i))
     {
         m_i = 0.3;
@@ -292,24 +292,16 @@ int main(int argc, char* argv[])
         mat_set(par,i,0,((double)(i/2+2))*m_i);
         mat_set(par,i+1,0,((double)(i/2+2))*m_i);
     }
-    if (emtype == EM_ACOSH)
-    {
-        pref_i = log(mat_get(mprop[0],nt/2,0));
-    }
-    else
-    {
-        pref_i = log(fabs(mat_get(mprop[0],nt/8,0) \
-                          *exp((double)(nt)*m_i/8)));
-    }
-    pref_i -= log((double)(nstate));
+    pref_i = log(mat_get(mprop[0],ta,0)/(exp(-m_i*ta)+exp(-m_i*(nt-ta))));
     if (latan_isnan(pref_i))
     {
         pref_i = 1.0;
     }
+    pref_i -= log((double)(nstate));
     for (i=2*nstate;i<npar;i+=2)
     {
-        mat_set(par,i,0,0.5*pref_i);
-        mat_set(par,i+1,0,0.5*pref_i);
+        mat_set(par,i,0,pref_i);
+        mat_set(par,i+1,0,pref_i);
     }
     qcd_printf(opt,"%-22sav_mass= %e -- d_mass= %e -- prefactor0,1_0= %e\n",\
                "initial parameters: ",mat_get(par,0,0),mat_get(par,1,0),\

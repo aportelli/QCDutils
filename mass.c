@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
     rs_sample *s_mass;
     mat *mass,*limit,*sigmass,*scanres_t,*scanres_chi2,*scanres_mass,\
         *scanres_masserr;
-    size_t npar,nti,tibeg,range[2];
+    size_t npar,nti,ta,tibeg,range[2];
     size_t i;
     strbuf buf,range_info,latan_path;
     double pref_i,mass_i;
@@ -265,7 +265,8 @@ int main(int argc, char* argv[])
     fit_data_set_model(d,fm_pt,fmpar_pt);
     
     /** set initial parameter values **/
-    mass_i = mat_get(em,nt/8-(size_t)(mat_get(tem,0,0)),0);
+    ta     = nt/8-(size_t)(mat_get(tem,0,0));
+    mass_i = mat_get(em,ta,0);
     if (latan_isnan(mass_i))
     {
         mass_i = 0.3;
@@ -274,20 +275,12 @@ int main(int argc, char* argv[])
     {
         mat_set(mass,i,0,((double)(i+1))*mass_i);
     }
-    if (emtype == EM_ACOSH)
-    {
-        pref_i = log(mat_get(mprop,nt/2,0));
-    }
-    else
-    {
-        pref_i = log(fabs(mat_get(mprop,nt/8,0)                  \
-                          *exp((double)(nt)*mat_get(mass,0,0)/8)));
-    }
-    pref_i += log((double)(nstate));
+    pref_i = log(mat_get(mprop,ta,0)/(exp(-mass_i*ta)+exp(-mass_i*(nt-ta))));
     if (latan_isnan(pref_i))
     {
         pref_i = 1.0;
     }
+    pref_i -= log((double)(nstate));
     for (i=nstate;i<npar;i++)
     {
         mat_set(mass,i,0,pref_i);
