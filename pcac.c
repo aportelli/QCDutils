@@ -60,8 +60,7 @@ int main(int argc, char* argv[])
     /*              loading datas               */
     /********************************************/
     size_t ndat,nbdat,dim[2];
-    mat **prop_AP;
-    mat **prop_PP;
+    mat **prop_AP, **prop_PP;
     
     ndat  = (size_t)get_nfile(manf_name);
     nbdat = ndat/binsize + ((ndat%binsize == 0) ? 0 : 1);
