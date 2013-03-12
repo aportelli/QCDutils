@@ -34,6 +34,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     struct arg_int*  a_binsize       = NULL;
     struct arg_str*  a_minimizer     = NULL;
     struct arg_str*  a_range         = NULL;
+    struct arg_dbl*  a_tshift        = NULL;
     struct arg_lit*  a_uncorr        = NULL;
     struct arg_lit*  a_rscan         = NULL;
     struct arg_str*  a_model         = NULL;
@@ -41,7 +42,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     struct arg_end*  a_end           = NULL;
     strbuf help_msg,ver_msg,verb_msg,fmt_msg,nboot_msg,save_rs_msg,load_rg_msg,\
            plot_msg,save_plot_msg,latspac_fm_msg,qcomp_msg,channel_msg,ss_msg, \
-           binsize_msg,minimizer_msg,range_msg,uncorr_msg,rscan_msg,           \
+           binsize_msg,minimizer_msg,range_msg,tshift_msg,uncorr_msg,rscan_msg,\
            manf_msg,model_msg;
     strbuf defmin,deffmt;
     int j;
@@ -78,6 +79,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     sprintf(binsize_msg     ,"data binning size (default: 1)"               );
     sprintf(minimizer_msg   ,"minimizer (default: %s)",defmin               );
     sprintf(range_msg       ,"manual fit range"                             );
+    sprintf(tshift_msg      ,"time shift"                                   );
     sprintf(uncorr_msg      ,"use time-uncorrelated chi^2"                  );
     sprintf(rscan_msg       ,"perform fit range scan"                       );
     sprintf(manf_msg        ,"LatAnalyze data manifest"                     );
@@ -123,6 +125,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
         a_minimizer     = arg_str0("M","minimizer","ID",minimizer_msg);
         a_range         = arg_strn("R","range","[min,max]",1,MAX_RANGES,\
                                    range_msg);
+        a_tshift        = arg_dbl0(NULL,"tshift",NULL,tshift_msg);
         a_uncorr        = arg_lit0(NULL,"uncorr",uncorr_msg);
         a_rscan         = arg_lit0("f","range_scan",rscan_msg);
     }
@@ -194,13 +197,14 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     }
     if (argset_flag & A_FIT)
     {
-        a_table_size += 4;
+        a_table_size += 5;
         QCD_REALLOC(a_table,a_table,void**,a_table_size);
         a_table[i]   = a_minimizer;
         a_table[i+1] = a_range;
-        a_table[i+2] = a_uncorr;
-        a_table[i+3] = a_rscan;
-        i += 4;
+        a_table[i+2] = a_tshift;
+        a_table[i+3] = a_uncorr;
+        a_table[i+4] = a_rscan;
+        i += 5;
     }
     if (argset_flag & A_MODEL)
     {
@@ -265,6 +269,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
         opt->minimizer     = minalg_no_get(defmin);
         opt->corr          = DATA_COR;
         opt->do_range_scan = false;
+        opt->tshift        = 0.0;
     }
     if (argset_flag & A_MODEL)
     {
@@ -427,6 +432,10 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
                         a_range->sval[i]);
                 exit(EXIT_FAILURE);
             }
+        }
+        if (a_tshift->count > 0)
+        {
+            opt->tshift = a_tshift->dval[0];
         }
         if (a_uncorr->count > 0)
         {

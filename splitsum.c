@@ -425,7 +425,7 @@ int main(int argc, char* argv[])
     
     /*                  plot                    */
     /********************************************/
-    if (opt->do_plot)
+    if (opt->do_plot|opt->do_save_plot)
     {
         mat *pr_t,*mbuf,*em_i,*sigem_i,*prop_pt,*mass_pt,*mpar,*ft,*comp;
         plot *p;
@@ -484,7 +484,10 @@ int main(int argc, char* argv[])
                 plot_add_plot(p,"-4.0 lt -1 lc rgb 'light-gray' notitle","");
                 plot_set_ylabel(p,"standard deviations");
                 plot_add_points(p,ft,comp,"",color[k],"impulses");
-                plot_disp(p);
+                if (opt->do_plot)
+                {
+                    plot_disp(p);
+                }
                 if (opt->do_save_plot)
                 {
                     sprintf(dirname,"%s_%d_dev",opt->save_plot_dir,(int)k);
@@ -505,7 +508,10 @@ int main(int argc, char* argv[])
                 mat_set_step(pr_t,0.0,1.0);
                 plot_add_fit(p,d,k,mbuf,0,par,0,dmaxt,1000,false,\
                              PF_FIT|PF_DATA,key,"",color[k],color[k]);
-                plot_disp(p);
+                if (opt->do_plot)
+                {
+                    plot_disp(p);
+                }
                 if (opt->do_save_plot)
                 {
                     sprintf(dirname,"%s_%d_prop",opt->save_plot_dir,(int)k);
@@ -536,6 +542,7 @@ int main(int argc, char* argv[])
                 plot_set_scale_manual(p,0.0,dmaxt,0.0,1.5*nmass);
                 sprintf(key,"%s effective energies",full_name[k]);
                 plot_add_dat(p,tem,em[k],NULL,sigem[k],key,"rgb 'blue'");
+                plot_add_dat(p,tem,em[k],NULL,NULL,"","rgb 'blue'");
                 for (i=2;i<2*nstate;i+=2)
                 {
                     if (emtype == EM_ACOSH)
@@ -567,8 +574,12 @@ int main(int argc, char* argv[])
                     rs_sample_varp(sigem[k],s_effmass[k]);
                     mat_eqsqrt(sigem[k]);
                     plot_add_dat(p,tem,em[k],NULL,sigem[k],"","rgb 'blue'");
+                    plot_add_dat(p,tem,em[k],NULL,NULL,"","rgb 'blue'");
                 }
-                plot_disp(p);
+                if (opt->do_plot)
+                {
+                    plot_disp(p);
+                }
                 if (opt->do_save_plot)
                 {
                     sprintf(dirname,"%s_%d_em",opt->save_plot_dir,(int)k);
@@ -585,7 +596,10 @@ int main(int argc, char* argv[])
             plot_add_hline(p,1.0,"rgb 'black'");
             plot_add_dat(p,scanres_t,scanres_chi2,NULL,NULL,"chi^2/dof",\
                          "rgb 'blue'");
-            plot_disp(p);
+            if (opt->do_plot)
+            {
+                plot_disp(p);
+            }
             if (opt->do_save_plot)
             {
                 sprintf(dirname,"%s_chi2",opt->save_plot_dir);
@@ -599,7 +613,10 @@ int main(int argc, char* argv[])
             sprintf(key,"a*av_M_%s",full_name[0]);
             plot_add_dat(p,scanres_t,scanres_av_mass,NULL,scanres_av_mass_err,\
                          key,"rgb 'red'");
-            plot_disp(p);
+            if (opt->do_plot)
+            {
+                plot_disp(p);
+            }
             if (opt->do_save_plot)
             {
                 sprintf(dirname,"%s_av_mass",opt->save_plot_dir);
@@ -607,13 +624,16 @@ int main(int argc, char* argv[])
             }
             plot_destroy(p);
             
-            /* difference of mass plot */
+            /* difference of masses plot */
             p = plot_create();
             plot_set_scale_xmanual(p,0,(double)(nt/2));
             sprintf(key,"a*d_M_%s",full_name[0]);
             plot_add_dat(p,scanres_t,scanres_d_mass,NULL,scanres_d_mass_err,\
                          key,"rgb 'red'");
-            plot_disp(p);
+            if (opt->do_plot)
+            {
+                plot_disp(p);
+            }
             if (opt->do_save_plot)
             {
                 sprintf(dirname,"%s_dmass",opt->save_plot_dir);

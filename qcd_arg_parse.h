@@ -45,7 +45,7 @@ enum
     A_MODEL     = 1 << 8
 };
 
-typedef struct
+typedef struct qcd_options_s
 {
     bool qcd_verb;
     bool have_latspac;
@@ -71,6 +71,7 @@ typedef struct
     cor_flag corr;
     minalg_no minimizer;
     unsigned int range[MAX_RANGES][2];
+    double tshift;
     size_t nmanrange;
     size_t nboot;
 } qcd_options;

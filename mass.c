@@ -307,7 +307,7 @@ int main(int argc, char* argv[])
     /** set x **/
     for (i=0;i<nt;i++)
     {
-        fit_data_set_x(d,i,0,(double)(i));
+        fit_data_set_x(d,i,0,(double)(i)+opt->tshift);
     }
     
     /** regular correlator fit... **/
@@ -393,15 +393,14 @@ int main(int argc, char* argv[])
     
     /*                  plot                    */
     /********************************************/
-    if (opt->do_plot)
+    if (opt->do_plot|opt->do_save_plot)
     {
-        mat *pr_t,*mbuf,*em_i,*sigem_i,*prop_pt,*mass_pt,*par,*ft,*comp;
+        mat *mbuf,*em_i,*sigem_i,*prop_pt,*mass_pt,*par,*ft,*comp;
         plot *p;
-        strbuf key,dirname;
+        strbuf key,xlabel,dirname;
         size_t maxt,j,t;
         double dmaxt,nmass,corr_prop;
         
-        pr_t    = mat_create(nt,1);
         mbuf    = mat_create(1,1);
         em_i    = mat_create(nrow(em),1);
         sigem_i = mat_create(nrow(em),1);
@@ -409,6 +408,7 @@ int main(int argc, char* argv[])
         ft      = mat_create(fit_data_fit_point_num(d),1);
         comp    = mat_create(fit_data_fit_point_num(d),1);
         
+        sprintf(xlabel,"a*t%+.2f",opt->tshift);
         if (!opt->do_range_scan)
         {
             if (emtype == EM_ACOSH)
@@ -428,7 +428,7 @@ int main(int argc, char* argv[])
             {
                 if (fit_data_is_fit_point(d,t))
                 {
-                    mat_set(ft,i,0,(double)(t));
+                    mat_set(ft,i,0,(double)(t)+opt->tshift);
                     mat_set(comp,i,0,mat_get(d->chi2_comp,i,0));
                     i++;
                 }
@@ -443,9 +443,13 @@ int main(int argc, char* argv[])
             plot_add_plot(p,"-3.0 lt -1 lc rgb 'gray' notitle","");
             plot_add_plot(p,"4.0 lt -1 lc rgb 'light-gray' notitle","");
             plot_add_plot(p,"-4.0 lt -1 lc rgb 'light-gray' notitle","");
+            plot_set_xlabel(p,xlabel);
             plot_set_ylabel(p,"standard deviations");
             plot_add_points(p,ft,comp,"","rgb 'red'","impulses");
-            plot_disp(p);
+            if (opt->do_plot)
+            {
+                plot_disp(p);
+            }
             if (opt->do_save_plot)
             {
                 sprintf(dirname,"%s_dev",opt->save_plot_dir);
@@ -465,12 +469,15 @@ int main(int argc, char* argv[])
                 plot_set_scale_ylog(p);
             }
             plot_set_scale_xmanual(p,0,dmaxt);
+            plot_set_xlabel(p,xlabel);
             sprintf(key,"%s propagator",full_name);
             mat_eqabs(mprop);
-            mat_set_step(pr_t,0.0,1.0);
             plot_add_fit(p,d,0,mbuf,0,mass,0,dmaxt,1000,false,\
                          PF_FIT|PF_DATA,key,"","rgb 'red'","rgb 'red'");
-            plot_disp(p);
+            if (opt->do_plot)
+            {
+                plot_disp(p);
+            }
             if (opt->do_save_plot)
             {
                 sprintf(dirname,"%s_prop",opt->save_plot_dir);
@@ -495,9 +502,11 @@ int main(int argc, char* argv[])
                 plot_add_hlineerr(p,nmass,mat_get(sigmass,i,0)/latspac_nu,\
                                   "rgb 'red'");
             }
-            plot_set_scale_manual(p,0.0,dmaxt,0.0,1.5*nmass);
-            sprintf(key,"%s effective energies",full_name);
+            plot_set_scale_manual(p,0.0,dmaxt,0.0,2.0*nmass);
+            plot_set_xlabel(p,xlabel);
+            sprintf(key,"%s effective mass",full_name);
             plot_add_dat(p,tem,em,NULL,sigem,key,"rgb 'blue'");
+            plot_add_dat(p,tem,em,NULL,NULL,"","rgb 'blue'");
             for (i=1;i<nstate;i++)
             {
                 if (emtype == EM_ACOSH)
@@ -518,7 +527,7 @@ int main(int argc, char* argv[])
                     mat_set(par,1,0,mat_get(mass_pt,nstate+i-1,0));
                     for (t=0;t<nt;t++)
                     {
-                        mat_set(mbuf,0,0,(double)(t));
+                        mat_set(mbuf,0,0,(double)(t)-opt->tshift);
                         corr_prop = mat_get(prop_pt,t,0)-\
                                     fit_model_eval(fm_pt,0,mbuf,par,fmpar_pt);
                         mat_set(prop_pt,t,0,corr_prop);
@@ -528,8 +537,12 @@ int main(int argc, char* argv[])
                 rs_sample_varp(sigem,s_effmass);
                 mat_eqsqrt(sigem);
                 plot_add_dat(p,tem,em,NULL,sigem,"","rgb 'blue'");
+                plot_add_dat(p,tem,em,NULL,NULL,"","rgb 'blue'");
             }
-            plot_disp(p);
+            if (opt->do_plot)
+            {
+                plot_disp(p);
+            }
             if (opt->do_save_plot)
             {
                 sprintf(dirname,"%s_em",opt->save_plot_dir);
@@ -545,7 +558,11 @@ int main(int argc, char* argv[])
             plot_add_hline(p,1.0,"rgb 'black'");
             plot_add_dat(p,scanres_t,scanres_chi2,NULL,NULL,"chi^2/dof",\
                          "rgb 'blue'");
-            plot_disp(p);
+            plot_set_xlabel(p,xlabel);
+            if (opt->do_plot)
+            {
+                plot_disp(p);
+            }
             if (opt->do_save_plot)
             {
                 sprintf(dirname,"%s_chi2",opt->save_plot_dir);
@@ -559,7 +576,11 @@ int main(int argc, char* argv[])
             sprintf(key,"a*M_%s",full_name);
             plot_add_dat(p,scanres_t,scanres_mass,NULL,scanres_masserr,key,\
                          "rgb 'red'");
-            plot_disp(p);
+            plot_set_xlabel(p,xlabel);
+            if (opt->do_plot)
+            {
+                plot_disp(p);
+            }
             if (opt->do_save_plot)
             {
                 sprintf(dirname,"%s_mass",opt->save_plot_dir);
@@ -570,7 +591,6 @@ int main(int argc, char* argv[])
 
         mat_destroy(em_i);
         mat_destroy(sigem_i);
-        mat_destroy(pr_t);
         mat_destroy(mbuf);
         mat_destroy(par);
         mat_destroy(ft);

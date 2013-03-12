@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     size_t binsize,nboot;
      
     opt = qcd_arg_parse(argc,argv,A_SAVE_RS|A_LOAD_RG|A_PROP_NAME|A_PROP_LOAD\
-                        |A_QCOMP,1);
+                        |A_QCOMP|A_PLOT,1);
     sprintf(prop_name,"%s_%s_%s_%s",opt->channel[0],opt->quark[0],opt->sink,\
             opt->source);
     sprintf(full_name,"%s_%s",opt->channel[0],opt->quark[0]);
@@ -32,16 +32,15 @@ int main(int argc, char* argv[])
     
     /*              loading datas               */
     /********************************************/
-    size_t ndat,nbdat,dim[2];
+    size_t ndat,nbdat,dim[2],nt;
     mat **prop;
     
     ndat    = (size_t)get_nfile(manf_name);
     nbdat   = ndat/binsize + ((ndat%binsize == 0) ? 0 : 1);
     
     mat_ar_loadbin(NULL,dim,manf_name,prop_name,1);
-    
     prop = mat_ar_create(nbdat,dim[0],dim[1]);
-
+    nt   = dim[0];
     qcd_printf(opt,"-- loading %s datas from %s...\n",prop_name,manf_name);
     mat_ar_loadbin(prop,NULL,manf_name,prop_name,binsize);
     
@@ -62,12 +61,13 @@ int main(int argc, char* argv[])
     
     /*              result output               */
     /********************************************/
-    size_t t,maxt;
+    size_t t;
     strbuf latan_path;
+    plot *p;
+    mat *tvec;
     
-    maxt = dim[0] - 1;
     qcd_printf(opt,"\n%-4s %-12s %-12s\n","t","prop","error");
-    for (t=0;t<=maxt;t++)
+    for (t=0;t<nt;t++)
     {
         qcd_printf(opt,"% -4d % -.5e % -.5e\n",(int)t,mat_get(mprop,t,0),\
                    mat_get(sig,t,0));
@@ -78,6 +78,24 @@ int main(int argc, char* argv[])
         sprintf(latan_path,"%s_prop_%s.boot:%s_prop_%s",full_name,manf_name,\
                 full_name,manf_name);
         rs_sample_save(latan_path,'w',s_mprop);
+    }
+    if (opt->do_plot|opt->do_save_plot)
+    {
+        p    = plot_create();
+        tvec = mat_create(nt,1);
+        mat_set_step(tvec,0.0,1.0);
+        plot_set_scale_ylog(p);
+        plot_add_dat_yerr(p,tvec,mprop,sig,full_name,"rgb 'red'");
+        if (opt->do_plot)
+        {
+            plot_disp(p);
+        }
+        if (opt->do_save_plot)
+        {
+            plot_save(opt->save_plot_dir,p);
+        }
+        mat_destroy(tvec);
+        plot_destroy(p);
     }
     
     /*              desallocation               */

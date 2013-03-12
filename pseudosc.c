@@ -429,6 +429,8 @@ int main(int argc, char* argv[])
     /** set parameter limits **/
     mat_cst(limit,latan_nan());
     mat_set(limit,0,0,0.0);
+    mat_set(limit,1,0,0.0);
+    mat_set(limit,2,0,0.0);
     
     /** positive AP correlator **/
     rs_sample_eqabs(s_mprop[AP]);
@@ -436,7 +438,7 @@ int main(int argc, char* argv[])
     /** set x **/
     for (i=0;i<nt;i++)
     {
-        fit_data_set_x(d,i,0,(double)(i));
+        fit_data_set_x(d,i,0,(double)(i)-opt->tshift);
     }
     
     /** regular correlator fit... **/
@@ -460,6 +462,9 @@ int main(int argc, char* argv[])
         qcd_printf(opt,"%-10s= %.8f +/- %.8e %s\n","decay",\
                    mat_get(fit,1,0)/latspac_nu,       \
                    mat_get(sigfit,1,0)/latspac_nu,unit);
+        qcd_printf(opt,"%-10s= %.8f +/- %.8e %s\n","norm",\
+                   mat_get(fit,2,0)/latspac_nu,       \
+                   mat_get(sigfit,2,0)/latspac_nu,unit);
         qcd_printf(opt,"%-10s= %d\n","dof",fit_data_get_dof(d));
         qcd_printf(opt,"%-10s= %e\n","chi^2/dof",fit_data_get_chi2pdof(d));
         if (opt->do_save_rs_sample)
@@ -499,13 +504,12 @@ int main(int argc, char* argv[])
     /********************************************/
     if (opt->do_plot)
     {
-        mat *pr_t,*mbuf,*em_i,*sigem_i,*par,*ft[3],*comp[3];
+        mat *mbuf,*em_i,*sigem_i,*par,*ft[3],*comp[3];
         plot *p;
         strbuf key,dirname,color;
         size_t maxt,t,npoint;
         double dmaxt,nmass;
         
-        pr_t    = mat_create(nt,1);
         mbuf    = mat_create(1,1);
         em_i    = mat_create(nrow(em[PP]),1);
         sigem_i = mat_create(nrow(em[PP]),1);
@@ -567,7 +571,6 @@ int main(int argc, char* argv[])
                 plot_set_scale_xmanual(p,0,dmaxt);
                 sprintf(key,"%s %s propagator",opt->quark[0],c_name[c]);
                 mat_eqabs(mprop[c]);
-                mat_set_step(pr_t,0.0,1.0);
                 plot_add_fit(p,d,c,mbuf,0,fit,0,dmaxt,1000,false,\
                              PF_FIT|PF_DATA,key,"","rgb 'red'","rgb 'red'");
                 plot_disp(p);
@@ -629,7 +632,6 @@ int main(int argc, char* argv[])
         
         mat_destroy(em_i);
         mat_destroy(sigem_i);
-        mat_destroy(pr_t);
         mat_destroy(mbuf);
         mat_destroy(par);
         for (c=PP;c<=lastc;c++)
