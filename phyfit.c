@@ -35,6 +35,7 @@ enum
         rs_sample_eqdivp(s_x[i_umd],s_x[i_a]);\
         rs_sample_eqdivp(s_x[i_umd],s_x[i_a]);\
         rs_sample_eqdivp(s_x[i_Linv],s_x[i_a]);\
+        rs_sample_eqdivp(s_x[i_fvM],s_x[i_a]);\
         for (d_=0;d_<param->q_dim;d_++)\
         {\
             rs_sample_eqdivp(s_q[1],s_x[i_a]);\
@@ -50,6 +51,7 @@ enum
         rs_sample_eqmulp(s_x[i_umd],s_x[i_a]);\
         rs_sample_eqmulp(s_x[i_umd],s_x[i_a]);\
         rs_sample_eqmulp(s_x[i_Linv],s_x[i_a]);\
+        rs_sample_eqmulp(s_x[i_fvM],s_x[i_a]);\
         for (d_=0;d_<param->q_dim;d_++)\
         {\
             rs_sample_eqmulp(s_q[1],s_x[i_a]);\
@@ -229,6 +231,7 @@ static void analysis(fit_param *param)
         mat_set(phy_pt,i_bind,0,0.0);
         mat_set(phy_pt,i_a,0,0.0);
         mat_set(phy_pt,i_Linv,0,0.0);
+        mat_set(phy_pt,i_fvM,0,param->qed_fvol_monopmod_mass);
         param->scale_model = 1;
         mat_set(phy_pt,i_umd,0,param->M_umd_val);
         buf = fit_data_model_xeval(d,s,phy_pt,rs_sample_pt_cent_val(s_fit));
@@ -248,7 +251,7 @@ static void analysis(fit_param *param)
         rs_sample_varp(ex_err,param->s_ex);
         mat_eqsqrt(ex_err);
         mpi_printf("extrapolation :\n");
-        mpi_printf("%10s = %f +/- %e (%4.1f%%) MeV^%d\n",param->q_name,\
+        mpi_printf("%10s = %f +/- %e ( %4.1f%% ) MeV^%d\n",param->q_name,\
                    mat_get(ex,0,0),mat_get(ex_err,0,0),                \
                    mat_get(ex_err,0,0)/fabs(mat_get(ex,0,0))*100.0,    \
                    param->q_dim);
@@ -378,7 +381,7 @@ static void analysis(fit_param *param)
             rs_sample_varp(ex_err,param->s_ex);
             mat_eqsqrt(ex_err);
             mpi_printf("extrapolation :\n");
-            mpi_printf("%10s = %f +/- %e (%4.1f%%) MeV^%d\n",param->q_name,\
+            mpi_printf("%10s = %f +/- %e ( %4.1f%% ) MeV^%d\n",param->q_name,\
                        mat_get(ex,0,0),mat_get(ex_err,0,0),                \
                        mat_get(ex_err,0,0)/fabs(mat_get(ex,0,0))*100.0,    \
                        param->q_dim);
@@ -479,6 +482,7 @@ int main(int argc, char *argv[])
 {
     /* initialization */
     io_init();
+
 #ifdef HAVE_MPI
     int status;
     

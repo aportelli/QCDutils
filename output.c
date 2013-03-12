@@ -115,6 +115,7 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param, const plot_flag f)
         mat_set(phy_pt,i_bind,0,0.0);
         mat_set(phy_pt,i_a,0,0.0);
         mat_set(phy_pt,i_Linv,0,0.0);
+        mat_set(phy_pt,i_fvM,0,param->qed_fvol_monopmod_mass);
         for (bind=0;bind<param->nbeta;bind++)
         {
             dbind      = (double)(bind);
@@ -283,7 +284,7 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
 
 #define PRINT_PAR(name)\
 {\
-    mpi_printf("%12s = % e (%4.0f%%)\n",name,mat_get(fit,i,0),          \
+    mpi_printf("%12s = % e ( %4.0f%% )\n",name,mat_get(fit,i,0),          \
                sqrt(mat_get(fit_var,i,0))/fabs(mat_get(fit,i,0))*100.0);\
     i++;\
 }
@@ -292,7 +293,7 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
     double sig_,p_;\
     sig_ = sqrt(mat_get(fit_var,i,0));\
     p_   = mat_get(fit,i,0);\
-    mpi_printf("%12s = % e (%4.1f%%) [%12s^-1 = %5.0f(%4.0f) MeV]\n",name,\
+    mpi_printf("%12s = % e ( %4.1f%% ) [%12s^-1 = %5.0f(%4.0f) MeV]\n",name,\
                p_,sig_/fabs(p_)*100.0,name,1.0/p_,sig_/SQ(p_));\
     i++;\
 }
@@ -448,10 +449,20 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         }
         if (param->with_qed_fvol)
         {
-            for (j=0;j<param->with_qed_fvol;j++)
+            if (param->with_qed_fvol_monopmod)
             {
-                sprintf(buf,"p_Linv_%d",j+1);
-                PRINT_PAR(buf);
+                if (param->with_qed_fvol == 2)
+                {
+                    PRINT_PAR("p_Linv_2");
+                }
+            }
+            else
+            {
+                for (j=0;j<param->with_qed_fvol;j++)
+                {
+                    sprintf(buf,"p_Linv_%d",j+1);
+                    PRINT_PAR(buf);
+                }
             }
         }
         if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&(param->with_ext_a))

@@ -52,6 +52,8 @@ typedef struct fit_param_s
     int with_udalpha;
     int with_salpha;
     int with_qed_fvol;
+    int with_qed_fvol_monopmod;
+    int qed_fvol_monopmod_sign;
     int s_with_qed_fvol;
     int with_ext_a;
     int with_ext_M_umd;
@@ -70,6 +72,7 @@ typedef struct fit_param_s
     double M_s;
     double M_umd_val;
     double M_scale;
+    double qed_fvol_monopmod_mass;
     double alpha;
     double q_target[2];
     strbuf analyze;
@@ -87,6 +90,7 @@ typedef struct fit_param_s
     strbuf *beta;
     strbuf save_plot;
     strbuf M_umd;
+    strbuf qed_fvol_monopmod_mass_name;
     size_t ndataset;
     size_t nbeta;
     size_t nens;

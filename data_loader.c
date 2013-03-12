@@ -57,7 +57,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 /* scale setting quantity */
                 if (IS_AN(param,AN_SCALE))
                 {
-                    sprintf(sf_name,"%s/M_%s_%s.boot%s",ens_pt->dir,\
+                    sprintf(sf_name,"%s/%s_%s_%s.boot%s",ens_pt->dir,M_str,\
                             param->scale_part,ens_pt->dataset,ext);
                     rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
                     rs_sample_set_subsamp(s_q[0],s_tmp,ens_ind,0,ens_ind,0);
@@ -158,6 +158,15 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 {
                     rs_sample_cst(s_tmp,1.0);
                     rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,0,ens_ind,0);
+                }
+                /* mass for QED FV model */
+                if (param->with_qed_fvol_monopmod)
+                {
+                    sprintf(sf_name,"%s/%s_%s_%s.boot%s",ens_pt->dir,M_str,\
+                            param->qed_fvol_monopmod_mass_name,ens_pt->dataset,ext);
+                    rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
+                    rs_sample_set_subsamp(s_x[i_fvM],s_tmp,ens_ind,0,\
+                                          ens_ind,0);
                 }
             }
         }

@@ -36,8 +36,8 @@ if ((deg) > 0)\
 #define I_udalpha(i)    (I_alpha(i)+(param)->alpha_deg)
 #define I_salpha(i)     (I_udalpha(i)+(param)->with_udalpha)
 #define I_qedfv(i)      (I_salpha(i)+(param)->with_salpha)
-#define LAST_IND        (I_qedfv(0)+param->with_qed_fvol-1)
-#define I_a(i)          (I_qedfv(i)+param->with_qed_fvol)
+#define LAST_IND        (I_qedfv(0)+param->with_qed_fvol-1-param->with_qed_fvol_monopmod)
+#define I_a(i)          (LAST_IND+1+i)
 
 double a_error_chi2_ext(const mat *p, void *vd)
 {
@@ -71,7 +71,7 @@ double a_error_chi2_ext(const mat *p, void *vd)
 
 double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,buf,M_ud,M_s,a,dimfac,umd,Linv,a2mud,a2ms,alpha;
+    double res,buf,M_ud,M_s,M_fvol,a,dimfac,umd,Linv,a2mud,a2ms,alpha,d;
     size_t s,bind;
     fit_param *param;
     
@@ -119,6 +119,8 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     a2mud  = SQ(a)*mat_get(X,i_ud,0)/SQ(dimfac);
     a2ms   = SQ(a)*mat_get(X,i_s,0)/SQ(dimfac);
     alpha  = mat_get(X,i_alpha,0);
+    M_fvol = mat_get(X,i_fvM,0)/dimfac;
+    d      = (double)param->q_dim;
     
     /* constant term */
     if (param->with_const)
@@ -176,7 +178,23 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     if (param->have_alpha)
     {
         buf  = 0.0;
-        polynom(buf,p,I_qedfv(0)+s,Linv,param->with_qed_fvol);
+        if (param->with_qed_fvol_monopmod)
+        {
+            
+            if (param->with_qed_fvol >= 1)
+            {
+                buf += -0.5*QED_FVOL_KAPPA*Linv*d*pow(M_fvol,d-1.0);
+            }
+            if (param->with_qed_fvol >= 2)
+            {
+                buf += mat_get(p,I_qedfv(0)+s,0)*SQ(Linv)*pow(M_fvol,d-2.0);
+            }
+            buf *= (double)param->qed_fvol_monopmod_sign;
+        }
+        else
+        {
+            polynom(buf,p,I_qedfv(0)+s,Linv,param->with_qed_fvol);
+        }
         res += alpha*buf;
     }
     /* dimensional factor */
