@@ -3,6 +3,7 @@
 
 #include <latan/latan_fit.h>
 #include <latan/latan_nunits.h>
+#include <latan/latan_statistics.h>
 
 /* chi^2 extension for lattice spacing errors */
 double a_error_chi2_ext(const mat *p, void *vd);

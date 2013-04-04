@@ -160,10 +160,10 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                     rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,0,ens_ind,0);
                 }
                 /* mass for QED FV model */
-                if (param->with_qed_fvol_monopmod)
+                if (param->with_qed_fvol)
                 {
                     sprintf(sf_name,"%s/%s_%s_%s.boot%s",ens_pt->dir,M_str,\
-                            param->qed_fvol_monopmod_mass_name,ens_pt->dataset,ext);
+                            param->qed_fvol_mass_name,ens_pt->dataset,ext);
                     rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
                     rs_sample_set_subsamp(s_x[i_fvM],s_tmp,ens_ind,0,\
                                           ens_ind,0);

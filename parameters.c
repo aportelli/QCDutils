@@ -150,27 +150,31 @@ fit_param * fit_param_parse(const strbuf fname)
     param->M_umd_val                   = latan_nan();
     param->alpha                       = latan_nan();
     param->M_scale                     = latan_nan();
-    param->qed_fvol_monopmod_mass      = latan_nan();
-    param->a_deg                       = 0;
-    param->with_aalpha                 = 0;
-    param->with_a2M_ud                 = 0;
-    param->s_with_a2M_ud               = 0;
-    param->with_a2M_s                  = 0;
-    param->s_with_a2M_s                = 0;
+    param->qed_fvol_mass               = latan_nan();
+    param->with_a2                     = 0;
+    param->with_a2ud                   = 0;
+    param->s_with_a2ud                 = 0;
+    param->with_a2s                    = 0;
+    param->s_with_a2s                  = 0;
     param->umd_deg                     = 0;
     param->s_umd_deg                   = 0;
     param->have_umd                    = 0;
     param->with_udumd                  = 0;
     param->with_sumd                   = 0;
+    param->with_a2umd                  = 0;
     param->alpha_deg                   = 0;
     param->s_alpha_deg                 = 0;
     param->have_alpha                  = 0;
     param->with_udalpha                = 0;
     param->with_salpha                 = 0;
+    param->with_aalpha                 = 0;
     param->with_qed_fvol               = 0;
     param->with_qed_fvol_monopmod      = 0;
     param->qed_fvol_monopmod_sign      = 1;
     param->s_with_qed_fvol             = 0;
+    param->with_pade                   = 0;
+    param->with_umd_pade               = 0;
+    param->with_alpha_pade             = 0;
     param->with_ext_a                  = 0;
     param->with_ext_M_umd              = 0;
     param->q_dim                       = 0;
@@ -207,7 +211,7 @@ fit_param * fit_param_parse(const strbuf fname)
     strbufcpy(param->dataset_cat,"");
     strbufcpy(param->save_plot,"");
     strbufcpy(param->M_umd,"");
-    strbufcpy(param->qed_fvol_monopmod_mass_name,"");
+    strbufcpy(param->qed_fvol_mass_name,"");
     
     /* parse parameter file */
     BEGIN_FOR_LINE_TOK(field,fname," \t",nf,lc)
@@ -223,26 +227,30 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_D(param,M_s);
             GET_PARAM_S(param,M_umd);
             GET_PARAM_D(param,M_scale);
-            GET_PARAM_D(param,qed_fvol_monopmod_mass);
+            GET_PARAM_D(param,qed_fvol_mass);
             GET_PARAM_D(param,alpha);
-            GET_PARAM_D(param,with_aalpha);
-            GET_PARAM_I(param,a_deg);
-            GET_PARAM_I(param,with_a2M_ud);
-            GET_PARAM_I(param,s_with_a2M_ud);
-            GET_PARAM_I(param,with_a2M_s);
-            GET_PARAM_I(param,s_with_a2M_s);
+            GET_PARAM_I(param,with_a2);
+            GET_PARAM_I(param,with_a2ud);
+            GET_PARAM_I(param,s_with_a2ud);
+            GET_PARAM_I(param,with_a2s);
+            GET_PARAM_I(param,s_with_a2s);
             GET_PARAM_I(param,umd_deg);
             GET_PARAM_I(param,s_umd_deg);
             GET_PARAM_I(param,with_udumd);
             GET_PARAM_I(param,with_sumd);
+            GET_PARAM_I(param,with_a2umd);
             GET_PARAM_I(param,alpha_deg);
             GET_PARAM_I(param,s_alpha_deg);
             GET_PARAM_I(param,with_udalpha);
             GET_PARAM_I(param,with_salpha);
+            GET_PARAM_I(param,with_aalpha);
             GET_PARAM_I(param,with_qed_fvol);
             GET_PARAM_I(param,with_qed_fvol_monopmod);
             GET_PARAM_I(param,qed_fvol_monopmod_sign);
             GET_PARAM_I(param,s_with_qed_fvol);
+            GET_PARAM_I(param,with_pade);
+            GET_PARAM_I(param,with_umd_pade);
+            GET_PARAM_I(param,with_alpha_pade);
             GET_PARAM_I(param,with_ext_a);
             GET_PARAM_I(param,with_ext_M_umd);
             GET_PARAM_I(param,q_dim);
@@ -262,7 +270,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_S(param,umd_name);
             GET_PARAM_S(param,manifest);
             GET_PARAM_S(param,save_plot);
-            GET_PARAM_S(param,qed_fvol_monopmod_mass_name);
+            GET_PARAM_S(param,qed_fvol_mass_name);
             if ((strbufcmp(field[0],"q_target") == 0)&&(nf >= 2))
             {
                 param->q_target[0] = ATOF(field[1]);
@@ -289,6 +297,17 @@ fit_param * fit_param_parse(const strbuf fname)
                 param->init_param[param->ninit_param-1].ind   =\
                     (size_t)ATOI(field[1]);
                 param->init_param[param->ninit_param-1].value = ATOF(field[2]);
+                continue;
+            }
+            if ((strbufcmp(field[0],"limit_param") == 0)&&(nf >= 4))
+            {
+                param->nlimit_param++;
+                param->limit_param = (fit_limit *)realloc(param->limit_param,    \
+                                                          param->nlimit_param*sizeof(fit_limit));
+                param->limit_param[param->nlimit_param-1].ind =\
+                    (size_t)ATOI(field[1]);
+                param->limit_param[param->nlimit_param-1].value[0] = ATOF(field[2]);
+                param->limit_param[param->nlimit_param-1].value[1] = ATOF(field[3]);
                 continue;
             }
             if ((strbufcmp(field[0],"save_param") == 0)&&(nf >= 2))
@@ -353,10 +372,10 @@ fit_param * fit_param_parse(const strbuf fname)
         get_mass(dbuf,param->scale_part);
         param->M_scale = dbuf[0];
     }
-    if (latan_isnan(param->qed_fvol_monopmod_mass))
+    if (latan_isnan(param->qed_fvol_mass))
     {
-        get_mass(dbuf,param->qed_fvol_monopmod_mass_name);
-        param->qed_fvol_monopmod_mass = dbuf[0];
+        get_mass(dbuf,param->qed_fvol_mass_name);
+        param->qed_fvol_mass = dbuf[0];
     }
     
     /* parse ensemble informations */
@@ -452,6 +471,7 @@ void fit_param_destroy(fit_param *param)
     if (param)
     {
         free(param->init_param);
+        free(param->limit_param);
         free(param->save_param);
         free(param->point);
         free(param->dataset);

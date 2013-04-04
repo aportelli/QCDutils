@@ -92,7 +92,7 @@ static void analysis(fit_param *param)
     size_t npar,nydim,bind,s;
     size_t j;
     rs_sample *s_fit,*s_tmp,**s_pt;
-    mat *fit,*fit_var,**res,*phy_pt,*ex,*ex_err;
+    mat *fit,*fit_var,*limit,**res,*phy_pt,*ex,*ex_err;
     strbuf chi2f_name;
     bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false,false};
     FILE *chi2f,*tablef;
@@ -109,6 +109,7 @@ static void analysis(fit_param *param)
     ex      = rs_sample_pt_cent_val(param->s_ex);
     ex_err  = param->ex_err;
     fit_var = mat_create(npar,1);
+    limit   = mat_create(npar,2);
     phy_pt  = mat_create(N_EX_VAR,1);
     res     = mat_ar_create(2,param->nens,1);
     
@@ -124,7 +125,7 @@ static void analysis(fit_param *param)
     }
     fit_data_fit_all_points(d,true);
     fit_data_set_model(d,&param->fm,param);
-    mat_cst(rs_sample_pt_cent_val(s_fit),0.00001);
+    mat_cst(rs_sample_pt_cent_val(s_fit),1.0e-15);
     if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&(param->with_ext_a))
     {
         fit_data_set_chi2_ext(d,&a_error_chi2_ext);
@@ -138,15 +139,23 @@ static void analysis(fit_param *param)
         mat_set(rs_sample_pt_cent_val(s_fit),param->init_param[i].ind,0,\
                 param->init_param[i].value);
     }
+    mat_cst(limit,latan_nan());
+    for (i=0;i<param->nlimit_param;i++)
+    {
+        mat_set(limit,param->limit_param[i].ind,0,\
+                param->limit_param[i].value[0]);
+        mat_set(limit,param->limit_param[i].ind,1,\
+                param->limit_param[i].value[1]);
+    }
     minimizer_set_alg(MIN_MIGRAD);
     for (i=0;i<param->nens;i++)
-        for (j=i+1;j<param->nens;j++)
+    for (j=i+1;j<param->nens;j++)
+    {
+        if (strbufcmp(param->point[i].dir,param->point[j].dir) != 0)
         {
-            if (strbufcmp(param->point[i].dir,param->point[j].dir) != 0)
-            {
-                fit_data_set_data_cor(d,i,j,false);
-            }
+            fit_data_set_data_cor(d,i,j,false);
         }
+    }
     
     /* uncorrelated fit without x errors */
     if (param->correlated)
@@ -157,7 +166,7 @@ static void analysis(fit_param *param)
     {
         mpi_printf("-- fitting and resampling %s...\n",param->q_name);
     }
-    rs_data_fit(s_fit,NULL,s_x,s_pt,d,NO_COR,use_x_var);
+    rs_data_fit(s_fit,limit,s_x,s_pt,d,NO_COR,use_x_var);
     if (IS_AN(param,AN_PHYPT))
     {
         fit_residual(res[s],d,0,fit);
@@ -231,7 +240,7 @@ static void analysis(fit_param *param)
         mat_set(phy_pt,i_bind,0,0.0);
         mat_set(phy_pt,i_a,0,0.0);
         mat_set(phy_pt,i_Linv,0,0.0);
-        mat_set(phy_pt,i_fvM,0,param->qed_fvol_monopmod_mass);
+        mat_set(phy_pt,i_fvM,0,param->qed_fvol_mass);
         param->scale_model = 1;
         mat_set(phy_pt,i_umd,0,param->M_umd_val);
         buf = fit_data_model_xeval(d,s,phy_pt,rs_sample_pt_cent_val(s_fit));
@@ -267,18 +276,19 @@ static void analysis(fit_param *param)
     /** display plots **/
     if (param->plot)
     {
+        mpi_printf("\n-- generating plots...\n");
         if (IS_AN(param,AN_PHYPT))
         {
             plot_chi2_comp(d,param,s,"physical point fit");
             SCALE_DATA(AINV);
             fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
-            plot_fit(fit,d,param,Q);
+            plot_fit(s_fit,d,param,Q);
             SCALE_DATA(A);
         }
         if (IS_AN(param,AN_SCALE))
         {
             plot_chi2_comp(d,param,0,"scale setting");
-            plot_fit(fit,d,param,SCALE);
+            plot_fit(s_fit,d,param,SCALE);
         }
     }
     
@@ -292,10 +302,10 @@ static void analysis(fit_param *param)
                              ||(param->with_salpha))&&IS_AN(param,AN_PHYPT))   \
         ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
         use_x_var[i_umd] = (((param->umd_deg != 0)&&IS_AN(param,AN_PHYPT))     \
-                            ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE))) \
+                            ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE)))\
         &&param->have_umd;
         mpi_printf("-- fitting and resampling %s...\n",param->q_name);
-        rs_data_fit(s_fit,NULL,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
+        rs_data_fit(s_fit,limit,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
         if (IS_AN(param,AN_PHYPT))
         {
             fit_residual(res[s],d,0,fit);
@@ -397,17 +407,18 @@ static void analysis(fit_param *param)
         /** display plots **/
         if (param->plot)
         {
+            mpi_printf("\n-- generating plots...\n");
             if (IS_AN(param,AN_PHYPT))
             {
                 SCALE_DATA(AINV);
                 fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
-                plot_fit(fit,d,param,Q);
+                plot_fit(s_fit,d,param,Q);
                 SCALE_DATA(A);
                 fit_data_set_covar_from_sample(d,s_x,s_pt,NO_COR,use_x_var);
             }
             if (IS_AN(param,AN_SCALE))
             {
-                plot_fit(fit,d,param,SCALE);
+                plot_fit(s_fit,d,param,SCALE);
             }
         }
     }
@@ -475,6 +486,7 @@ static void analysis(fit_param *param)
     mat_ar_destroy(res,2);
     mat_destroy(fit_var);
     mat_destroy(phy_pt);
+    mat_destroy(limit);
 }
                      
 /* main program */
@@ -509,7 +521,7 @@ int main(int argc, char *argv[])
     MPI_Comm_size(MPI_COMM_WORLD,&nproc);
     if (nproc < argc - 1)
     {
-        fprintf(stderr,"error: %d processus for %d parameter files\n",nproc,\
+        fprintf(stderr,"error: %d processes for %d parameter files\n",nproc,\
                 argc-1);
         return EXIT_FAILURE;
     }
@@ -529,7 +541,7 @@ int main(int argc, char *argv[])
         else
         {
             active = false;
-            mpi_printf("*** processus inactive\n");
+            mpi_printf("*** inactive process\n");
             param = NULL;
         }
     }

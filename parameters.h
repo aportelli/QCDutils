@@ -10,6 +10,12 @@ typedef struct fit_init_s
     double value;
 } fit_init;
 
+typedef struct fit_limit_s
+{
+    size_t ind;
+    double value[2];
+} fit_limit;
+
 typedef struct ens_s
 {
     size_t T;
@@ -35,26 +41,30 @@ typedef struct fit_param_s
     int s_M_ud_deg;
     int M_s_deg;
     int s_M_s_deg;
-    int a_deg;
-    int with_aalpha;
-    int with_a2M_ud;
-    int s_with_a2M_ud;
-    int with_a2M_s;
-    int s_with_a2M_s;
+    int with_a2;
+    int with_a2ud;
+    int s_with_a2ud;
+    int with_a2s;
+    int s_with_a2s;
     int umd_deg;
     int s_umd_deg;
     int have_umd;
     int with_udumd;
     int with_sumd;
+    int with_a2umd;
     int alpha_deg;
     int s_alpha_deg;
     int have_alpha;
     int with_udalpha;
     int with_salpha;
+    int with_aalpha;
     int with_qed_fvol;
     int with_qed_fvol_monopmod;
     int qed_fvol_monopmod_sign;
     int s_with_qed_fvol;
+    int with_pade;
+    int with_umd_pade;
+    int with_alpha_pade;
     int with_ext_a;
     int with_ext_M_umd;
     int verb;
@@ -67,12 +77,13 @@ typedef struct fit_param_s
     int nproc;
     unsigned int analyze_flag;
     fit_init *init_param;
+    fit_limit *limit_param;
     ens *point;
     double M_ud;
     double M_s;
     double M_umd_val;
     double M_scale;
-    double qed_fvol_monopmod_mass;
+    double qed_fvol_mass;
     double alpha;
     double q_target[2];
     strbuf analyze;
@@ -90,12 +101,13 @@ typedef struct fit_param_s
     strbuf *beta;
     strbuf save_plot;
     strbuf M_umd;
-    strbuf qed_fvol_monopmod_mass_name;
+    strbuf qed_fvol_mass_name;
     size_t ndataset;
     size_t nbeta;
     size_t nens;
     size_t nsample;
     size_t ninit_param;
+    size_t nlimit_param;
     size_t *save_param;
     size_t nsave_param;
     fit_model fm;

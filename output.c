@@ -11,9 +11,15 @@
 #include "data_loader.h"
 #include "models.h"
 
+#define MOD_PLOT_NPT 1000
+
 #define PLOT_ADD_FIT(obj,kx,ky,title,color)\
-plot_add_fit(p[kx],d,ky,phy_pt,kx,fit,x_range[kx][0],x_range[kx][1],1000,true,\
-             obj,title,"",color,color)
+plot_add_fit(p[kx],d,ky,phy_pt,kx,fit,x_range[kx][0],x_range[kx][1],\
+             MOD_PLOT_NPT,true,obj,title,"",color,color);\
+
+#define PLOT_ADD_PB(kx,ky,color)\
+plot_add_fit_predband(p[kx],d,ky,phy_pt,kx,s_fit,x_range[kx][0],x_range[kx][1],\
+                      MOD_PLOT_NPT/4,color);
 
 #define PLOT_ADD_EX(kx,s)\
 if ((!latan_isnan(param->q_target[0]))&&(!latan_isnan(param->q_target[1])))\
@@ -64,14 +70,14 @@ void mpi_printf(const strbuf fmt, ...)
     va_end(args);
 }
 
-void plot_fit(const mat *fit, fit_data *d, fit_param *param, const plot_flag f)
+void plot_fit(const rs_sample *s_fit, fit_data *d, fit_param *param, const plot_flag f)
 {
     plot *p[N_EX_VAR];
     double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL};
     double x_range[N_EX_VAR][2],b_int[2],dbind,a;
     size_t bind,k,phy_ind,s;
     strbuf color,gtitle,title,xlabel,ylabel;
-    mat *phy_pt,*x_k;
+    mat *phy_pt,*x_k,*fit;
     
     phy_pt = mat_create(N_EX_VAR,1);
     x_k    = mat_create(param->nens,1);
@@ -81,6 +87,7 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param, const plot_flag f)
     }
     
     param->scale_model = 1;
+    fit = rs_sample_pt_cent_val(s_fit);
     if (IS_AN(param,AN_PHYPT)&&IS_AN(param,AN_SCALE))
     {
         phy_ind = 1;
@@ -94,19 +101,20 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param, const plot_flag f)
     for (k=0;k<N_EX_VAR;k++)
     {
         fit_data_get_x_k(x_k,d,k);
-        if ((k == i_a)||(k == i_ud)||(k == i_Linv))
+        if ((k == i_a)||(k == i_ud)||(k == i_Linv)||(k == i_alpha))
         {
             x_range[k][0] = 0.0;
         }
         else
         {
-            x_range[k][0] = mat_get_min(x_k)-0.40*fabs(mat_get_min(x_k));
+            x_range[k][0] = mat_get_min(x_k)-0.15*fabs(mat_get_min(x_k));
         }
-        x_range[k][1] = mat_get_max(x_k)+0.40*fabs(mat_get_min(x_k));
+        x_range[k][1] = mat_get_max(x_k)+0.15*fabs(mat_get_min(x_k));
+        plot_set_scale_xmanual(p[k],x_range[k][0],x_range[k][1]);
     }
     if (f == Q)
     {
-        sprintf(gtitle,"quantity: %s -- scale: %s -- datasets: %s -- ensembles: %s",
+        sprintf(gtitle,"quantity: %s -- scale: %s -- datasets: %s -- ensembles: %s",\
                 param->q_name,param->scale_part,param->dataset_cat,param->manifest);
         mat_set(phy_pt,i_ud,0,SQ(param->M_ud));
         mat_set(phy_pt,i_s,0,SQ(param->M_s));
@@ -115,7 +123,19 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param, const plot_flag f)
         mat_set(phy_pt,i_bind,0,0.0);
         mat_set(phy_pt,i_a,0,0.0);
         mat_set(phy_pt,i_Linv,0,0.0);
-        mat_set(phy_pt,i_fvM,0,param->qed_fvol_monopmod_mass);
+        mat_set(phy_pt,i_fvM,0,param->qed_fvol_mass);
+        PLOT_ADD_FIT(PF_FIT,i_ud,phy_ind,"","rgb 'black'");
+        PLOT_ADD_PB(i_ud,phy_ind,"rgb 'black'");
+        PLOT_ADD_FIT(PF_FIT,i_s,phy_ind,"","rgb 'black'");
+        PLOT_ADD_PB(i_s,phy_ind,"rgb 'black'");
+        PLOT_ADD_FIT(PF_FIT,i_umd,phy_ind,"","rgb 'black'");
+        PLOT_ADD_PB(i_umd,phy_ind,"rgb 'black'");
+        PLOT_ADD_FIT(PF_FIT,i_alpha,phy_ind,"","rgb 'black'");
+        PLOT_ADD_PB(i_alpha,phy_ind,"rgb 'black'");
+        PLOT_ADD_FIT(PF_FIT,i_a,phy_ind,"","rgb 'black'");
+        PLOT_ADD_PB(i_a,phy_ind,"rgb 'black'");
+        PLOT_ADD_FIT(PF_FIT,i_Linv,phy_ind,"","rgb 'black'");
+        PLOT_ADD_PB(i_Linv,phy_ind,"rgb 'black'");
         for (bind=0;bind<param->nbeta;bind++)
         {
             dbind      = (double)(bind);
@@ -133,12 +153,6 @@ void plot_fit(const mat *fit, fit_data *d, fit_param *param, const plot_flag f)
             PLOT_ADD_FIT(PF_DATA,i_Linv,phy_ind,title,color);
             fit_data_fit_all_points(d,true);
         }
-        PLOT_ADD_FIT(PF_FIT,i_ud,phy_ind,"","rgb 'black'");
-        PLOT_ADD_FIT(PF_FIT,i_s,phy_ind,"","rgb 'black'");
-        PLOT_ADD_FIT(PF_FIT,i_umd,phy_ind,"","rgb 'black'");
-        PLOT_ADD_FIT(PF_FIT,i_alpha,phy_ind,"","rgb 'black'");
-        PLOT_ADD_FIT(PF_FIT,i_a,phy_ind,"","rgb 'black'");
-        PLOT_ADD_FIT(PF_FIT,i_Linv,phy_ind,"","rgb 'black'");
         switch (param->q_dim) 
         {
             case 0:
@@ -336,13 +350,13 @@ void print_result(const rs_sample *s_fit, fit_param *param)
                 PRINT_PAR(buf);
             }
         }
-        if (param->s_with_a2M_ud)
+        if (param->s_with_a2ud)
         {
-            PRINT_PAR("s_a2M_ud");
+            PRINT_PAR("s_a2ud");
         }
-        if (param->s_with_a2M_s)
+        if (param->s_with_a2s)
         {
-            PRINT_PAR("s_a2M_s");
+            PRINT_PAR("s_a2s");
         }
         if (param->s_umd_deg > 0)
         {
@@ -379,33 +393,25 @@ void print_result(const rs_sample *s_fit, fit_param *param)
                 PRINT_PAR(buf);
             }
         }
-        if (param->a_deg > 0)
+        if (param->with_a2 > 0)
         {
-            for (j=0;j<param->a_deg;j++)
+            for (j=0;j<param->with_a2;j++)
             {
                 sprintf(buf,"p_a_%d",j+1);
                 PRINT_PAR(buf);
             }
         }
-        if (param->with_aalpha)
+        if (param->with_a2ud)
         {
-            PRINT_PAR("p_aalpha");
+            PRINT_PAR("p_a2ud");
         }
-        if (param->with_a2M_ud)
+        if (param->with_a2s)
         {
-            PRINT_PAR("p_a2M_ud");
+            PRINT_PAR("p_a2s");
         }
-        if (param->with_a2M_s)
+        if (param->umd_deg)
         {
-            PRINT_PAR("p_a2M_s");
-        }
-        if (param->umd_deg > 0)
-        {
-            for (j=0;j<param->umd_deg;j++)
-            {
-                sprintf(buf,"p_umd_%d",j+1);
-                PRINT_PAR(buf);
-            }
+            PRINT_PAR("p_umd");
         }
         if (param->with_udumd)
         {
@@ -423,13 +429,13 @@ void print_result(const rs_sample *s_fit, fit_param *param)
                 PRINT_PAR(buf);
             }
         }
-        if (param->alpha_deg > 0)
+        if (param->with_a2umd)
         {
-            for (j=0;j<param->alpha_deg;j++)
-            {
-                sprintf(buf,"p_alpha_%d",j+1);
-                PRINT_PAR(buf);
-            }
+            PRINT_PAR("p_a2umd");
+        }
+        if (param->alpha_deg)
+        {
+            PRINT_PAR("p_alpha");
         }
         if (param->with_udalpha)
         {
@@ -446,6 +452,10 @@ void print_result(const rs_sample *s_fit, fit_param *param)
                 sprintf(buf,"p_salpha_%d",j+1);
                 PRINT_PAR(buf);
             }
+        }
+        if (param->with_aalpha)
+        {
+            PRINT_PAR("p_aalpha");
         }
         if (param->with_qed_fvol)
         {

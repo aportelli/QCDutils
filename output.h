@@ -13,7 +13,8 @@ typedef enum
 } plot_flag;
 
 void mpi_printf(const strbuf fmt, ...);
-void plot_fit(const mat *fit, fit_data *d, fit_param *param, const plot_flag f);
+void plot_fit(const rs_sample *s_fit, fit_data *d, fit_param *param,\
+              const plot_flag f);
 void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
                     const strbuf title);
 void print_result(const rs_sample *s_fit, fit_param *param);
