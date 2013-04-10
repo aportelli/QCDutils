@@ -133,12 +133,11 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 /* lattice spacing */
                 if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE))
                 {
-                    if (param->with_ext_a)
+                    if (strbufcmp(param->with_ext_a,"") != 0)
                     {
-                        sprintf(sf_name,"./a_%s_%s.boot%s%ca_%s_%s_%s",       \
-                                param->scale_part,param->s_manifest,ext,      \
-                                LATAN_PATH_SEP,param->scale_part,             \
-                                param->s_manifest,ens_pt->beta);
+                        sprintf(sf_name,"./%s.boot%s%c%s_%s",param->with_ext_a,\
+                                ext,LATAN_PATH_SEP,param->with_ext_a,          \
+                                ens_pt->beta);
                         rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
                         rs_sample_set_subsamp(s_x[i_a],s_tmp,ens_ind,0,\
                                               ens_ind,0);
@@ -185,7 +184,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
             fflush(stdout);
         }
     }
-    if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&param->with_ext_a)
+    if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&\
+        (strbufcmp(param->with_ext_a,"") != 0))
     {
         rs_sample_varp(param->a_err,param->s_a);
         mat_eqsqrt(param->a_err);

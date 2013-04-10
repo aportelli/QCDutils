@@ -26,7 +26,7 @@ qcd_phyfit_SOURCES   = phyfit.c                             \
                        data_loader.h data_loader.c          \
                        models.h models.c                    \
                        output.h output.c                    \
-                       qed_fvol_tabfunc.h qed_fvol_tabfunc.c
+                       alpha_s.h alpha_s.c
 qcd_phyfit_CFLAGS    = $(COM_CFLAGS)
 
 qcd_error_SOURCES    = error.c

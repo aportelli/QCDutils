@@ -1,4 +1,5 @@
 #include "config.h"
+#include "alpha_s.h"
 #include "data_loader.h"
 #include "models.h"
 #include "output.h"
@@ -113,20 +114,14 @@ static void analysis(fit_param *param)
     phy_pt  = mat_create(N_EX_VAR,1);
     res     = mat_ar_create(2,param->nens,1);
     
-    if (IS_AN(param,AN_PHYPT))
-    {
-        sprintf(chi2f_name,"%s_%s_%s_%s_%s.chi2",param->q_name,        \
-                param->scale_part,param->s_manifest,param->dataset_cat,\
-                param->manifest);
-    }
-    else if (IS_AN(param,AN_SCALE))
-    {
-        sprintf(chi2f_name,"a_%s_%s.chi2",param->scale_part,param->s_manifest);
-    }
+
+    sprintf(chi2f_name,"%s.chi2",param->result_file);
     fit_data_fit_all_points(d,true);
     fit_data_set_model(d,&param->fm,param);
     mat_cst(rs_sample_pt_cent_val(s_fit),1.0e-15);
-    if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&(param->with_ext_a))
+    mat_cst(limit,latan_nan());
+    if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&\
+        (strbufcmp(param->with_ext_a,"") != 0))
     {
         fit_data_set_chi2_ext(d,&a_error_chi2_ext);
         mat_set_subm(rs_sample_pt_cent_val(s_fit),   \
@@ -134,12 +129,18 @@ static void analysis(fit_param *param)
                      npar-param->nbeta,0,npar-1,0);
         fit_data_set_ndumbpar(d,param->nbeta);
     }
+    if (IS_AN(param,AN_PHYPT))
+    {
+        for (i=npar-param->nbeta;i<npar;i++)
+        {
+            mat_set(limit,i,0,0.0);
+        }
+    }
     for (i=0;i<param->ninit_param;i++)
     {
         mat_set(rs_sample_pt_cent_val(s_fit),param->init_param[i].ind,0,\
                 param->init_param[i].value);
     }
-    mat_cst(limit,latan_nan());
     for (i=0;i<param->nlimit_param;i++)
     {
         mat_set(limit,param->limit_param[i].ind,0,\
@@ -156,7 +157,6 @@ static void analysis(fit_param *param)
             fit_data_set_data_cor(d,i,j,false);
         }
     }
-    
     /* uncorrelated fit without x errors */
     if (param->correlated)
     {
@@ -199,7 +199,7 @@ static void analysis(fit_param *param)
                 rs_sample_set_subsamp(s_x[i_a],s_tmp,i,0,i,0);
             }
         }
-        else if (param->with_ext_a)
+        else if (strbufcmp(param->with_ext_a,"") != 0)
         {
             for (i=0;i<param->nens;i++)
             {
@@ -247,7 +247,7 @@ static void analysis(fit_param *param)
         mat_set(rs_sample_pt_cent_val(param->s_ex),0,0,buf);
         for (i=0;i<param->nsample;i++)
         {
-            if (param->with_ext_M_umd)
+            if (strbufcmp(param->with_ext_M_umd,"") != 0)
             {
                 mat_set(phy_pt,i_umd,0,                                    \
                         mat_get(rs_sample_pt_sample(param->s_M_umd,i),0,0));
@@ -338,7 +338,7 @@ static void analysis(fit_param *param)
                     rs_sample_set_subsamp(s_x[i_a],s_tmp,i,0,i,0);
                 }
             }
-            else if (param->with_ext_a)
+            else if (strbufcmp(param->with_ext_a,"") != 0)
             {
                 for (i=0;i<param->nens;i++)
                 {
@@ -378,7 +378,7 @@ static void analysis(fit_param *param)
             mat_set(rs_sample_pt_cent_val(param->s_ex),0,0,buf);
             for (i=0;i<param->nsample;i++)
             {
-                if (param->with_ext_M_umd)
+                if (strbufcmp(param->with_ext_M_umd,"") != 0)
                 {
                     mat_set(phy_pt,i_umd,0,                                    \
                             mat_get(rs_sample_pt_sample(param->s_M_umd,i),0,0));
@@ -425,29 +425,27 @@ static void analysis(fit_param *param)
     
     /*              result output               */
     /********************************************/
-    strbuf name,res_path;
+    strbuf res_path;
     char mode;
     
     if (IS_AN(param,AN_PHYPT))
     {
-        sprintf(name,"%s_%s_%s_%s_%s",param->q_name,param->scale_part,\
-                param->s_manifest,param->dataset_cat,param->manifest);
         if (param->save_result)
         {
-            sprintf(res_path,"%s.boot%c%s",name,LATAN_PATH_SEP,name);
+            sprintf(res_path,"%s.boot%c%s",param->result_file,LATAN_PATH_SEP,\
+                    param->result_file);
             rs_sample_save(res_path,'w',param->s_ex);
         }
     }
     if (IS_AN(param,AN_SCALE))
     {
-        sprintf(name,"a_%s_%s",param->scale_part,param->s_manifest);
         mpi_printf("scales :\n\n");
         for (i=0;i<param->nbeta;i++)
         {
             if (param->save_result)
             {
-                sprintf(res_path,"%s.boot%c%s_%s",name,LATAN_PATH_SEP,name,\
-                        param->beta[i]);
+                sprintf(res_path,"%s.boot%c%s_%s",param->result_file,   \
+                        LATAN_PATH_SEP,param->result_file,param->beta[i]);
                 mode = (i == 0) ? 'w' : 'a';
                 rs_sample_save_subsamp(res_path,mode,s_fit,i,0,i,0);
             }
@@ -463,13 +461,27 @@ static void analysis(fit_param *param)
             rs_sample_eqinvp(s_fit);
         }
     }
-    for (i=0;i<param->nsave_param;i++)
+    if (param->save_all_param)
     {
-        mode = ((i == 0)&&!param->save_result) ? 'w' : 'a';
-        sprintf(res_path,"%s.boot%c%s_p_%d",name,LATAN_PATH_SEP,name,\
-                (int)param->save_param[i]);
-        rs_sample_save_subsamp(res_path,mode,s_fit,param->save_param[i],0,\
-                               param->save_param[i],0);
+        for (i=0;i<npar;i++)
+        {
+            mode = ((i == 0)&&!param->save_result) ? 'w' : 'a';
+            sprintf(res_path,"%s.boot%c%s_p_%d",param->result_file,\
+                    LATAN_PATH_SEP,param->result_file,(int)i);
+            rs_sample_save_subsamp(res_path,mode,s_fit,i,0,i,0);
+        }
+    }
+    else
+    {
+        for (i=0;i<param->nsave_param;i++)
+        {
+            mode = ((i == 0)&&!param->save_result) ? 'w' : 'a';
+            sprintf(res_path,"%s.boot%c%s_p_%d",param->result_file,\
+                    LATAN_PATH_SEP,param->result_file,             \
+                    (int)param->save_param[i]);
+            rs_sample_save_subsamp(res_path,mode,s_fit,param->save_param[i],0,\
+                                   param->save_param[i],0);
+        }
     }
     
     /*              desallocation               */

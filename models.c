@@ -1,13 +1,15 @@
 #include "models.h"
 #include "data_loader.h"
 #include "parameters.h"
-#include "qed_fvol_tabfunc.h"
+#include "alpha_s.h"
 #include <math.h>
 #include <string.h>
 #include <latan/latan_nunits.h>
 #include <latan/latan_mass.h>
 #include <latan/latan_math.h>
 #include <latan/latan_tabfunc.h>
+
+#define QED_FVOL_KAPPA 2.83729747947876
 
 static void polynom(double *res, const mat *par, const size_t i0,\
                     const double x, const int deg)
@@ -26,22 +28,24 @@ static void polynom(double *res, const mat *par, const size_t i0,\
     }
 }
 
-#define I_ud(i)      (i+((param)->with_const ? 1 : 0))
-#define I_s(i)       (I_ud(i)+(param)->M_ud_deg)
-#define I_a2(i)      (I_s(i)+(param)->M_s_deg)
-#define I_a2ud(i)    (I_a2(i)+((param)->with_a2 ? 1 : 0))
-#define I_a2s(i)     (I_a2ud(i)+((param)->with_a2ud ? 1 : 0))
-#define I_umd(i)     (I_a2s(i)+((param)->with_a2s ? 1 : 0))
-#define I_udumd(i)   (I_umd(i)+(param)->umd_deg) 
-#define I_sumd(i)    (I_udumd(i)+(param)->with_udumd)
-#define I_a2umd(i)   (I_sumd(i)+(param)->with_sumd)
-#define I_alpha(i)   (I_a2umd(i)+((param)->with_a2umd ? 1 : 0))
-#define I_udalpha(i) (I_alpha(i)+(param)->alpha_deg)
-#define I_salpha(i)  (I_udalpha(i)+(param)->with_udalpha)
-#define I_aalpha(i)  (I_salpha(i)+(param)->with_salpha)
-#define I_qedfv(i)   (I_aalpha(i)+((param)->with_aalpha ? 1 : 0))
-#define LAST_IND     (I_qedfv(0)+param->with_qed_fvol-1-param->with_qed_fvol_monopmod)
-#define I_a_val(i)   (LAST_IND+1+i)
+#define I_ud(i)          (i+((param)->with_const ? 1 : 0))
+#define I_s(i)           (I_ud(i)+(param)->M_ud_deg)
+#define I_a2(i)          (I_s(i)+(param)->M_s_deg)
+#define I_alpha_sa(i)    (I_a2(i)+((param)->with_a2 ? 1 : 0))
+#define I_a2ud(i)        (I_alpha_sa(i)+((param)->with_alpha_sa ? 1 : 0))
+#define I_a2s(i)         (I_a2ud(i)+((param)->with_a2ud ? 1 : 0))
+#define I_umd(i)         (I_a2s(i)+((param)->with_a2s ? 1 : 0))
+#define I_udumd(i)       (I_umd(i)+(param)->umd_deg)
+#define I_sumd(i)        (I_udumd(i)+(param)->with_udumd)
+#define I_a2umd(i)       (I_sumd(i)+(param)->with_sumd)
+#define I_alpha_saumd(i) (I_a2umd(i)+((param)->with_a2umd ? 1 : 0))
+#define I_alpha(i)       (I_alpha_saumd(i)+((param)->with_alpha_saumd ? 1 : 0))
+#define I_udalpha(i)     (I_alpha(i)+(param)->alpha_deg)
+#define I_salpha(i)      (I_udalpha(i)+(param)->with_udalpha)
+#define I_aalpha(i)      (I_salpha(i)+(param)->with_salpha)
+#define I_qedfv(i)       (I_aalpha(i)+((param)->with_aalpha ? 1 : 0))
+#define LAST_IND         (I_qedfv(0)+param->with_qed_fvol-1-param->with_qed_fvol_monopmod)
+#define I_a_val(i)       (LAST_IND+1+i)
 
 double a_error_chi2_ext(const mat *p, void *vd)
 {
@@ -75,7 +79,8 @@ double a_error_chi2_ext(const mat *p, void *vd)
 
 double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,lo,ex,buf,M_ud,M_s,M_fvol,a,dimfac,umd,Linv,a2mud,a2ms,alpha,d;
+    double res,lo,ex,buf,M_ud,M_s,M_fvol,a,dimfac,umd,Linv,a2mud,a2ms,alpha,\
+           alpha_sa,d;
     size_t s,bind;
     fit_param *param;
     
@@ -94,7 +99,7 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
         else
         {
             /** a global parameter with error (with external scale samples) **/
-            if (param->with_ext_a)
+            if (strbufcmp(param->with_ext_a,"") != 0)
             {
                 a = (!param->scale_model) ? mat_get(p,I_a_val(bind),0) :\
                                             mat_get(X,i_a,0);
@@ -114,34 +119,38 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
         exit(EXIT_FAILURE);
     }
     /* x values */
-    dimfac = (!param->scale_model) ? a : 1.0;
-    M_ud   = mat_get(X,i_ud,0)/SQ(dimfac);
-    M_s    = mat_get(X,i_s,0)/SQ(dimfac);
-    umd    = mat_get(X,i_umd,0)/SQ(dimfac);
-    Linv   = mat_get(X,i_Linv,0)/dimfac;
-    a2mud  = SQ(a)*mat_get(X,i_ud,0)/SQ(dimfac);
-    a2ms   = SQ(a)*mat_get(X,i_s,0)/SQ(dimfac);
-    alpha  = mat_get(X,i_alpha,0);
-    M_fvol = mat_get(X,i_fvM,0)/dimfac;
-    d      = (double)param->q_dim;
+    dimfac   = (!param->scale_model) ? a : 1.0;
+    M_ud     = mat_get(X,i_ud,0)/SQ(dimfac);
+    M_s      = mat_get(X,i_s,0)/SQ(dimfac);
+    umd      = mat_get(X,i_umd,0)/SQ(dimfac);
+    Linv     = mat_get(X,i_Linv,0)/dimfac;
+    a2mud    = SQ(a)*mat_get(X,i_ud,0)/SQ(dimfac);
+    a2ms     = SQ(a)*mat_get(X,i_s,0)/SQ(dimfac);
+    alpha    = mat_get(X,i_alpha,0);
+    alpha_sa = alpha_s_msbar(1.0/a,LAMBDA_MSBAR_2500MEV,3,4)*a;
+    M_fvol   = mat_get(X,i_fvM,0)/dimfac;
+    d        = (double)param->q_dim;
     
     res = 0.0;
-    /* Taylor/Pade mass expansion */
-    lo = (param->with_const) ? mat_get(p,s,0) : 0.0;
-    ex = 0.0;
+    /* Taylor/Pade isospin symmetric expansion */
+    lo   = (param->with_const) ? mat_get(p,s,0) : 0.0;
+    ex   = 0.0;
     polynom(&ex,p,I_ud(0)+s,M_ud-SQ(param->M_ud),param->M_ud_deg);
     polynom(&ex,p,I_s(0)+s,M_s-SQ(param->M_s),param->M_s_deg);
+    ex  += (param->with_a2)       ? mat_get(p,I_a2(0)+s,0)*SQ(a)          : 0.0;
+    ex  += (param->with_alpha_sa) ? mat_get(p,I_alpha_sa(0)+s,0)*alpha_sa : 0.0;
+    ex  += (param->with_a2ud)     ? mat_get(p,I_a2ud(0)+s,0)*a2mud        : 0.0;
+    ex  += (param->with_a2s)      ? mat_get(p,I_a2s(0)+s,0)*a2ms          : 0.0;
     res += (param->with_pade) ? lo/(1.0-ex/lo) : lo+ex;
-    /* discretization effects */
-    res += (param->with_a2)   ? mat_get(p,I_a2(0)+s,0)*SQ(a)   : 0.0;
-    res += (param->with_a2ud) ? mat_get(p,I_a2ud(0)+s,0)*a2mud : 0.0;
-    res += (param->with_a2s)  ? mat_get(p,I_a2s(0)+s,0)*a2ms   : 0.0;
+    
     /* Taylor/Pade m_u-m_d expansion */
     lo = (param->umd_deg) ? mat_get(p,I_umd(0)+s,0) : 0.0;
     ex = 0.0;
     polynom(&ex,p,I_udumd(0)+s,M_ud-SQ(param->M_ud),param->with_udumd);
     polynom(&ex,p,I_sumd(0)+s,M_s-SQ(param->M_s),param->with_sumd);
     ex  += (param->with_a2umd) ? mat_get(p,I_a2umd(0)+s,0)*SQ(a) : 0.0;
+    ex  += (param->with_alpha_saumd) ?                    \
+           mat_get(p,I_alpha_saumd(0)+s,0)*alpha_sa : 0.0;
     res += (param->with_umd_pade) ? umd*lo/(1.0-ex/lo) : umd*lo+umd*ex;
     /* Taylor/Pade alpha expansion */
     lo = (param->alpha_deg) ? mat_get(p,I_alpha(0)+s,0) : 0.0;
@@ -190,7 +199,8 @@ size_t fm_phypt_taylor_npar(void* vparam)
     param = (fit_param *)vparam;
     
     npar  = LAST_IND + 1;
-    if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&(param->with_ext_a))
+    if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&\
+        (strbufcmp(param->with_ext_a,"") != 0))
     {
         npar += param->nbeta;
     }

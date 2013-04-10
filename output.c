@@ -298,7 +298,7 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
 
 #define PRINT_PAR(name)\
 {\
-    mpi_printf("%12s = % e ( %4.0f%% )\n",name,mat_get(fit,i,0),          \
+    mpi_printf("%16s = % e ( %4.0f%% )\n",name,mat_get(fit,i,0),          \
                sqrt(mat_get(fit_var,i,0))/fabs(mat_get(fit,i,0))*100.0);\
     i++;\
 }
@@ -307,7 +307,7 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
     double sig_,p_;\
     sig_ = sqrt(mat_get(fit_var,i,0));\
     p_   = mat_get(fit,i,0);\
-    mpi_printf("%12s = % e ( %4.1f%% ) [%12s^-1 = %5.0f(%4.0f) MeV]\n",name,\
+    mpi_printf("%16s = % e ( %4.1f%% ) [%12s^-1 = %5.0f(%4.0f) MeV]\n",name,\
                p_,sig_/fabs(p_)*100.0,name,1.0/p_,sig_/SQ(p_));\
     i++;\
 }
@@ -395,11 +395,11 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         }
         if (param->with_a2 > 0)
         {
-            for (j=0;j<param->with_a2;j++)
-            {
-                sprintf(buf,"p_a_%d",j+1);
-                PRINT_PAR(buf);
-            }
+            PRINT_PAR("p_a2");
+        }
+        if (param->with_alpha_sa > 0)
+        {
+            PRINT_PAR("p_alpha_sa");
         }
         if (param->with_a2ud)
         {
@@ -432,6 +432,10 @@ void print_result(const rs_sample *s_fit, fit_param *param)
         if (param->with_a2umd)
         {
             PRINT_PAR("p_a2umd");
+        }
+        if (param->with_alpha_saumd)
+        {
+            PRINT_PAR("p_alpha_saumd");
         }
         if (param->alpha_deg)
         {
@@ -475,7 +479,8 @@ void print_result(const rs_sample *s_fit, fit_param *param)
                 }
             }
         }
-        if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&(param->with_ext_a))
+        if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&\
+            (strbufcmp(param->with_ext_a,"") != 0))
         {
             for(j=0;j<(int)param->nbeta;j++)
             {

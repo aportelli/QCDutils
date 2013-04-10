@@ -128,7 +128,7 @@ int ind_beta(const strbuf beta, const fit_param *param)
 fit_param * fit_param_parse(const strbuf fname)
 {
     fit_param *param;
-    strbuf *field,ens_dir,test_fname,name;
+    strbuf *field,ens_dir,test_fname;
     int nf,lc;
     int i;
     size_t s;
@@ -152,6 +152,7 @@ fit_param * fit_param_parse(const strbuf fname)
     param->M_scale                     = latan_nan();
     param->qed_fvol_mass               = latan_nan();
     param->with_a2                     = 0;
+    param->with_alpha_sa               = 0;
     param->with_a2ud                   = 0;
     param->s_with_a2ud                 = 0;
     param->with_a2s                    = 0;
@@ -162,6 +163,7 @@ fit_param * fit_param_parse(const strbuf fname)
     param->with_udumd                  = 0;
     param->with_sumd                   = 0;
     param->with_a2umd                  = 0;
+    param->with_alpha_saumd            = 0;
     param->alpha_deg                   = 0;
     param->s_alpha_deg                 = 0;
     param->have_alpha                  = 0;
@@ -175,8 +177,6 @@ fit_param * fit_param_parse(const strbuf fname)
     param->with_pade                   = 0;
     param->with_umd_pade               = 0;
     param->with_alpha_pade             = 0;
-    param->with_ext_a                  = 0;
-    param->with_ext_M_umd              = 0;
     param->q_dim                       = 0;
     param->q_target[0]                 = latan_nan();
     param->q_target[1]                 = latan_nan();
@@ -198,6 +198,7 @@ fit_param * fit_param_parse(const strbuf fname)
     param->nens                        = 0;
     param->nsample                     = 0;
     param->nproc                       = 0;
+    param->save_all_param              = 0;
     strbufcpy(param->analyze,"");
     strbufcpy(param->model,"");
     strbufcpy(param->s_model,"");
@@ -212,6 +213,9 @@ fit_param * fit_param_parse(const strbuf fname)
     strbufcpy(param->save_plot,"");
     strbufcpy(param->M_umd,"");
     strbufcpy(param->qed_fvol_mass_name,"");
+    strbufcpy(param->result_file,"");
+    strbufcpy(param->with_ext_a,"");
+    strbufcpy(param->with_ext_M_umd,"");
     
     /* parse parameter file */
     BEGIN_FOR_LINE_TOK(field,fname," \t",nf,lc)
@@ -230,6 +234,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_D(param,qed_fvol_mass);
             GET_PARAM_D(param,alpha);
             GET_PARAM_I(param,with_a2);
+            GET_PARAM_I(param,with_alpha_sa);
             GET_PARAM_I(param,with_a2ud);
             GET_PARAM_I(param,s_with_a2ud);
             GET_PARAM_I(param,with_a2s);
@@ -239,6 +244,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_I(param,with_udumd);
             GET_PARAM_I(param,with_sumd);
             GET_PARAM_I(param,with_a2umd);
+            GET_PARAM_I(param,with_alpha_saumd);
             GET_PARAM_I(param,alpha_deg);
             GET_PARAM_I(param,s_alpha_deg);
             GET_PARAM_I(param,with_udalpha);
@@ -251,8 +257,6 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_I(param,with_pade);
             GET_PARAM_I(param,with_umd_pade);
             GET_PARAM_I(param,with_alpha_pade);
-            GET_PARAM_I(param,with_ext_a);
-            GET_PARAM_I(param,with_ext_M_umd);
             GET_PARAM_I(param,q_dim);
             GET_PARAM_I(param,verb);
             GET_PARAM_I(param,correlated);
@@ -271,6 +275,9 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_S(param,manifest);
             GET_PARAM_S(param,save_plot);
             GET_PARAM_S(param,qed_fvol_mass_name);
+            GET_PARAM_S(param,result_file);
+            GET_PARAM_S(param,with_ext_a);
+            GET_PARAM_S(param,with_ext_M_umd);
             if ((strbufcmp(field[0],"q_target") == 0)&&(nf >= 2))
             {
                 param->q_target[0] = ATOF(field[1]);
@@ -312,10 +319,18 @@ fit_param * fit_param_parse(const strbuf fname)
             }
             if ((strbufcmp(field[0],"save_param") == 0)&&(nf >= 2))
             {
-                param->nsave_param++;
-                param->save_param = (size_t *)realloc(param->save_param,    \
-                                            param->nsave_param*sizeof(size_t));
-                param->save_param[param->nsave_param-1]=(size_t)ATOI(field[1]);
+                if (strbufcmp(field[1],"all") == 0)
+                {
+                    param->save_all_param = 1;
+                }
+                else
+                {
+                    param->nsave_param++;
+                    param->save_param = (size_t *)realloc(param->save_param,   \
+                                        param->nsave_param*sizeof(size_t));
+                    param->save_param[param->nsave_param-1]=\
+                        (size_t)ATOI(field[1]);
+                }
                 continue;
             }
             fprintf(stderr,"warning: line %d of %s ignored (syntax error)\n",\
@@ -367,7 +382,9 @@ fit_param * fit_param_parse(const strbuf fname)
         get_mass(dbuf,param->s_name);
         param->M_s = dbuf[0];
     }
-    if (latan_isnan(param->M_scale))
+    if (latan_isnan(param->M_scale)&&(IS_AN(param,AN_SCALE)||                  \
+                                      (IS_AN(param,AN_PHYPT)&&                 \
+                                       (strbufcmp(param->with_ext_a,"") == 0))))
     {
         get_mass(dbuf,param->scale_part);
         param->M_scale = dbuf[0];
@@ -438,29 +455,45 @@ fit_param * fit_param_parse(const strbuf fname)
     }
     
     /* create samples */
-    if (param->with_ext_a)
+    if (strbufcmp(param->with_ext_a,"") != 0)
     {
         param->s_a    = rs_sample_create(param->nbeta,1,param->nsample);
         param->a_err  = mat_create(param->nbeta,1);
     }
     
-    if (param->with_ext_M_umd)
+    if (strbufcmp(param->with_ext_M_umd,"") != 0)
     {
         param->s_M_umd = rs_sample_create(1,1,param->nsample);
     }
     param->s_ex   = rs_sample_create(1,1,param->nsample);
     param->ex_err = mat_create(1,1);
+    
     /* take care of M_umd input */
-    if (param->with_ext_M_umd)
+    if (strbufcmp(param->with_ext_M_umd,"") != 0)
     {
-        sprintf(name,"%s_%s_%s_%s_%s.boot",param->M_umd,param->scale_part,\
-                param->s_manifest,param->dataset_cat,param->manifest);
-        rs_sample_load(param->s_M_umd,NULL,NULL,name);
+        sprintf(test_fname,"%s.boot",param->with_ext_M_umd);
+        rs_sample_load(param->s_M_umd,NULL,NULL,test_fname);
         param->M_umd_val = mat_get(rs_sample_pt_cent_val(param->s_M_umd),0,0);
     }
     else
     {
         param->M_umd_val = ATOF(param->M_umd);
+    }
+    
+    /* default result file name */
+    if (strbufcmp(param->result_file,"") == 0)
+    {
+        if (IS_AN(param,AN_PHYPT))
+        {
+            sprintf(param->result_file,"%s_%s_%s_%s_%s",param->q_name,     \
+                    param->scale_part,param->s_manifest,param->dataset_cat,\
+                    param->manifest);
+        }
+        else if (IS_AN(param,AN_SCALE))
+        {
+            sprintf(param->result_file,"a_%s_%s",param->scale_part,\
+                    param->s_manifest);
+        }
     }
     
     return param;

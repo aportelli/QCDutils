@@ -42,6 +42,7 @@ typedef struct fit_param_s
     int M_s_deg;
     int s_M_s_deg;
     int with_a2;
+    int with_alpha_sa;
     int with_a2ud;
     int s_with_a2ud;
     int with_a2s;
@@ -52,6 +53,7 @@ typedef struct fit_param_s
     int with_udumd;
     int with_sumd;
     int with_a2umd;
+    int with_alpha_saumd;
     int alpha_deg;
     int s_alpha_deg;
     int have_alpha;
@@ -65,8 +67,6 @@ typedef struct fit_param_s
     int with_pade;
     int with_umd_pade;
     int with_alpha_pade;
-    int with_ext_a;
-    int with_ext_M_umd;
     int verb;
     int correlated;
     int save_result;
@@ -75,6 +75,7 @@ typedef struct fit_param_s
     int scale_model;
     int q_dim;
     int nproc;
+    int save_all_param;
     unsigned int analyze_flag;
     fit_init *init_param;
     fit_limit *limit_param;
@@ -102,6 +103,9 @@ typedef struct fit_param_s
     strbuf save_plot;
     strbuf M_umd;
     strbuf qed_fvol_mass_name;
+    strbuf result_file;
+    strbuf with_ext_a;
+    strbuf with_ext_M_umd;
     size_t ndataset;
     size_t nbeta;
     size_t nens;
