@@ -19,6 +19,7 @@
 #define SYS_ERR_COL  "rgb 'blue'"
 #define TOT_ERR_COL  "rgb '#444444'"
 #define TARG_ERR_COL "rgb 'green'"
+#define NPBIN 40
 
 static void load_res(rs_sample *s_res, double chi2_val[2],\
                      const strbuf latan_path)
@@ -44,15 +45,106 @@ static void load_res(rs_sample *s_res, double chi2_val[2],\
     END_FOR_LINE_TOK(field)
 }
 
+static void plot_res_hist(const mat *res, const mat *w, const double final,\
+                          const double stat_err, const double sys_err[2],  \
+                          const double target, const double target_err,    \
+                          const size_t nbin)
+{
+    double xmin,xmax,ymax,l,tot_err[2];
+    mat *hist,*hist_flat;
+    plot *p;
+    size_t nres;
+    
+    hist      = mat_create(nbin,1);
+    hist_flat = mat_create(nbin,1);
+    
+    nres       = nrow(res);
+    tot_err[0] = sqrt(SQ(stat_err)+SQ(sys_err[0]));
+    tot_err[1] = sqrt(SQ(stat_err)+SQ(sys_err[1]));
+    
+    /* compute histograms */
+    xmin  = MIN(target-target_err,final-tot_err[0]);
+    xmin  = MIN(xmin,mat_get_min(res));
+    xmax  = MAX(target+target_err,final+tot_err[1]);
+    xmax  = MAX(xmax,mat_get_max(res));
+    l     = xmax-xmin;
+    xmin -= 0.25*l;
+    xmax += 0.25*l;
+    histogram(hist,res,w,xmin,xmax,nbin);
+    histogram(hist_flat,res,NULL,xmin,xmax,nbin);
+    
+    /* make plot */
+    p    = plot_create();
+    ymax = MAX(mat_get_max(hist)*DRATIO(nbin,mat_elsum(w,NULL)*(xmax-xmin)),\
+               mat_get_max(hist_flat)*DRATIO(nbin,nres*(xmax-xmin)));
+    ymax = 1.2*ymax;
+    plot_set_scale_manual(p,xmin-0.2*l,xmax+0.2*l,0.0,ymax);
+    plot_add_vlineaerr(p,final,tot_err,TOT_ERR_COL);
+    if ((stat_err > sys_err[0])&&(stat_err > sys_err[1]))
+    {
+        plot_add_vlineerr(p,final,stat_err,STAT_ERR_COL);
+        plot_add_vlineaerr(p,final,sys_err,SYS_ERR_COL);
+    }
+    else
+    {
+        plot_add_vlineaerr(p,final,sys_err,SYS_ERR_COL);
+        plot_add_vlineerr(p,final,stat_err,STAT_ERR_COL);
+    }
+    plot_add_vlineerr(p,target,target_err,TARG_ERR_COL);
+    plot_add_vline(p,final-tot_err[0],TOT_ERR_COL);
+    plot_add_vline(p,final+tot_err[1],TOT_ERR_COL);
+    plot_add_vline(p,final-stat_err,STAT_ERR_COL);
+    plot_add_vline(p,final+stat_err,STAT_ERR_COL);
+    plot_add_vline(p,final-sys_err[0],SYS_ERR_COL);
+    plot_add_vline(p,final+sys_err[1],SYS_ERR_COL);
+    plot_add_vline(p,final,"rgb 'black'");
+    plot_add_histogram(p,hist_flat,xmin,xmax,(double)(nres),true,"",\
+                       "rgb 'dark-gray'");
+    plot_add_histogram(p,hist,xmin,xmax,mat_elsum(w,NULL),true,"","");
+    plot_disp(p);
+    plot_save("qcd_error",p);
+    plot_destroy(p);
+    
+    mat_destroy(hist);
+    mat_destroy(hist_flat);
+}
+
+static void plot_p_hist(const mat *w)
+{
+    double ymax,cl[2];
+    mat *phist;
+    plot *p;
+    size_t nres;
+    
+    phist = mat_create(NPBIN,1);
+    
+    nres = nrow(w);
+    
+    histogram(phist,w,NULL,0.0,1.0,NPBIN);
+    p     = plot_create();
+    ymax  = mat_get_max(phist);
+    ymax  = 1.2*ymax;
+    cl[1] = 0.0;
+    plot_set_scale_manual(p,0.0,1.0,0.0,ymax);
+    cl[0] = 0.954499736;
+    plot_add_vlineaerr(p,1.0,cl,"rgb 'dark-gray'");
+    cl[0] = 0.682689492;
+    plot_add_vlineaerr(p,1.0,cl,"rgb 'black'");
+    plot_add_histogram(p,phist,0.0,1.0,(double)(nres),false,"","rgb 'red'");
+    plot_disp(p);
+    plot_destroy(p);
+    
+    mat_destroy(phist);
+}
+
 int main(int argc, char *argv[])
 {
-    rs_sample *s_res,*s_med;
-    mat *chi2_val,*w,*hist,*hist_flat,*phist,*med_var,*res,*med;
+    rs_sample *s_res,*s_med,*s_mean;
+    mat *chi2_val,*w,*med_var,*mean_var,*res,*med,*mean;
     size_t nsample,nres,nbin;
     size_t j,s,count;
-    double target,target_err,xmin,xmax,l,ymax,stat_err,sys_err[2],tot_err[2],\
-           med_s,final,cl[2];
-    plot *p;
+    double target,target_err,stat_err,sys_err[2],tot_err[2],med_s,mean_s,final,\
+           res_var;
     int i;
     
     if (argc <= 5)
@@ -72,15 +164,15 @@ int main(int argc, char *argv[])
     
     s_res     = rs_sample_create(nres,1,nsample);
     s_med     = rs_sample_create(1,1,nsample);
+    s_mean    = rs_sample_create(1,1,nsample);
     chi2_val  = mat_create(nres,2);
     w         = mat_create(nres,1);
-    hist      = mat_create(nbin,1);
-    hist_flat = mat_create(nbin,1);
-    phist     = mat_create(40,1);
     med_var   = mat_create(1,1);
+    mean_var  = mat_create(1,1);
     
-    res = rs_sample_pt_cent_val(s_res);
-    med = rs_sample_pt_cent_val(s_med);
+    res  = rs_sample_pt_cent_val(s_res);
+    med  = rs_sample_pt_cent_val(s_med);
+    mean = rs_sample_pt_cent_val(s_mean);
     
     io_init();
     
@@ -127,17 +219,34 @@ int main(int argc, char *argv[])
     }
     printf("\n%d sample files successfully loaded\n",(int)nres);
     
-    /* compute median */
-    printf("-- resampling median...\n");
-    med_s = mat_elpercentile(res,w,50.0);
+    /* compute median and mean */
+    printf("-- resampling median and mean...\n");
+    med_s  = mat_elpercentile(res,w,50.0);
+    mean_s = mat_elmean(res,w);
     mat_set(med,0,0,med_s);
+    mat_set(mean,0,0,mean_s);
     for (s=0;s<nsample;s++)
     {
-        med_s = mat_elpercentile(rs_sample_pt_sample(s_res,s),w,50.0);
+        med_s  = mat_elpercentile(rs_sample_pt_sample(s_res,s),w,50.0);
+        mean_s = mat_elmean(rs_sample_pt_sample(s_res,s),w);
         mat_set(rs_sample_pt_sample(s_med,s),0,0,med_s);
+        mat_set(rs_sample_pt_sample(s_mean,s),0,0,mean_s);
     }
     
-    /* display result */
+    /* display mean result */
+    rs_sample_varp(mean_var,s_mean);
+    res_var    = mat_elvar(res,w);
+    final      = mat_get(mean,0,0);
+    stat_err   = sqrt(mat_get(mean_var,0,0));
+    sys_err[0] = sqrt(res_var);
+    sys_err[1] = sqrt(res_var);
+    tot_err[0] = sqrt(SQ(stat_err)+SQ(sys_err[0]));
+    tot_err[1] = sqrt(SQ(stat_err)+SQ(sys_err[1]));
+    printf("result (mean): %f (%f)[stat.](-%f,+%f)[sys.](-%f,+%f)[tot.]\n",final,\
+           stat_err,sys_err[0],sys_err[1],tot_err[0],tot_err[1]);
+    plot_res_hist(res,w,final,stat_err,sys_err,target,target_err,nbin);
+    
+    /* display median result */
     rs_sample_varp(med_var,s_med);
     conf_int(sys_err,res,w,1.0);
     final      = mat_get(med,0,0);
@@ -146,63 +255,9 @@ int main(int argc, char *argv[])
     sys_err[1] = sys_err[1] - final;
     tot_err[0] = sqrt(SQ(stat_err)+SQ(sys_err[0]));
     tot_err[1] = sqrt(SQ(stat_err)+SQ(sys_err[1]));
-    printf("result: %f (%f)[stat.](-%f,+%f)[sys.](-%f,+%f)[tot.]\n",final,\
+    printf("result (med) : %f (%f)[stat.](-%f,+%f)[sys.](-%f,+%f)[tot.]\n",final,\
            stat_err,sys_err[0],sys_err[1],tot_err[0],tot_err[1]);
-    
-    /* compute histograms */
-    xmin = MIN(target-target_err,final-tot_err[0]);
-    xmax = MAX(target+target_err,final+tot_err[1]);
-    l    = xmax-xmin;
-    histogram(hist,rs_sample_pt_cent_val(s_res),w,xmin-0.3*l,xmax+0.3*l,nbin);
-    histogram(hist_flat,rs_sample_pt_cent_val(s_res),NULL,xmin-0.3*l,\
-              xmax+0.3*l,nbin);
-    histogram(phist,w,NULL,0.0,1.0,40);
-    
-    /* make plot */
-    /** result histogram **/
-    p    = plot_create();
-    ymax = MAX(mat_get_max(hist)*DRATIO(nbin,mat_elsum(w)*(xmax-xmin)),\
-               mat_get_max(hist_flat)*DRATIO(nbin,nres*(xmax-xmin)));
-    ymax = 1.2*ymax;
-    plot_set_scale_manual(p,xmin-0.2*l,xmax+0.2*l,0.0,ymax);
-    plot_add_vlineaerr(p,final,tot_err,TOT_ERR_COL);
-    if ((stat_err > sys_err[0])&&(stat_err > sys_err[1]))
-    {
-        plot_add_vlineerr(p,final,stat_err,STAT_ERR_COL);
-        plot_add_vlineaerr(p,final,sys_err,SYS_ERR_COL);
-    }
-    else
-    {
-        plot_add_vlineaerr(p,final,sys_err,SYS_ERR_COL);
-        plot_add_vlineerr(p,final,stat_err,STAT_ERR_COL);
-    }
-    plot_add_vlineerr(p,target,target_err,TARG_ERR_COL);
-    plot_add_vline(p,final-tot_err[0],TOT_ERR_COL);
-    plot_add_vline(p,final+tot_err[1],TOT_ERR_COL);
-    plot_add_vline(p,final-stat_err,STAT_ERR_COL);
-    plot_add_vline(p,final+stat_err,STAT_ERR_COL);
-    plot_add_vline(p,final-sys_err[0],SYS_ERR_COL);
-    plot_add_vline(p,final+sys_err[1],SYS_ERR_COL);
-    plot_add_vline(p,final,"rgb 'black'");
-    plot_add_histogram(p,hist_flat,xmin,xmax,(double)(nres),true,"",\
-                       "rgb 'dark-gray'");
-    plot_add_histogram(p,hist,xmin,xmax,mat_elsum(w),true,"","");
-    plot_disp(p);
-    plot_save("qcd_error",p);
-    plot_destroy(p);
-    /** p-value histogram **/
-    p     = plot_create();
-    ymax  = mat_get_max(phist);
-    ymax  = 1.2*ymax;
-    cl[1] = 0.0;
-    plot_set_scale_manual(p,0.0,1.0,0.0,ymax);
-    cl[0] = 0.954499736;
-    plot_add_vlineaerr(p,1.0,cl,"rgb 'dark-gray'");
-    cl[0] = 0.682689492;
-    plot_add_vlineaerr(p,1.0,cl,"rgb 'black'");
-    plot_add_histogram(p,phist,0.0,1.0,(double)(nres),false,"","rgb 'red'");
-    plot_disp(p);
-    plot_destroy(p);
+    plot_res_hist(res,w,final,stat_err,sys_err,target,target_err,nbin);
     
     io_finish();
     
@@ -210,6 +265,6 @@ int main(int argc, char *argv[])
     rs_sample_destroy(s_med);
     mat_destroy(chi2_val);
     mat_destroy(w);
-    mat_destroy(hist);
-    mat_destroy(phist);
+    mat_destroy(med_var);
+    mat_destroy(mean_var);
 }
