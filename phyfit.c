@@ -177,7 +177,7 @@ static void analysis(fit_param *param)
     }
     /** save chi^2/dof **/
     mpi_printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
-    if (param->save_result)
+    if (param->save_result||param->save_all_param||param->nsave_param)
     {
         chi2f = fopen(chi2f_name,"w");
         fprintf(chi2f,"uncorrelated: %e %e %d\n",fit_data_get_chi2pdof(d),\
@@ -240,9 +240,9 @@ static void analysis(fit_param *param)
         mat_set(phy_pt,i_bind,0,0.0);
         mat_set(phy_pt,i_a,0,0.0);
         mat_set(phy_pt,i_Linv,0,0.0);
-        mat_set(phy_pt,i_fvM,0,param->qed_fvol_mass);
+        mat_set(phy_pt,i_fvM,0,(param->with_qed_fvol) ? param->qed_fvol_mass \
+                                                      : 0.0);
         param->scale_model = 1;
-        mat_set(phy_pt,i_umd,0,param->M_umd_val);
         buf = fit_data_model_xeval(d,s,phy_pt,rs_sample_pt_cent_val(s_fit));
         mat_set(rs_sample_pt_cent_val(param->s_ex),0,0,buf);
         for (i=0;i<param->nsample;i++)
@@ -316,7 +316,7 @@ static void analysis(fit_param *param)
         }
         mpi_printf("chi^2/dof = %e\n",fit_data_get_chi2pdof(d));
         /** save chi^2/dof **/
-        if (param->save_result)
+        if (param->save_result||param->save_all_param||param->nsave_param)
         {
             chi2f = fopen(chi2f_name,"a");
             fprintf(chi2f,"correlated: %e %e %d\n",fit_data_get_chi2pdof(d),\

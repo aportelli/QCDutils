@@ -30,6 +30,12 @@ if (strbufcmp(field[0],#name) == 0)\
     strbufcpy((param)->name,field[1]);\
     continue;\
 }
+#define GET_PARAM_ST(param,name)\
+if (strbufcmp(field[0],#name) == 0)\
+{\
+    (param)->name = (size_t)ATOI(field[1]);\
+    continue;\
+}
 #define CHECK_MODEL(param,m,s_m)\
 if (IS_AN(param,AN_PHYPT))\
 {\
@@ -192,6 +198,8 @@ fit_param * fit_param_parse(const strbuf fname)
     param->nbeta                       = 0;
     param->init_param                  = NULL;
     param->ninit_param                 = 0;
+    param->limit_param                 = NULL;
+    param->nlimit_param                = 0;
     param->save_param                  = NULL;
     param->nsave_param                 = 0;
     param->point                       = NULL;
@@ -278,6 +286,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_S(param,result_file);
             GET_PARAM_S(param,with_ext_a);
             GET_PARAM_S(param,with_ext_M_umd);
+            GET_PARAM_ST(param,nsample);
             if ((strbufcmp(field[0],"q_target") == 0)&&(nf >= 2))
             {
                 param->q_target[0] = ATOF(field[1]);
@@ -389,7 +398,7 @@ fit_param * fit_param_parse(const strbuf fname)
         get_mass(dbuf,param->scale_part);
         param->M_scale = dbuf[0];
     }
-    if (latan_isnan(param->qed_fvol_mass))
+    if ((param->with_qed_fvol)&&latan_isnan(param->qed_fvol_mass))
     {
         get_mass(dbuf,param->qed_fvol_mass_name);
         param->qed_fvol_mass = dbuf[0];
