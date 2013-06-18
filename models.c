@@ -80,7 +80,7 @@ double a_error_chi2_ext(const mat *p, void *vd)
 double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
 {
     double res,lo,ex,buf,M_ud,M_s,M_fvol,a,dimfac,umd,Linv,a2mud,a2ms,alpha,\
-           alpha_sa,d;
+           alpha_sa,d,Lambda;
     size_t s,bind;
     fit_param *param;
     
@@ -120,6 +120,7 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     }
     /* x values */
     dimfac   = (!param->scale_model) ? a : 1.0;
+    Lambda   = LAMBDA_MSBAR_2500MEV;
     M_ud     = mat_get(X,i_ud,0)/SQ(dimfac);
     M_s      = mat_get(X,i_s,0)/SQ(dimfac);
     umd      = mat_get(X,i_umd,0)/SQ(dimfac);
@@ -127,7 +128,7 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     a2mud    = SQ(a)*mat_get(X,i_ud,0)/SQ(dimfac);
     a2ms     = SQ(a)*mat_get(X,i_s,0)/SQ(dimfac);
     alpha    = mat_get(X,i_alpha,0);
-    alpha_sa = alpha_s_msbar(1.0/a,LAMBDA_MSBAR_2500MEV,3,4)*a;
+    alpha_sa = alpha_s_msbar(1.0/a,Lambda,3,4)*a;
     M_fvol   = mat_get(X,i_fvM,0)/dimfac;
     d        = (double)param->q_dim;
     
@@ -158,6 +159,7 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     polynom(&ex,p,I_udalpha(0)+s,M_ud-SQ(param->M_ud),param->with_udalpha);
     polynom(&ex,p,I_salpha(0)+s,M_s-SQ(param->M_s),param->with_salpha);
     ex  += (param->with_aalpha) ? mat_get(p,I_aalpha(0)+s,0)*a : 0.0;
+    res += (param->with_alpha_pade) ? alpha*lo/(1.0-ex/lo) : alpha*lo+alpha*ex;
     /** QED finite volume effects **/
     if (param->have_alpha)
     {
@@ -174,16 +176,21 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
                 buf += mat_get(p,I_qedfv(0)+s,0)*SQ(Linv)*pow(M_fvol,d-2.0);
             }
             buf *= (double)param->qed_fvol_monopmod_sign;
-            res += alpha*buf;
         }
         else
         {
-            polynom(&buf,p,I_qedfv(0)+s,Linv/M_fvol,param->with_qed_fvol);
-            buf *= pow(M_fvol,d);
-            ex  += buf;
+            if (param->with_qed_fvol)
+            {
+                buf += mat_get(p,I_qedfv(0)+s,0);
+            }
+            if (param->with_qed_fvol >= 2)
+            {
+                polynom(&buf,p,I_qedfv(1)+s,Linv/Lambda,param->with_qed_fvol-1);
+            }
+            buf *= Linv*pow(M_fvol,d-1.0);
         }
+        res += alpha*buf;
     }
-    res += (param->with_alpha_pade) ? alpha*lo/(1.0-ex/lo) : alpha*lo+alpha*ex;
     
     /* dimensional factor */
     res *= pow(dimfac,param->q_dim);
