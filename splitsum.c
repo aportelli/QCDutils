@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
     void *fmpar_pt;
     
     opt = qcd_arg_parse(argc,argv,A_PLOT|A_SAVE_RS|A_LOAD_RG|A_PROP_NAME\
-                        |A_PROP_LOAD|A_LATSPAC|A_QCOMP|A_FIT|A_MODEL,2);
+                        |A_PROP_LOAD|A_LATSPAC|A_QCOMP|A_FIT|A_MODEL,2,0);
     
 
     sprintf(full_name[0],"%s_%s",opt->channel[0],opt->quark[0]);
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
     strbufcpy(model,opt->model);
     minimizer_set_alg(opt->minimizer);
     mat_ar_loadbin(NULL,propdim,manf_name,prop_name[0],1);
-    nt = propdim[0];
+    nt = (opt->nt) ? opt->nt : propdim[0];
     if (strbufcmp(model,"cosh") == 0)
     {
         fm_pt    = &fm_cosh_splitsum;
@@ -209,7 +209,7 @@ int main(int argc, char* argv[])
     strbuf buf,range_info,latan_path;
     double pref_i,m_i,dm_i;
     
-    d        = fit_data_create(nt,1,2);
+    d        = fit_data_create(propdim[0],1,2);
     tibeg    = (size_t)(opt->range[0][0]); 
     range[0] = 0;
     range[1] = 0;
@@ -267,8 +267,8 @@ int main(int argc, char* argv[])
     /** set correlation filter **/
     if (opt->corr == NO_COR)
     {
-        for (i=0;i<nt;i++) 
-        for (j=0;j<nt;j++)
+        for (i=0;i<propdim[0];i++) 
+        for (j=0;j<propdim[0];j++)
         {
             if (i != j)
             {
@@ -282,7 +282,7 @@ int main(int argc, char* argv[])
     m_i = mat_get(em[0],ta,0);
     if (latan_isnan(m_i))
     {
-        m_i = 0.3;
+        m_i = 0.1;
     }
     dm_i = 0.01*m_i;
     mat_set(par,0,0,m_i);
@@ -324,7 +324,7 @@ int main(int argc, char* argv[])
     }
     
     /** set x **/
-    for (i=0;i<nt;i++)
+    for (i=0;i<propdim[0];i++)
     {
         fit_data_set_x(d,i,0,(double)(i));
     }
@@ -443,18 +443,21 @@ int main(int argc, char* argv[])
         ft      = mat_create(npt,1);
         comp    = mat_create(npt,1);
         
+        if (emtype == EM_ACOSH)
+        {
+            maxt = MIN(propdim[0],nt);
+        }
+        else if (emtype == EM_LOG)
+        {
+            maxt = MIN(propdim[0],nt/2);
+        }
+        else
+        {
+            maxt = propdim[0];
+        }
+        dmaxt = (double)maxt;
         if (!opt->do_range_scan)
         {
-            
-            if (emtype == EM_ACOSH)
-            {
-                maxt  = nt;
-            }
-            else if (emtype == EM_LOG)
-            {
-                maxt  = nt/2;
-            }
-            dmaxt = (double)maxt;
             strbufcpy(color[0],"rgb 'red'");
             strbufcpy(color[1],"rgb 'blue'");
             
@@ -463,7 +466,7 @@ int main(int argc, char* argv[])
             {
                 p = plot_create();
                 i = 0;
-                for (t=0;t<nt;t++)
+                for (t=0;t<propdim[0];t++)
                 {
                     if (fit_data_is_fit_point(d,t))
                     {
@@ -561,7 +564,7 @@ int main(int argc, char* argv[])
                                          : rs_sample_pt_sample(s_par,j-1);
                         mat_set(mpar,0,0,mat_get(mass_pt,i-2+k,0));
                         mat_set(mpar,1,0,mat_get(mass_pt,2*nstate+i-2+k,0));
-                        for (t=0;t<nt;t++)
+                        for (t=0;t<propdim[0];t++)
                         {
                             mat_set(mbuf,0,0,(double)(t));
                             corr_prop = mat_get(prop_pt,t,0)               \
@@ -592,7 +595,7 @@ int main(int argc, char* argv[])
         {
             /* chi^2 plot */
             p = plot_create();
-            plot_set_scale_manual(p,0,(double)(nt/2),0,5.0);
+            plot_set_scale_manual(p,0,dmaxt,0,5.0);
             plot_add_hline(p,1.0,"rgb 'black'");
             plot_add_dat(p,scanres_t,scanres_chi2,NULL,NULL,"chi^2/dof",\
                          "rgb 'blue'");
@@ -609,7 +612,7 @@ int main(int argc, char* argv[])
             
             /* average mass plot */
             p = plot_create();
-            plot_set_scale_xmanual(p,0,(double)(nt/2));
+            plot_set_scale_xmanual(p,0,dmaxt);
             sprintf(key,"a*av_M_%s",full_name[0]);
             plot_add_dat(p,scanres_t,scanres_av_mass,NULL,scanres_av_mass_err,\
                          key,"rgb 'red'");
@@ -626,7 +629,7 @@ int main(int argc, char* argv[])
             
             /* difference of masses plot */
             p = plot_create();
-            plot_set_scale_xmanual(p,0,(double)(nt/2));
+            plot_set_scale_xmanual(p,0,dmaxt);
             sprintf(key,"a*d_M_%s",full_name[0]);
             plot_add_dat(p,scanres_t,scanres_d_mass,NULL,scanres_d_mass_err,\
                          key,"rgb 'red'");

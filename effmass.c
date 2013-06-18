@@ -20,12 +20,19 @@ int main(int argc, char* argv[])
     size_t binsize,nboot;
     int emtype;
      
-    opt = qcd_arg_parse(argc,argv,A_SAVE_RS|A_LOAD_RG|A_PROP_NAME|A_PROP_LOAD\
-                    |A_QCOMP|A_PLOT|A_MODEL,1);
+    opt = qcd_arg_parse(argc,argv,A_SAVE_RS|A_LOAD_RS|A_LOAD_RG|A_PROP_NAME|\
+                        A_PROP_LOAD|A_QCOMP|A_PLOT|A_MODEL,1,1);
     sprintf(prop_name,"%s_%s_%s_%s",opt->channel[0],opt->quark[0],opt->sink,\
             opt->source);
     sprintf(full_name,"%s_%s",opt->channel[0],opt->quark[0]);
-    strbufcpy(manf_name,opt->manf_name);
+    if (opt->do_load_rs_sample)
+    {
+        strbufcpy(manf_name,opt->load_rs_fname[0]);
+    }
+    else
+    {
+        strbufcpy(manf_name,opt->manf_name);
+    }
     binsize = opt->binsize;
     nboot   = opt->nboot;
     latan_set_verb(opt->latan_verb);
@@ -46,13 +53,23 @@ int main(int argc, char* argv[])
     size_t ndat,nbdat,dim[2];
     mat **prop;
     
-    ndat    = (size_t)get_nfile(manf_name);
-    nbdat   = ndat/binsize + ((ndat%binsize == 0) ? 0 : 1);
+    if (opt->do_load_rs_sample)
+    {
+        ndat  = 0;
+        nbdat = 0;
+        rs_sample_load(NULL,NULL,dim,opt->load_rs_fname[0]);
+        prop  = NULL;
+    }
+    else
+    {
+        ndat    = (size_t)get_nfile(manf_name);
+        nbdat   = ndat/binsize + ((ndat%binsize == 0) ? 0 : 1);
+        mat_ar_loadbin(NULL,dim,manf_name,prop_name,1);
+        prop = mat_ar_create(nbdat,dim[0],dim[1]);
+        qcd_printf(opt,"-- loading %s datas from %s...\n",prop_name,manf_name);
+        mat_ar_loadbin(prop,NULL,manf_name,prop_name,binsize);
+    }
     
-    mat_ar_loadbin(NULL,dim,manf_name,prop_name,1);
-    prop = mat_ar_create(nbdat,dim[0],dim[1]);
-    qcd_printf(opt,"-- loading %s datas from %s...\n",prop_name,manf_name);
-    mat_ar_loadbin(prop,NULL,manf_name,prop_name,binsize);
     
     /*                 propagator               */
     /********************************************/
@@ -60,9 +77,18 @@ int main(int argc, char* argv[])
     
     s_mprop = rs_sample_create(dim[0],dim[1],nboot);
     
-    qcd_printf(opt,"-- resampling %s mean propagator...\n",full_name);
-    randgen_set_state(opt->state);
-    resample(s_mprop,prop,nbdat,&rs_mean,BOOT,NULL);
+    if (opt->do_load_rs_sample)
+    {
+        qcd_printf(opt,"-- loading %s propagator from %s...\n",prop_name,\
+                   opt->load_rs_fname[0]);
+        rs_sample_load(s_mprop,NULL,NULL,opt->load_rs_fname[0]);
+    }
+    else
+    {
+        qcd_printf(opt,"-- resampling %s mean propagator...\n",full_name);
+        randgen_set_state(opt->state);
+        resample(s_mprop,prop,nbdat,&rs_mean,BOOT,NULL);
+    }
     
     /*           effective mass                 */
     /********************************************/
@@ -100,7 +126,7 @@ int main(int argc, char* argv[])
     {
         sprintf(latan_path,"%s_effmass_%s.boot:%s_effmass_%s",full_name,manf_name,\
                 full_name,manf_name);
-        rs_sample_save(latan_path,'w',s_mprop);
+        rs_sample_save(latan_path,'w',s_effmass);
     }
     if (opt->do_plot|opt->do_save_plot)
     {

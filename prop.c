@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     size_t binsize,nboot;
      
     opt = qcd_arg_parse(argc,argv,A_SAVE_RS|A_LOAD_RG|A_PROP_NAME|A_PROP_LOAD\
-                        |A_QCOMP|A_PLOT,1);
+                        |A_QCOMP|A_PLOT,1,0);
     sprintf(prop_name,"%s_%s_%s_%s",opt->channel[0],opt->quark[0],opt->sink,\
             opt->source);
     sprintf(full_name,"%s_%s",opt->channel[0],opt->quark[0]);

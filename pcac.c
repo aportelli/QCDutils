@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
     char *cpt;
     
     opt = qcd_arg_parse(argc,argv,A_PLOT|A_SAVE_RS|A_LOAD_RG|A_PROP_NAME\
-                        |A_PROP_LOAD|A_LATSPAC|A_QCOMP|A_FIT,1);
+                        |A_PROP_LOAD|A_LATSPAC|A_QCOMP|A_FIT,1,0);
     cpt = strchr(opt->channel[0],'/');
     if (cpt == NULL)
     {

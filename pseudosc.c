@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
     fit_model *fm_pt;
     
     opt = qcd_arg_parse(argc,argv,A_PLOT|A_SAVE_RS|A_LOAD_RG|A_PROP_NAME\
-                        |A_PROP_LOAD|A_LATSPAC|A_QCOMP|A_FIT,2);
+                        |A_PROP_LOAD|A_LATSPAC|A_QCOMP|A_FIT,2,0);
     cpt1 = strtok(opt->ss,"/");
     printf("%s\n",cpt1);
     if (cpt1)

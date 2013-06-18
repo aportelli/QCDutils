@@ -7,7 +7,9 @@
 #include <latan/latan_minimizer.h>
 #include <latan/latan_rand.h>
 
-#define MAX_RANGES 4
+#define MAX_RANGES 10
+#define MAX_MAX_NPART 10
+#define MAX_MAX_NLOAD 10
 
 #define QCD_MALLOC(pt,typ,size)\
 {\
@@ -36,13 +38,14 @@ enum
     A_DEFAULT   = 0,
     A_PLOT      = 1 << 0,
     A_SAVE_RS   = 1 << 1,
-    A_LOAD_RG   = 1 << 2,
-    A_PROP_NAME = 1 << 3,
-    A_PROP_LOAD = 1 << 4,
-    A_LATSPAC   = 1 << 5,
-    A_QCOMP     = 1 << 6,
-    A_FIT       = 1 << 7,
-    A_MODEL     = 1 << 8
+    A_LOAD_RS   = 1 << 2,
+    A_LOAD_RG   = 1 << 3,
+    A_PROP_NAME = 1 << 4,
+    A_PROP_LOAD = 1 << 5,
+    A_LATSPAC   = 1 << 6,
+    A_QCOMP     = 1 << 7,
+    A_FIT       = 1 << 8,
+    A_MODEL     = 1 << 9
 };
 
 typedef struct qcd_options_s
@@ -52,6 +55,7 @@ typedef struct qcd_options_s
     bool do_plot;
     bool do_save_plot;
     bool do_save_rs_sample;
+    bool do_load_rs_sample;
     bool do_range_scan;
     bool have_randgen_state;
     int latan_verb;
@@ -64,20 +68,22 @@ typedef struct qcd_options_s
     strbuf source;
     strbuf sink;
     strbuf ss;
-    strbuf channel[2];
-    strbuf quark[2];
+    strbuf channel[MAX_MAX_NPART];
+    strbuf quark[MAX_MAX_NPART];
     strbuf model;
     strbuf save_plot_dir;
+    strbuf load_rs_fname[MAX_MAX_NLOAD];
     cor_flag corr;
     minalg_no minimizer;
     unsigned int range[MAX_RANGES][2];
     double tshift;
+    size_t nt;
     size_t nmanrange;
     size_t nboot;
 } qcd_options;
 
 qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
-                            const int max_npart);
+                            const int max_npart, const int max_nload);
 void qcd_printf(const qcd_options *opt, const strbuf fmt, ...);
 
 #endif

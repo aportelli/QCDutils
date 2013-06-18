@@ -12,7 +12,7 @@
 #define DEF_NBOOT 100
 
 qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
-                            const int max_npart)
+                            const int max_npart, const int max_nload)
 {
     /*          argument definitions            */
     /********************************************/
@@ -24,6 +24,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     struct arg_str*  a_fmt           = NULL;
     struct arg_int*  a_nboot         = NULL;
     struct arg_lit*  a_save_rs       = NULL;
+    struct arg_str*  a_load_rs       = NULL;
     struct arg_str*  a_load_rg       = NULL;
     struct arg_lit*  a_plot          = NULL;
     struct arg_str*  a_save_plot     = NULL;
@@ -35,15 +36,16 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     struct arg_str*  a_minimizer     = NULL;
     struct arg_str*  a_range         = NULL;
     struct arg_dbl*  a_tshift        = NULL;
+    struct arg_int*  a_text          = NULL;
     struct arg_lit*  a_uncorr        = NULL;
     struct arg_lit*  a_rscan         = NULL;
     struct arg_str*  a_model         = NULL;
     struct arg_file* a_manf          = NULL;
     struct arg_end*  a_end           = NULL;
-    strbuf help_msg,ver_msg,verb_msg,fmt_msg,nboot_msg,save_rs_msg,load_rg_msg,\
-           plot_msg,save_plot_msg,latspac_fm_msg,qcomp_msg,channel_msg,ss_msg, \
-           binsize_msg,minimizer_msg,range_msg,tshift_msg,uncorr_msg,rscan_msg,\
-           manf_msg,model_msg;
+    strbuf help_msg,ver_msg,verb_msg,fmt_msg,nboot_msg,save_rs_msg,load_rs_msg,\
+           load_rg_msg,plot_msg,save_plot_msg,latspac_fm_msg,qcomp_msg,        \
+           channel_msg,ss_msg,binsize_msg,minimizer_msg,range_msg,tshift_msg,  \
+           text_msg,uncorr_msg,rscan_msg,manf_msg,model_msg;
     strbuf defmin,deffmt;
     int j;
     
@@ -69,6 +71,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     sprintf(nboot_msg       ,"number of bootstrap samples (default: %d)",\
             DEF_NBOOT);
     sprintf(save_rs_msg     ,"save resampled samples"                       );
+    sprintf(load_rs_msg     ,"load resampled samples"                       );
     sprintf(load_rg_msg     ,"use saved random generator state"             );
     sprintf(plot_msg        ,"show plot"                                    );
     sprintf(save_plot_msg   ,"save plot to directory"                       );
@@ -80,6 +83,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     sprintf(minimizer_msg   ,"minimizer (default: %s)",defmin               );
     sprintf(range_msg       ,"manual fit range"                             );
     sprintf(tshift_msg      ,"time shift"                                   );
+    sprintf(text_msg        ,"time extent (default: data length)"           );
     sprintf(uncorr_msg      ,"use time-uncorrelated chi^2"                  );
     sprintf(rscan_msg       ,"perform fit range scan"                       );
     sprintf(manf_msg        ,"LatAnalyze data manifest"                     );
@@ -93,6 +97,10 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     if (argset_flag & A_SAVE_RS)
     {
         a_save_rs       = arg_lit0(NULL,"save",save_rs_msg);
+    }
+    if (argset_flag & A_LOAD_RS)
+    {
+        a_load_rs       = arg_strn("l","load","FNAME",0,max_nload,load_rs_msg);
     }
     if (argset_flag & A_LOAD_RG)
     {
@@ -118,14 +126,15 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
         a_ss            = arg_str1("S","sink_source","SI:SO",\
                                    ss_msg);
         a_binsize       = arg_int0("b","bin",NULL,binsize_msg);
-        a_manf          = arg_file1(NULL,NULL,"<manifest file>",manf_msg);
+        a_manf          = arg_file0(NULL,NULL,"<manifest file>",manf_msg);
     }
     if (argset_flag & A_FIT)
     {
         a_minimizer     = arg_str0("M","minimizer","ID",minimizer_msg);
         a_range         = arg_strn("R","range","[min,max]",1,MAX_RANGES,\
                                    range_msg);
-        a_tshift        = arg_dbl0(NULL,"tshift",NULL,tshift_msg);
+        a_tshift        = arg_dbl0("t","tshift",NULL,tshift_msg);
+        a_text          = arg_int0("T","text",NULL,text_msg);
         a_uncorr        = arg_lit0(NULL,"uncorr",uncorr_msg);
         a_rscan         = arg_lit0("f","range_scan",rscan_msg);
     }
@@ -148,6 +157,13 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
         a_table_size += 1;
         QCD_REALLOC(a_table,a_table,void**,a_table_size);
         a_table[i] = a_save_rs;
+        i += 1;
+    }
+    if (argset_flag & A_LOAD_RS)
+    {
+        a_table_size += 1;
+        QCD_REALLOC(a_table,a_table,void**,a_table_size);
+        a_table[i] = a_load_rs;
         i += 1;
     }
     if (argset_flag & A_LOAD_RG)
@@ -197,14 +213,15 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     }
     if (argset_flag & A_FIT)
     {
-        a_table_size += 5;
+        a_table_size += 6;
         QCD_REALLOC(a_table,a_table,void**,a_table_size);
         a_table[i]   = a_minimizer;
         a_table[i+1] = a_range;
         a_table[i+2] = a_tshift;
-        a_table[i+3] = a_uncorr;
-        a_table[i+4] = a_rscan;
-        i += 5;
+        a_table[i+3] = a_text;
+        a_table[i+4] = a_uncorr;
+        a_table[i+5] = a_rscan;
+        i += 6;
     }
     if (argset_flag & A_MODEL)
     {
@@ -233,6 +250,14 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     
     /*          set default options             */
     /********************************************/
+    if (argset_flag & A_LOAD_RS)
+    {
+        for (j=0;j<MAX_MAX_NPART;j++)
+        {
+            strbufcpy(opt->load_rs_fname[j],"");
+        }
+        opt->do_load_rs_sample = false;
+    }
     if (argset_flag & A_LOAD_RG)
     {
         opt->have_randgen_state = false;
@@ -252,13 +277,17 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     }
     if (argset_flag & A_QCOMP)
     {
-        strbufcpy(opt->quark[0],"");
-        strbufcpy(opt->quark[1],"");
+        for (j=0;j<MAX_MAX_NPART;j++)
+        {
+            strbufcpy(opt->quark[j],"");
+        }
     }
     if (argset_flag & A_PROP_NAME)
     {
-        strbufcpy(opt->channel[0],"");
-        strbufcpy(opt->channel[1],"");
+        for (j=0;j<MAX_MAX_NPART;j++)
+        {
+            strbufcpy(opt->channel[j],"");
+        }
     }
     if (argset_flag & A_PROP_LOAD)
     {
@@ -270,6 +299,7 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
         opt->corr          = DATA_COR;
         opt->do_range_scan = false;
         opt->tshift        = 0.0;
+        opt->nt            = 0;
     }
     if (argset_flag & A_MODEL)
     {
@@ -346,6 +376,14 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
     {
         opt->do_save_rs_sample = (a_save_rs->count > 0);
     }
+    if (argset_flag & A_LOAD_RS)
+    {
+        opt->do_load_rs_sample = (a_load_rs->count > 0);
+        for (j=0;j<a_load_rs->count;j++)
+        {
+            strbufcpy(opt->load_rs_fname[j],a_load_rs->sval[j]);
+        }
+    }
     if (argset_flag & A_LOAD_RG)
     {
         if (a_load_rg->count > 0)
@@ -384,17 +422,6 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
         for (j=0;j<a_channel->count;j++)
         {
             strbufcpy(opt->channel[j],a_channel->sval[j]);
-        }
-        if (argset_flag & A_QCOMP)
-        {
-            if ((a_qcomp->count == 2)&&(a_channel->count == 1))
-            {
-                strbufcpy(opt->channel[1],opt->channel[0]);
-            }
-            else if ((a_qcomp->count == 1)&&(a_channel->count == 2))
-            {
-                strbufcpy(opt->quark[1],opt->quark[0]);
-            }
         }
         strbufcpy(opt->ss,a_ss->sval[0]);
         cpt = strchr(a_ss->sval[0],':');
@@ -436,6 +463,10 @@ qcd_options * qcd_arg_parse(int argc, char* argv[], unsigned int argset_flag,
         if (a_tshift->count > 0)
         {
             opt->tshift = a_tshift->dval[0];
+        }
+        if (a_text->count > 0)
+        {
+            opt->nt = a_text->ival[0];
         }
         if (a_uncorr->count > 0)
         {

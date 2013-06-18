@@ -29,7 +29,7 @@ static void correct_range(size_t range[2], const mat *prop, const mat *err,\
     
     inrange[0] = range[0];
     inrange[1] = range[1];
-    nt         = nrow(prop);
+    nt         = (opt->nt) ? opt->nt : nrow(prop);
     
     if (inrange[0] <= nt/2)
     {
@@ -76,8 +76,9 @@ int main(int argc, char* argv[])
     fit_model *fm_pt;
     void *fmpar_pt;
     
-    opt = qcd_arg_parse(argc,argv,A_PLOT|A_SAVE_RS|A_LOAD_RG|A_PROP_NAME\
-                        |A_PROP_LOAD|A_LATSPAC|A_QCOMP|A_FIT|A_MODEL,2);
+    opt = qcd_arg_parse(argc,argv,A_PLOT|A_SAVE_RS|A_LOAD_RS|A_LOAD_RG  \
+                        |A_PROP_NAME|A_PROP_LOAD|A_LATSPAC|A_QCOMP|A_FIT\
+                        |A_MODEL,2,2);
     is_split = (strlen(opt->channel[1]) != 0);
     
     if (is_split)
@@ -111,8 +112,15 @@ int main(int argc, char* argv[])
     latan_set_verb(opt->latan_verb);
     strbufcpy(model,opt->model);
     minimizer_set_alg(opt->minimizer);
-    mat_ar_loadbin(NULL,propdim,manf_name,prop_name[0],1);
-    nt = propdim[0];
+    if (opt->do_load_rs_sample)
+    {
+        rs_sample_load(NULL,NULL,propdim,opt->load_rs_fname[0]);
+    }
+    else
+    {
+        mat_ar_loadbin(NULL,propdim,manf_name,prop_name[0],1);
+    }
+    nt = (opt->nt) ? opt->nt : propdim[0];
     if (strbufcmp(model,"cosh") == 0)
     {
         fm_pt    = &fm_cosh;
@@ -147,22 +155,32 @@ int main(int argc, char* argv[])
     
     /*              loading datas               */
     /********************************************/
-    size_t ndat,nbdat;
     mat **prop[2];
+    size_t ndat,nbdat;
     
-    ndat    = (size_t)get_nfile(manf_name);
-    nbdat   = ndat/binsize + ((ndat%binsize == 0) ? 0 : 1);
-    
-    prop[0] = mat_ar_create(nbdat,propdim[0],propdim[1]);
-    prop[1] = mat_ar_create(nbdat,propdim[0],propdim[1]);
-    
-    qcd_printf(opt,"-- loading %s datas from %s...\n",prop_name[0],manf_name);
-    mat_ar_loadbin(prop[0],NULL,manf_name,prop_name[0],binsize);
-    if (is_split)
+    if (opt->do_load_rs_sample)
     {
-        qcd_printf(opt,"-- loading %s datas from %s...\n",prop_name[1],\
-                   manf_name);
-        mat_ar_loadbin(prop[1],NULL,manf_name,prop_name[1],binsize);
+        ndat    = 0;
+        nbdat   = 0;
+        prop[0] = NULL;
+        prop[1] = NULL;
+    }
+    else
+    {
+        ndat    = (size_t)get_nfile(manf_name);
+        nbdat   = ndat/binsize + ((ndat%binsize == 0) ? 0 : 1);
+        
+        prop[0] = mat_ar_create(nbdat,propdim[0],propdim[1]);
+        prop[1] = mat_ar_create(nbdat,propdim[0],propdim[1]);
+        
+        qcd_printf(opt,"-- loading %s datas from %s...\n",prop_name[0],manf_name);
+        mat_ar_loadbin(prop[0],NULL,manf_name,prop_name[0],binsize);
+        if (is_split)
+        {
+            qcd_printf(opt,"-- loading %s datas from %s...\n",prop_name[1],\
+                       manf_name);
+            mat_ar_loadbin(prop[1],NULL,manf_name,prop_name[1],binsize);
+        }
     }
     
     /*                propagator                */
@@ -174,15 +192,31 @@ int main(int argc, char* argv[])
     s_tmp    = rs_sample_create(propdim[0],propdim[1],nboot);
     sigmprop = mat_create(propdim[0],propdim[1]);
     
-    qcd_printf(opt,"-- resampling %s mean propagator...\n",prop_name[0]);
-    randgen_set_state(opt->state);
-    resample(s_mprop,prop[0],nbdat,&rs_mean,BOOT,NULL);
-    if (is_split)
+    if (opt->do_load_rs_sample)
     {
-        qcd_printf(opt,"-- resampling %s mean propagator...\n",prop_name[1]);
+        qcd_printf(opt,"-- loading %s propagator from %s...\n",prop_name[0],\
+                   opt->load_rs_fname[0]);
+        rs_sample_load(s_mprop,NULL,NULL,opt->load_rs_fname[0]);
+        if (is_split)
+        {
+            qcd_printf(opt,"-- loading %s propagator from %s...\n",\
+                       prop_name[1],opt->load_rs_fname[1]);
+            rs_sample_load(s_tmp,NULL,NULL,opt->load_rs_fname[1]);
+            rs_sample_eqdivp(s_mprop,s_tmp);
+        }
+    }
+    else
+    {
+        qcd_printf(opt,"-- resampling %s mean propagator...\n",prop_name[0]);
         randgen_set_state(opt->state);
-        resample(s_tmp,prop[1],nbdat,&rs_mean,BOOT,NULL);
-        rs_sample_eqdivp(s_mprop,s_tmp);
+        resample(s_mprop,prop[0],nbdat,&rs_mean,BOOT,NULL);
+        if (is_split)
+        {
+            qcd_printf(opt,"-- resampling %s mean propagator...\n",prop_name[1]);
+            randgen_set_state(opt->state);
+            resample(s_tmp,prop[1],nbdat,&rs_mean,BOOT,NULL);
+            rs_sample_eqdivp(s_mprop,s_tmp);
+        }
     }
     mprop = rs_sample_pt_cent_val(s_mprop);
     rs_sample_varp(sigmprop,s_mprop);
@@ -217,7 +251,7 @@ int main(int argc, char* argv[])
     strbuf buf,range_info,latan_path;
     double pref_i,mass_i;
 
-    d        = fit_data_create(nt,1,1);
+    d        = fit_data_create(propdim[0],1,1);
     tibeg    = (size_t)(opt->range[0][0]); 
     range[0] = 0;
     range[1] = 0;
@@ -269,7 +303,7 @@ int main(int argc, char* argv[])
     mass_i = mat_get(em,ta,0);
     if (latan_isnan(mass_i))
     {
-        mass_i = 0.3;
+        mass_i = 0.1;
     }
     for (i=0;i<nstate;i++)
     {
@@ -305,7 +339,7 @@ int main(int argc, char* argv[])
     }
     
     /** set x **/
-    for (i=0;i<nt;i++)
+    for (i=0;i<propdim[0];i++)
     {
         fit_data_set_x(d,i,0,(double)(i)+opt->tshift);
     }
@@ -409,22 +443,25 @@ int main(int argc, char* argv[])
         comp    = mat_create(fit_data_fit_point_num(d),1);
         
         sprintf(xlabel,"a*t%+.2f",opt->tshift);
+        if (emtype == EM_ACOSH)
+        {
+            maxt = MIN(propdim[0],nt);
+        }
+        else if (emtype == EM_LOG)
+        {
+            maxt = MIN(propdim[0],nt/2);
+        }
+        else
+        {
+            maxt = propdim[0];
+        }
+        dmaxt = (double)maxt;
         if (!opt->do_range_scan)
         {
-            if (emtype == EM_ACOSH)
-            {
-                maxt  = nt;
-            }
-            else if (emtype == EM_LOG)
-            {
-                maxt  = nt/2;
-            }
-            dmaxt = (double)maxt;
-            
             /** chi^2 plot **/
             p = plot_create();
             i = 0;
-            for (t=0;t<nt;t++)
+            for (t=0;t<propdim[0];t++)
             {
                 if (fit_data_is_fit_point(d,t))
                 {
@@ -525,7 +562,7 @@ int main(int argc, char* argv[])
                                        : rs_sample_pt_sample(s_mass,j-1);
                     mat_set(par,0,0,mat_get(mass_pt,i-1,0));
                     mat_set(par,1,0,mat_get(mass_pt,nstate+i-1,0));
-                    for (t=0;t<nt;t++)
+                    for (t=0;t<propdim[0];t++)
                     {
                         mat_set(mbuf,0,0,(double)(t)-opt->tshift);
                         corr_prop = mat_get(prop_pt,t,0)-\
@@ -554,7 +591,7 @@ int main(int argc, char* argv[])
         {
             /* chi^2 plot */
             p = plot_create();
-            plot_set_scale_manual(p,0,(double)(nt/2),0,5.0);
+            plot_set_scale_manual(p,0,dmaxt,0,5.0);
             plot_add_hline(p,1.0,"rgb 'black'");
             plot_add_dat(p,scanres_t,scanres_chi2,NULL,NULL,"chi^2/dof",\
                          "rgb 'blue'");
@@ -572,7 +609,7 @@ int main(int argc, char* argv[])
             
             /* mass plot */
             p = plot_create();
-            plot_set_scale_xmanual(p,0,(double)(nt/2));
+            plot_set_scale_xmanual(p,0,dmaxt);
             sprintf(key,"a*M_%s",full_name);
             plot_add_dat(p,scanres_t,scanres_mass,NULL,scanres_masserr,key,\
                          "rgb 'red'");
