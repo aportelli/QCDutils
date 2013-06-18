@@ -33,7 +33,9 @@ int main(int argc, char *argv[])
             parser = &parse_bmw_dynqcd;
         }
         else if ((strbufcmp(argv[3],"ukqcd_mes") == 0)  \
-                 ||(strbufcmp(argv[3],"ukqcd_bar") == 0))
+                 ||(strbufcmp(argv[3],"ukqcd_bar") == 0)\
+                 ||(strbufcmp(argv[3],"ukqcd_rarekaon") == 0)\
+                 ||(strbufcmp(argv[3],"ukqcd_hvp") == 0))
         {
             if (strbufcmp(argv[3],"ukqcd_mes") == 0)
             {
@@ -42,6 +44,14 @@ int main(int argc, char *argv[])
             else if (strbufcmp(argv[3],"ukqcd_bar") == 0)
             {
                 parser = &parse_ukhadron_bar;
+            }
+            else if (strbufcmp(argv[3],"ukqcd_rarekaon") == 0)
+            {
+                parser = &parse_ukhadron_rarekaon;
+            }
+            else if (strbufcmp(argv[3],"ukqcd_hvp") == 0)
+            {
+                parser = &parse_ukhadron_hvp;
             }
             par    = &uk_par;
             if (argc >= 8)
