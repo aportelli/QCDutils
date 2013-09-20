@@ -8,6 +8,7 @@ AC_CONFIG_SRCDIR([prop.c])
 AC_CONFIG_MACRO_DIR([.buildutils/m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 AC_CONFIG_HEADERS([config.h])
+AM_SILENT_RULES([yes])
 
 # Check for OpenMP
 AM_CFLAGS="$AM_CFLAGS $OPENMP_CFLAGS"
