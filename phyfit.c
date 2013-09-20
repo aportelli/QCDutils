@@ -84,6 +84,12 @@ static void analysis(fit_param *param)
     mpi_printf("%-11s : %d\n","datasets",(int)param->ndataset);
     mpi_printf("%-11s : %d\n","points",(int)param->nens);
     mpi_printf("%-11s : %d\n","betas",(int)param->nbeta);
+    mpi_printf("%-11s : ","volumes");
+    for (i=0;i<param->nbeta;i++)
+    {
+        mpi_printf("%d(beta= %s) ",param->nvol[i],param->beta[i]);
+    }
+    mpi_printf("\n");
     mpi_printf("%-11s : %d\n","samples",(int)param->nsample);
     mpi_printf("\n");
     

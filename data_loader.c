@@ -18,7 +18,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
 {
     strbuf M_str,Msq_str,ext,sf_name;
     size_t nsample,nens;
-    size_t ens_ind,bind,d,i;
+    size_t ens_ind,bind,vind,d,i;
     rs_sample *s_tmp;
     FILE *ef;
     double e;
@@ -49,7 +49,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
     for(ens_ind=0;ens_ind<nens;ens_ind++) 
     {
         ens_pt = param->point + ens_ind;
-        bind   = ind_beta(ens_pt->beta,param);
+        bind   = (size_t)ind_beta(ens_pt->beta,param);
+        vind   = (size_t)ind_volume((unsigned int)ens_pt->L,(int)bind,param);
         for (d=0;d<param->ndataset;d++)
         {
             if (strbufcmp(param->dataset[d],ens_pt->dataset) == 0)
@@ -83,6 +84,9 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 /* beta index */
                 rs_sample_cst(s_tmp,bind);
                 rs_sample_set_subsamp(s_x[i_bind],s_tmp,ens_ind,0,ens_ind,0);
+                /* volume index */
+                rs_sample_cst(s_tmp,vind);
+                rs_sample_set_subsamp(s_x[i_vind],s_tmp,ens_ind,0,ens_ind,0);
                 /* m_u - m_d fixing quantity if possible */
                 sprintf(sf_name,"%s/%s_%s.boot%s",ens_pt->dir,\
                         param->umd_name,param->dataset[d],ext);

@@ -77,6 +77,7 @@ typedef struct fit_param_s
     int nproc;
     int save_all_param;
     unsigned int analyze_flag;
+    unsigned int **volume;
     fit_init *init_param;
     fit_limit *limit_param;
     ens *point;
@@ -108,6 +109,7 @@ typedef struct fit_param_s
     strbuf with_ext_M_umd;
     size_t ndataset;
     size_t nbeta;
+    size_t *nvol;
     size_t nens;
     size_t nsample;
     size_t ninit_param;
@@ -125,6 +127,8 @@ typedef struct fit_param_s
 #define IS_AN(param,prog_flag) ((param)->analyze_flag & (prog_flag))
 
 int ind_beta(const strbuf beta, const fit_param *param);
+int ind_volume(const unsigned int volume, const int bind,\
+               const fit_param *param);
 fit_param * fit_param_parse(const strbuf fname);
 void fit_param_destroy(fit_param *param);
 

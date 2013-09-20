@@ -80,6 +80,8 @@ if (IS_AN(param,AN_SCALE))\
 static int ind_dataset(const strbuf dataset, const fit_param *param);
 static void add_dataset(fit_param *param, const strbuf new_dataset);
 static void add_beta(fit_param *param, const strbuf new_beta);
+static void add_volume(fit_param *param, const int bind,\
+                       const unsigned int new_volume);
 
 static int ind_dataset(const strbuf dataset, const fit_param *param)
 {
@@ -115,17 +117,6 @@ static void add_dataset(fit_param *param, const strbuf new_dataset)
     }
 }
 
-static void add_beta(fit_param *param, const strbuf new_beta)
-{
-    if (ind_beta(new_beta,param) < 0)
-    {
-        param->nbeta++;
-        param->beta = (strbuf *)realloc(param->beta,               \
-                                        param->nbeta*sizeof(strbuf));
-        strbufcpy(param->beta[param->nbeta-1],new_beta);
-    }
-}
-
 int ind_beta(const strbuf beta, const fit_param *param)
 {
     size_t i;
@@ -139,6 +130,48 @@ int ind_beta(const strbuf beta, const fit_param *param)
     }
     
     return -1;
+}
+
+static void add_beta(fit_param *param, const strbuf new_beta)
+{
+    if (ind_beta(new_beta,param) < 0)
+    {
+        param->nbeta++;
+        REALLOC(param->beta,param->beta,strbuf *,param->nbeta);
+        REALLOC(param->nvol,param->nvol,size_t *,param->nbeta);
+        REALLOC(param->volume,param->volume,unsigned int **,param->nbeta);
+        strbufcpy(param->beta[param->nbeta-1],new_beta);
+        param->nvol[param->nbeta-1]   = 0;
+        param->volume[param->nbeta-1] = NULL;
+    }
+}
+
+int ind_volume(const unsigned int volume, const int bind,\
+               const fit_param *param)
+{
+    size_t i;
+    
+    for (i=0;i<param->nvol[bind];i++)
+    {
+        if (volume == param->volume[bind][i])
+        {
+            return (int)i;
+        }
+    }
+    
+    return -1;
+}
+
+static void add_volume(fit_param *param, const int bind,\
+                       const unsigned int new_volume)
+{
+    if (ind_volume(new_volume,bind,param) < 0)
+    {
+        param->nvol[bind]++;
+        REALLOC(param->volume[bind],param->volume[bind],unsigned int*,\
+                param->nvol[bind]);
+        param->volume[bind][param->nvol[bind]-1] = new_volume;
+    }
 }
 
 fit_param * fit_param_parse(const strbuf fname)
@@ -155,68 +188,70 @@ fit_param * fit_param_parse(const strbuf fname)
     param = (fit_param *)malloc(sizeof(fit_param));
     
     /* initialization */
-    param->analyze_flag                = AN_NOTHING;
-    param->with_const                  = 0;
-    param->M_ud                        = latan_nan();
-    param->M_ud_deg                    = 0;
-    param->s_M_ud_deg                  = 0;
-    param->M_s                         = latan_nan();
-    param->M_s_deg                     = 0;
-    param->s_M_s_deg                   = 0;
-    param->M_umd_val                   = latan_nan();
-    param->alpha                       = latan_nan();
-    param->M_scale                     = latan_nan();
-    param->qed_fvol_mass               = latan_nan();
-    param->with_a2                     = 0;
-    param->with_alpha_sa               = 0;
-    param->with_a2ud                   = 0;
-    param->s_with_a2ud                 = 0;
-    param->with_a2s                    = 0;
-    param->s_with_a2s                  = 0;
-    param->umd_deg                     = 0;
-    param->s_umd_deg                   = 0;
-    param->have_umd                    = 0;
-    param->with_udumd                  = 0;
-    param->with_sumd                   = 0;
-    param->with_a2umd                  = 0;
-    param->with_alpha_saumd            = 0;
-    param->alpha_deg                   = 0;
-    param->s_alpha_deg                 = 0;
-    param->have_alpha                  = 0;
-    param->with_udalpha                = 0;
-    param->with_salpha                 = 0;
-    param->with_aalpha                 = 0;
-    param->with_qed_fvol               = 0;
-    param->with_qed_fvol_monopmod      = 0;
-    param->qed_fvol_monopmod_sign      = 1;
-    param->s_with_qed_fvol             = 0;
-    param->with_pade                   = 0;
-    param->with_umd_pade               = 0;
-    param->with_alpha_pade             = 0;
-    param->q_dim                       = 0;
-    param->q_target[0]                 = latan_nan();
-    param->q_target[1]                 = latan_nan();
-    param->verb                        = 0;
-    param->correlated                  = 0;
-    param->save_result                 = 0;
-    param->plot                        = 0;
-    param->warn_missing_data           = 0;
-    param->scale_model                 = 0;
-    param->dataset                     = NULL;
-    param->ndataset                    = 0;
-    param->beta                        = NULL;
-    param->nbeta                       = 0;
-    param->init_param                  = NULL;
-    param->ninit_param                 = 0;
-    param->limit_param                 = NULL;
-    param->nlimit_param                = 0;
-    param->save_param                  = NULL;
-    param->nsave_param                 = 0;
-    param->point                       = NULL;
-    param->nens                        = 0;
-    param->nsample                     = 0;
-    param->nproc                       = 0;
-    param->save_all_param              = 0;
+    param->analyze_flag           = AN_NOTHING;
+    param->with_const             = 0;
+    param->M_ud                   = latan_nan();
+    param->M_ud_deg               = 0;
+    param->s_M_ud_deg             = 0;
+    param->M_s                    = latan_nan();
+    param->M_s_deg                = 0;
+    param->s_M_s_deg              = 0;
+    param->M_umd_val              = latan_nan();
+    param->alpha                  = latan_nan();
+    param->M_scale                = latan_nan();
+    param->qed_fvol_mass          = latan_nan();
+    param->with_a2                = 0;
+    param->with_alpha_sa          = 0;
+    param->with_a2ud              = 0;
+    param->s_with_a2ud            = 0;
+    param->with_a2s               = 0;
+    param->s_with_a2s             = 0;
+    param->umd_deg                = 0;
+    param->s_umd_deg              = 0;
+    param->have_umd               = 0;
+    param->with_udumd             = 0;
+    param->with_sumd              = 0;
+    param->with_a2umd             = 0;
+    param->with_alpha_saumd       = 0;
+    param->alpha_deg              = 0;
+    param->s_alpha_deg            = 0;
+    param->have_alpha             = 0;
+    param->with_udalpha           = 0;
+    param->with_salpha            = 0;
+    param->with_aalpha            = 0;
+    param->with_qed_fvol          = 0;
+    param->with_qed_fvol_monopmod = 0;
+    param->qed_fvol_monopmod_sign = 1;
+    param->s_with_qed_fvol        = 0;
+    param->with_pade              = 0;
+    param->with_umd_pade          = 0;
+    param->with_alpha_pade        = 0;
+    param->q_dim                  = 0;
+    param->q_target[0]            = latan_nan();
+    param->q_target[1]            = latan_nan();
+    param->verb                   = 0;
+    param->correlated             = 0;
+    param->save_result            = 0;
+    param->plot                   = 0;
+    param->warn_missing_data      = 0;
+    param->scale_model            = 0;
+    param->dataset                = NULL;
+    param->ndataset               = 0;
+    param->beta                   = NULL;
+    param->nbeta                  = 0;
+    param->volume                 = NULL;
+    param->nvol                   = NULL;
+    param->init_param             = NULL;
+    param->ninit_param            = 0;
+    param->limit_param            = NULL;
+    param->nlimit_param           = 0;
+    param->save_param             = NULL;
+    param->nsave_param            = 0;
+    param->point                  = NULL;
+    param->nens                   = 0;
+    param->nsample                = 0;
+    param->nproc                  = 0;
+    param->save_all_param         = 0;
     strbufcpy(param->analyze,"");
     strbufcpy(param->model,"");
     strbufcpy(param->s_model,"");
@@ -442,10 +477,9 @@ fit_param * fit_param_parse(const strbuf fname)
                 if (access(test_fname,R_OK) == 0)
                 {
                     param->nens++;
-                    param->point  = (ens *)realloc(param->point,           \
-                                                   param->nens*sizeof(ens));
-                    param->point[param->nens-1].T = ATOI(field[0]);
-                    param->point[param->nens-1].L = ATOI(field[1]);
+                    REALLOC(param->point,param->point,ens *,param->nens);
+                    param->point[param->nens-1].T = (size_t)ATOI(field[0]);
+                    param->point[param->nens-1].L = (size_t)ATOI(field[1]);
                     strbufcpy(param->point[param->nens-1].beta,field[2]);
                     strbufcpy(param->point[param->nens-1].ud,field[3]);
                     strbufcpy(param->point[param->nens-1].s,field[4]);
@@ -453,6 +487,8 @@ fit_param * fit_param_parse(const strbuf fname)
                               param->dataset[j]);
                     strbufcpy(param->point[param->nens-1].dir,ens_dir);
                     add_beta(param,field[2]);
+                    add_volume(param,ind_beta(field[2],param),\
+                               (unsigned int)ATOI(field[1]));
                     if (param->nsample == 0)
                     {
                         rs_sample_load(NULL,&(param->nsample),NULL,test_fname);
