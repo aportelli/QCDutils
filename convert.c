@@ -1,5 +1,24 @@
 #include <parsers.h>
 
+#define MALLOC(pt,typ,size)\
+{\
+    pt = (typ)(malloc((size_t)(size)*sizeof(*pt)));\
+    if (pt == NULL)\
+    {\
+        fprintf(stderr,"error: memory allocation failed\n");\
+        exit(EXIT_FAILURE);\
+    }\
+}
+
+#define FREE(pt)\
+{\
+    if (pt != NULL)\
+    {\
+        free(pt);\
+        pt = NULL;\
+    }\
+}
+
 int main(int argc, char *argv[])
 {
     strbuf man_fname, *meas_fname, fname;

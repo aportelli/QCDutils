@@ -176,9 +176,9 @@ void parse_ukhadron_mes(strbuf meas_fname, io_fmt_no fmt, void *par_v)
         dim[0] = (size_t)nt;
         dim[1] = (size_t)ngsink;
         dim[2] = (size_t)ngsrc;
-        dbuf   = (double *)malloc(2*nt*ngsrc*ngsink*sizeof(double));
-        prop   = mat_create(nt,1);
-        rcount = fread(dbuf,sizeof(double),2*nt*ngsrc*ngsink,in_f);
+        dbuf   = (double *)malloc(2*(size_t)(nt*ngsrc*ngsink)*sizeof(double));
+        prop   = mat_create((size_t)nt,1);
+        rcount = fread(dbuf,sizeof(double),2*(size_t)(nt*ngsrc*ngsink),in_f);
         if (rcount != (size_t)(2*nt*ngsrc*ngsink))
         {
             fprintf(stderr,"error (%s:%lx): reading correlator failed\n",\
@@ -362,8 +362,8 @@ void parse_ukhadron_hvp(strbuf meas_fname, io_fmt_no fmt, void *par_v)
         for (gsrc=0;gsrc<ngsrc;gsrc++)
         for (gsink=0;gsink<ngsink;gsink++)
         {
-            x[1] = (size_t)gsink;
-            x[2] = (size_t)gsrc;
+            x[1] = (size_t)gsrc;
+            x[2] = (size_t)gsink;
             for (t=0;t<nt;t++)
             {
                 x[0] = (size_t)t;

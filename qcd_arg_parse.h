@@ -11,6 +11,15 @@
 #define MAX_MAX_NPART 10
 #define MAX_MAX_NLOAD 10
 
+#define FREE(pt)\
+{\
+    if (pt != NULL)\
+    {\
+        free(pt);\
+        pt = NULL;\
+    }\
+}
+
 #define QCD_MALLOC(pt,typ,size)\
 {\
     pt = (typ)(malloc((size_t)(size)*sizeof(*pt)));\

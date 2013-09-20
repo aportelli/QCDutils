@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
     
     rs_sample_load(NULL,&nsample,NULL,argv[4]);
     nres       = (size_t)(argc) - 4;
-    nbin       = ATOF(argv[1]);
+    nbin       = (size_t)ATOI(argv[1]);
     count      = 0;
     target     = ATOF(argv[2]);
     target_err = ATOF(argv[3]);
@@ -193,10 +193,10 @@ int main(int argc, char *argv[])
             double chi2_val_i[2];
             
             load_res(s_res_i,chi2_val_i,argv[i+4]);
-            rs_sample_set_subsamp(s_res,s_res_i,i,0,i,0);
-            mat_set(chi2_val,i,0,chi2_val_i[0]);
-            mat_set(chi2_val,i,1,chi2_val_i[1]);
-            mat_set(w,i,0,chi2_pvalue(chi2_val_i[0],(size_t)chi2_val_i[1]));
+            rs_sample_set_subsamp(s_res,s_res_i,(size_t)i,0,(size_t)i,0);
+            mat_set(chi2_val,(size_t)i,0,chi2_val_i[0]);
+            mat_set(chi2_val,(size_t)i,1,chi2_val_i[1]);
+            mat_set(w,(size_t)i,0,chi2_pvalue(chi2_val_i[0],(size_t)chi2_val_i[1]));
 #ifdef _OPENMP
             #pragma omp critical
 #endif

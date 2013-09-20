@@ -95,7 +95,7 @@ static void analysis(fit_param *param)
     rs_sample *s_fit,*s_tmp,**s_pt;
     mat *fit,*fit_var,*limit,**res,*phy_pt,*ex,*ex_err;
     strbuf chi2f_name;
-    bool use_x_var[N_EX_VAR] = {false,false,false,false,false,false,false};
+    bool use_x_var[N_EX_VAR];
     FILE *chi2f,*tablef;
     double buf;
     
@@ -113,7 +113,10 @@ static void analysis(fit_param *param)
     limit   = mat_create(npar,2);
     phy_pt  = mat_create(N_EX_VAR,1);
     res     = mat_ar_create(2,param->nens,1);
-    
+    for (j=0;j<N_EX_VAR;j++)
+    {
+        use_x_var[j] = false;
+    }
 
     sprintf(chi2f_name,"%s.chi2",param->result_file);
     fit_data_fit_all_points(d,true);

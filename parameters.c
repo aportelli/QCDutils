@@ -12,6 +12,16 @@
 #define ATOF(str) (strtod(str,(char **)NULL))
 #define ATOI(str) ((int)strtol(str,(char **)NULL,10))
 
+#define REALLOC(pt,pt_old,typ,size)\
+{\
+    pt = (typ)(realloc(pt_old,(size_t)(size)*sizeof(*pt)));\
+    if (pt == NULL)\
+    {\
+        fprintf(stderr,"error:memory allocation failed\n");\
+        exit(EXIT_FAILURE);\
+    }\
+}
+
 #define GET_PARAM_I(param,name)\
 if (strbufcmp(field[0],#name) == 0)\
 {\

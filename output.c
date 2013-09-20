@@ -266,7 +266,7 @@ void plot_chi2_comp(const fit_data *d, const fit_param *param, const size_t k,\
     }
     for (i=0;i<nens;i++)
     {
-        bind = ind_beta(param->point[i].beta,param);
+        bind = (size_t)ind_beta(param->point[i].beta,param);
         fprintf(tmpf[bind],"%s %e %e\n",param->point[i].dir,(double)(i),\
                 mat_get(d->chi2_comp,i+k*nens,0));
     }
