@@ -4,6 +4,25 @@
 #include <latan/latan_fit.h>
 #include <latan/latan_statistics.h>
 
+#define MALLOC(pt,typ,size)\
+{\
+    pt = (typ)(malloc((size_t)(size)*sizeof(*pt)));\
+    if (pt == NULL)\
+    {\
+        fprintf(stderr,"error:memory allocation failed\n");\
+        exit(EXIT_FAILURE);\
+    }\
+}
+#define REALLOC(pt,pt_old,typ,size)\
+{\
+    pt = (typ)(realloc(pt_old,(size_t)(size)*sizeof(*pt)));\
+    if (pt == NULL)\
+    {\
+        fprintf(stderr,"error:memory allocation failed\n");\
+        exit(EXIT_FAILURE);\
+    }\
+}
+
 typedef struct fit_init_s
 {
     size_t ind;
@@ -110,6 +129,7 @@ typedef struct fit_param_s
     size_t ndataset;
     size_t nbeta;
     size_t *nvol;
+    size_t **nenspvol;
     size_t nens;
     size_t nsample;
     size_t ninit_param;
@@ -122,6 +142,9 @@ typedef struct fit_param_s
     rs_sample *s_M_umd;
     rs_sample *s_ex;
     mat *ex_err;
+    rs_sample **s_vol_Linv;
+    rs_sample **s_vol_av;
+    
 } fit_param;
 
 #define IS_AN(param,prog_flag) ((param)->analyze_flag & (prog_flag))

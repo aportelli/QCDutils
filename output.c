@@ -75,12 +75,20 @@ void plot_fit(const rs_sample *s_fit, fit_data *d, fit_param *param, const plot_
     plot *p[N_EX_VAR];
     double *xb[N_EX_VAR] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL};
     double x_range[N_EX_VAR][2],b_int[2],dbind,a;
-    size_t bind,k,phy_ind,s;
+    size_t bind,vind,eind,k,phy_ind,s;
     strbuf color,gtitle,title,xlabel,ylabel;
-    mat *phy_pt,*x_k,*fit;
+    mat *phy_pt,*x_k,*fit,*cordat,**vol_av_corr,*yerrtmp;
+    ens *ept;
     
-    phy_pt = mat_create(N_EX_VAR,1);
-    x_k    = mat_create(param->nens,1);
+    phy_pt     = mat_create(N_EX_VAR,1);
+    x_k        = mat_create(param->nens,1);
+    cordat     = mat_create(param->nens,1);
+    MALLOC(vol_av_corr,mat **,param->nbeta);
+    for (bind=0;bind<param->nbeta;bind++)
+    {
+        vol_av_corr[bind] = mat_create(param->nvol[bind],1);
+    }
+
     for (k=0;k<N_EX_VAR;k++)
     {
         p[k] = plot_create();
@@ -100,8 +108,16 @@ void plot_fit(const rs_sample *s_fit, fit_data *d, fit_param *param, const plot_
     }
     for (k=0;k<N_EX_VAR;k++)
     {
-        fit_data_get_x_k(x_k,d,k);
-        if ((k == i_a)||(k == i_ud)||(k == i_Linv)||(k == i_alpha))
+        if (k == i_vind)
+        {
+            fit_data_get_x_k(x_k,d,i_Linv);
+        }
+        else
+        {
+            fit_data_get_x_k(x_k,d,k);
+        }
+        if ((k == i_a)||(k == i_ud)||(k == i_Linv)||(k == i_alpha)\
+            ||(k == i_vind))
         {
             x_range[k][0] = 0.0;
         }
@@ -121,9 +137,11 @@ void plot_fit(const rs_sample *s_fit, fit_data *d, fit_param *param, const plot_
         mat_set(phy_pt,i_umd,0,param->M_umd_val);
         mat_set(phy_pt,i_alpha,0,param->alpha);
         mat_set(phy_pt,i_bind,0,0.0);
+        mat_set(phy_pt,i_vind,0,0.0);
         mat_set(phy_pt,i_a,0,0.0);
         mat_set(phy_pt,i_Linv,0,0.0);
         mat_set(phy_pt,i_fvM,0,param->qed_fvol_mass);
+        /* regular plots */
         PLOT_ADD_FIT(PF_FIT,i_ud,phy_ind,"","rgb 'black'");
         PLOT_ADD_PB(i_ud,phy_ind,"rgb 'black'");
         PLOT_ADD_FIT(PF_FIT,i_s,phy_ind,"","rgb 'black'");
@@ -153,7 +171,49 @@ void plot_fit(const rs_sample *s_fit, fit_data *d, fit_param *param, const plot_
             PLOT_ADD_FIT(PF_DATA,i_Linv,phy_ind,title,color);
             fit_data_fit_all_points(d,true);
         }
-        switch (param->q_dim) 
+        /* volume averages plot */
+        plot_add_fit(p[i_vind],d,phy_ind,phy_pt,i_Linv,fit,x_range[i_Linv][0],\
+                     x_range[i_Linv][1],MOD_PLOT_NPT,true,PF_FIT,"","",       \
+                     "rgb 'black'","rgb 'black'");
+        plot_add_fit_predband(p[i_vind],d,phy_ind,phy_pt,i_Linv,s_fit,\
+                              x_range[i_Linv][0],x_range[i_Linv][1],  \
+                              MOD_PLOT_NPT/4,"rgb 'black'");
+        fit_partresidual(cordat,d,phy_ind,phy_pt,i_Linv,fit);
+        for(bind=0;bind<param->nbeta;bind++)
+        {
+            mat_zero(vol_av_corr[bind]);
+        }
+        for(eind=0;eind<param->nens;eind++)
+        {
+            ept  = param->point + eind;
+            bind = (size_t)ind_beta(ept->beta,param);
+            vind = (size_t)ind_volume((unsigned int)ept->L,(int)bind,param);
+            mat_inc(vol_av_corr[bind],vind,0,mat_get(cordat,eind,0));
+        }
+        for (bind=0;bind<param->nbeta;bind++)
+        for (vind=0;vind<param->nvol[bind];vind++)
+        {
+            mat_set(vol_av_corr[bind],vind,0,               \
+                    mat_get(vol_av_corr[bind],vind,0)       \
+                    /((double)(param->nenspvol[bind][vind])));
+        }
+        for(bind=0;bind<param->nbeta;bind++)
+        {
+            yerrtmp = mat_create(param->nvol[bind],1);
+            
+            rs_sample_varp(yerrtmp,param->s_vol_av[bind]);
+            mat_eqsqrt(yerrtmp);
+            sprintf(color,"%d",1+(int)bind);
+            sprintf(title,"beta = %s",param->beta[bind]);
+            plot_add_dat_yerr(p[i_vind],                                     \
+                              rs_sample_pt_cent_val(param->s_vol_Linv[bind]),\
+                              vol_av_corr[bind],yerrtmp,title,color);
+            
+            mat_destroy(yerrtmp);
+        }
+
+        /* display plots */
+        switch (param->q_dim)
         {
             case 0:
                 strbufcpy(ylabel,param->q_name);
@@ -191,6 +251,8 @@ void plot_fit(const rs_sample *s_fit, fit_data *d, fit_param *param, const plot_
         strbufcpy(xlabel,"1/L (MeV)");
         PLOT_ADD_EX(i_Linv,s);
         PLOT_DISP(i_Linv,"Linv");
+        PLOT_ADD_EX(i_vind,s);
+        PLOT_DISP(i_vind,"Linv_av");
     }
     else if (f == SCALE)
     {
@@ -235,6 +297,12 @@ void plot_fit(const rs_sample *s_fit, fit_data *d, fit_param *param, const plot_
     
     mat_destroy(phy_pt);
     mat_destroy(x_k);
+    mat_destroy(cordat);
+    for (bind=0;bind<param->nbeta;bind++)
+    {
+        mat_destroy(vol_av_corr[bind]);
+    }
+    free(vol_av_corr);
     for (k=0;k<N_EX_VAR;k++)
     {
         plot_destroy(p[k]);

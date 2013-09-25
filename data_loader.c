@@ -18,7 +18,7 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
 {
     strbuf M_str,Msq_str,ext,sf_name;
     size_t nsample,nens;
-    size_t ens_ind,bind,vind,d,i;
+    size_t ens_ind,bind,vind,d,i,j;
     rs_sample *s_tmp;
     FILE *ef;
     double e;
@@ -46,7 +46,11 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
     }
     
     /* data loading */
-    for(ens_ind=0;ens_ind<nens;ens_ind++) 
+    for (i=0;i<param->nbeta;i++)
+    {
+        rs_sample_cst(param->s_vol_av[i],0.0);
+    }
+    for(ens_ind=0;ens_ind<nens;ens_ind++)
     {
         ens_pt = param->point + ens_ind;
         bind   = (size_t)ind_beta(ens_pt->beta,param);
@@ -70,6 +74,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                             param->q_name,param->dataset[d],ext);
                     rs_sample_load_subsamp(s_tmp,sf_name,0,0,0,0);
                     rs_sample_set_subsamp(s_q[1],s_tmp,ens_ind,0,ens_ind,0);
+                    rs_sample_subsamp_eqadd(param->s_vol_av[bind],s_tmp,\
+                                            vind,0,vind,0);
                 }
                 /* m_ud fixing quantity */
                 sprintf(sf_name,"%s/%s_%s_%s.boot%s",ens_pt->dir,Msq_str,\
@@ -134,6 +140,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 /* spatial extent */
                 rs_sample_cst(s_tmp,1.0/((double)ens_pt->L));
                 rs_sample_set_subsamp(s_x[i_Linv],s_tmp,ens_ind,0,ens_ind,0);
+                rs_sample_set_subsamp(param->s_vol_Linv[bind],s_tmp,\
+                                      vind,0,vind,0);
                 /* lattice spacing */
                 if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE))
                 {
@@ -188,6 +196,14 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
             fflush(stdout);
         }
     }
+    for (i=0;i<param->nbeta;i++)
+    for (j=0;j<param->nvol[i];j++)
+    {
+        rs_sample_subsamp_eqmuls(param->s_vol_av[i],                   \
+                                 1.0/((double)(param->nenspvol[i][j])),\
+                                 j,0,j,0);
+    }
+    
     if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE)&&\
         (strbufcmp(param->with_ext_a,"") != 0))
     {

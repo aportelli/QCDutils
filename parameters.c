@@ -12,16 +12,6 @@
 #define ATOF(str) (strtod(str,(char **)NULL))
 #define ATOI(str) ((int)strtol(str,(char **)NULL,10))
 
-#define REALLOC(pt,pt_old,typ,size)\
-{\
-    pt = (typ)(realloc(pt_old,(size_t)(size)*sizeof(*pt)));\
-    if (pt == NULL)\
-    {\
-        fprintf(stderr,"error:memory allocation failed\n");\
-        exit(EXIT_FAILURE);\
-    }\
-}
-
 #define GET_PARAM_I(param,name)\
 if (strbufcmp(field[0],#name) == 0)\
 {\
@@ -139,10 +129,12 @@ static void add_beta(fit_param *param, const strbuf new_beta)
         param->nbeta++;
         REALLOC(param->beta,param->beta,strbuf *,param->nbeta);
         REALLOC(param->nvol,param->nvol,size_t *,param->nbeta);
+        REALLOC(param->nenspvol,param->nenspvol,size_t **,param->nbeta);
         REALLOC(param->volume,param->volume,unsigned int **,param->nbeta);
         strbufcpy(param->beta[param->nbeta-1],new_beta);
-        param->nvol[param->nbeta-1]   = 0;
-        param->volume[param->nbeta-1] = NULL;
+        param->nvol[param->nbeta-1]     = 0;
+        param->nenspvol[param->nbeta-1] = NULL;
+        param->volume[param->nbeta-1]   = NULL;
     }
 }
 
@@ -165,12 +157,20 @@ int ind_volume(const unsigned int volume, const int bind,\
 static void add_volume(fit_param *param, const int bind,\
                        const unsigned int new_volume)
 {
-    if (ind_volume(new_volume,bind,param) < 0)
+    int vind = ind_volume(new_volume,bind,param);
+    if (vind < 0)
     {
         param->nvol[bind]++;
-        REALLOC(param->volume[bind],param->volume[bind],unsigned int*,\
+        REALLOC(param->nenspvol[bind],param->nenspvol[bind],size_t *,  \
                 param->nvol[bind]);
-        param->volume[bind][param->nvol[bind]-1] = new_volume;
+        REALLOC(param->volume[bind],param->volume[bind],unsigned int *,\
+                param->nvol[bind]);
+        param->nenspvol[bind][param->nvol[bind]-1] = 1;
+        param->volume[bind][param->nvol[bind]-1]   = new_volume;
+    }
+    else
+    {
+        param->nenspvol[bind][vind]++;
     }
 }
 
@@ -241,6 +241,7 @@ fit_param * fit_param_parse(const strbuf fname)
     param->nbeta                  = 0;
     param->volume                 = NULL;
     param->nvol                   = NULL;
+    param->nenspvol               = NULL;
     param->init_param             = NULL;
     param->ninit_param            = 0;
     param->limit_param            = NULL;
@@ -252,6 +253,8 @@ fit_param * fit_param_parse(const strbuf fname)
     param->nsample                = 0;
     param->nproc                  = 0;
     param->save_all_param         = 0;
+    param->s_vol_Linv             = NULL;
+    param->s_vol_av               = NULL;
     strbufcpy(param->analyze,"");
     strbufcpy(param->model,"");
     strbufcpy(param->s_model,"");
@@ -509,6 +512,19 @@ fit_param * fit_param_parse(const strbuf fname)
         exit(EXIT_FAILURE);
     }
     
+    /* allocate volume averages table */
+    MALLOC(param->s_vol_Linv,rs_sample **,param->nbeta);
+    MALLOC(param->s_vol_av,rs_sample **,param->nbeta);
+    for (j=0;j<param->nbeta;j++)
+    {
+        param->s_vol_Linv[j] = rs_sample_create(param->nvol[j],1,\
+                                                param->nsample);
+        param->s_vol_av[j]   = rs_sample_create(param->nvol[j],1,\
+                                                param->nsample);
+        rs_sample_cst(param->s_vol_Linv[j],0.0);
+        rs_sample_cst(param->s_vol_av[j],0.0);
+    }
+
     /* create samples */
     if (strbufcmp(param->with_ext_a,"") != 0)
     {
@@ -556,6 +572,8 @@ fit_param * fit_param_parse(const strbuf fname)
 
 void fit_param_destroy(fit_param *param)
 {
+    size_t j;
+    
     if (param)
     {
         free(param->init_param);
@@ -564,6 +582,17 @@ void fit_param_destroy(fit_param *param)
         free(param->point);
         free(param->dataset);
         free(param->beta);
+        for (j=0;j<param->nbeta;j++)
+        {
+            rs_sample_destroy(param->s_vol_Linv[j]);
+            rs_sample_destroy(param->s_vol_av[j]);
+            free(param->nenspvol[j]);
+            free(param->volume[j]);
+        }
+        free(param->volume);
+        free(param->nvol);
+        free(param->s_vol_Linv);
+        free(param->s_vol_av);
         rs_sample_destroy(param->s_a);
         mat_destroy(param->a_err);
         rs_sample_destroy(param->s_M_umd);

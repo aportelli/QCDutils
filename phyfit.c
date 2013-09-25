@@ -27,6 +27,7 @@ enum
 #define SCALE_DATA(unit)\
 {\
     int d_;\
+    size_t b_,v_;\
     if (unit == AINV)\
     {\
         rs_sample_eqdivp(s_x[i_ud],s_x[i_a]);\
@@ -36,6 +37,21 @@ enum
         rs_sample_eqdivp(s_x[i_umd],s_x[i_a]);\
         rs_sample_eqdivp(s_x[i_umd],s_x[i_a]);\
         rs_sample_eqdivp(s_x[i_Linv],s_x[i_a]);\
+        for (b_=0;b_<param->nbeta;b_++)\
+        {\
+            rs_sample_get_subsamp(s_tmp,s_fit,npar-param->nbeta+b_,0,\
+                                  npar-param->nbeta+b_,0);\
+            for (v_=0;v_<param->nvol[b_];v_++)\
+            {\
+                for (d_=0;d_<param->q_dim;d_++)\
+                {\
+                    rs_sample_subsamp_eqdivp(param->s_vol_av[b_],s_tmp,\
+                                             v_,0,v_,0);\
+                }\
+                rs_sample_subsamp_eqdivp(param->s_vol_Linv[b_],s_tmp,\
+                                         v_,0,v_,0);\
+            }\
+        }\
         rs_sample_eqdivp(s_x[i_fvM],s_x[i_a]);\
         for (d_=0;d_<param->q_dim;d_++)\
         {\
@@ -53,6 +69,21 @@ enum
         rs_sample_eqmulp(s_x[i_umd],s_x[i_a]);\
         rs_sample_eqmulp(s_x[i_Linv],s_x[i_a]);\
         rs_sample_eqmulp(s_x[i_fvM],s_x[i_a]);\
+        for (b_=0;b_<param->nbeta;b_++)\
+        {\
+            rs_sample_get_subsamp(s_tmp,s_fit,npar-param->nbeta+b_,0,\
+            npar-param->nbeta+b_,0);\
+            for (v_=0;v_<param->nvol[b_];v_++)\
+            {\
+                for (d_=0;d_<param->q_dim;d_++)\
+                {\
+                    rs_sample_subsamp_eqmulp(param->s_vol_av[b_],s_tmp,\
+                                             v_,0,v_,0);\
+                }\
+                rs_sample_subsamp_eqmulp(param->s_vol_Linv[b_],s_tmp,\
+                                         v_,0,v_,0);\
+            }\
+        }\
         for (d_=0;d_<param->q_dim;d_++)\
         {\
             rs_sample_eqmulp(s_q[1],s_x[i_a]);\
@@ -306,13 +337,13 @@ static void analysis(fit_param *param)
     {
         use_x_var[i_ud]  = (((param->M_ud_deg != 0)||(param->with_udumd)       \
                              ||(param->with_udalpha))&&IS_AN(param,AN_PHYPT))  \
-        ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
+                             ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
         use_x_var[i_s]   = (((param->M_s_deg != 0)||(param->with_sumd)         \
                              ||(param->with_salpha))&&IS_AN(param,AN_PHYPT))   \
-        ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
+                             ||((param->s_M_ud_deg != 0)&&IS_AN(param,AN_SCALE));
         use_x_var[i_umd] = (((param->umd_deg != 0)&&IS_AN(param,AN_PHYPT))     \
                             ||((param->s_umd_deg != 0)&&IS_AN(param,AN_SCALE)))\
-        &&param->have_umd;
+                            &&param->have_umd;
         mpi_printf("-- fitting and resampling %s...\n",param->q_name);
         rs_data_fit(s_fit,limit,s_x,s_pt,d,X_COR|XDATA_COR|DATA_COR,use_x_var);
         if (IS_AN(param,AN_PHYPT))
