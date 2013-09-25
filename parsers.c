@@ -263,9 +263,9 @@ void parse_ukhadron_bar(strbuf meas_fname, io_fmt_no fmt, void *par_v)
         nt     = latan_conv_endianness_i(ibuf[6],par->in_endian);
         dim[0] = (size_t)nt;
         dim[1] = (size_t)nop;
-        dbuf   = (double *)malloc(2*nt*nop*sizeof(double));
-        prop   = mat_create(nt,1);
-        rcount = fread(dbuf,sizeof(double),2*nt*nop,in_f);
+        dbuf   = (double *)malloc(2*(size_t)(nt*nop)*sizeof(double));
+        prop   = mat_create((size_t)nt,1);
+        rcount = fread(dbuf,sizeof(double),2*(size_t)(nt*nop),in_f);
         if (rcount != (size_t)(2*nt*nop))
         {
             fprintf(stderr,"error (%s:%lx): reading correlator failed\n",\
@@ -350,9 +350,9 @@ void parse_ukhadron_hvp(strbuf meas_fname, io_fmt_no fmt, void *par_v)
         dim[0] = (size_t)nt;
         dim[1] = (size_t)ngsrc;
         dim[2] = (size_t)ngsink;
-        dbuf   = (double *)malloc(2*nt*ngsrc*ngsink*sizeof(double));
-        prop   = mat_create(nt,1);
-        rcount = fread(dbuf,sizeof(double),2*nt*ngsrc*ngsink,in_f);
+        dbuf   = (double *)malloc(2*(size_t)(nt*ngsrc*ngsink)*sizeof(double));
+        prop   = mat_create((size_t)nt,1);
+        rcount = fread(dbuf,sizeof(double),2*(size_t)(nt*ngsrc*ngsink),in_f);
         if (rcount != (size_t)(2*nt*ngsrc*ngsink))
         {
             fprintf(stderr,"error (%s:%lx): reading correlator failed\n",\
@@ -423,7 +423,7 @@ void parse_ukhadron_rarekaon(strbuf meas_fname, io_fmt_no fmt, void *par_v)
     ndiag = latan_conv_endianness_i(ibuf,par->in_endian);
     for (diag=0;diag<ndiag;diag++)
     {
-        rcount = fread_strbuf(diag_name,'\n',in_f);
+        rcount = (size_t)(fread_strbuf(diag_name,'\n',in_f));
         if (rcount != 1)
         {
             fprintf(stderr,"error (%s:%lx): reading diagram name failed\n",\
@@ -438,10 +438,10 @@ void parse_ukhadron_rarekaon(strbuf meas_fname, io_fmt_no fmt, void *par_v)
             abort();
         }
         nt      = latan_conv_endianness_i(ibuf,par->in_endian);
-        dbuf    = (double *)malloc(2*nt*sizeof(double));
-        prop_re = mat_create(nt,1);
-        prop_im = mat_create(nt,1);
-        rcount  = fread(dbuf,sizeof(double),2*nt,in_f);
+        dbuf    = (double *)malloc(2*(size_t)(nt)*sizeof(double));
+        prop_re = mat_create((size_t)nt,1);
+        prop_im = mat_create((size_t)nt,1);
+        rcount  = fread(dbuf,sizeof(double),2*(size_t)(nt),in_f);
         if (rcount != (size_t)(2*nt))
         {
             fprintf(stderr,"error (%s:%lx): reading correlator failed\n",\
