@@ -20,6 +20,7 @@ parse_func parse_bmw_dynqcd;
 parse_func parse_ukhadron_mes;
 parse_func parse_ukhadron_bar;
 parse_func parse_ukhadron_hvp;
+parse_func parse_ukhadron_hvpq0;
 parse_func parse_ukhadron_rarekaon;
 
 #endif

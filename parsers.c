@@ -351,7 +351,7 @@ void parse_ukhadron_hvp(strbuf meas_fname, io_fmt_no fmt, void *par_v)
         dim[1] = (size_t)ngsrc;
         dim[2] = (size_t)ngsink;
         dbuf   = (double *)malloc(2*(size_t)(nt*ngsrc*ngsink)*sizeof(double));
-        prop   = mat_create((size_t)nt,1);
+        prop   = mat_create((size_t)nt,2);
         rcount = fread(dbuf,sizeof(double),2*(size_t)(nt*ngsrc*ngsink),in_f);
         if (rcount != (size_t)(2*nt*ngsrc*ngsink))
         {
@@ -368,8 +368,10 @@ void parse_ukhadron_hvp(strbuf meas_fname, io_fmt_no fmt, void *par_v)
             {
                 x[0] = (size_t)t;
                 ind  = coord_to_rowmaj(x,dim,3);
-                mat_set(prop,(size_t)t,0,                                     \
+                mat_set(prop,(size_t)t,0,                                   \
                         latan_conv_endianness_d(dbuf[2*ind],par->in_endian));
+                mat_set(prop,(size_t)t,1,                                   \
+                        latan_conv_endianness_d(dbuf[2*ind+1],par->in_endian));
             }
             sprintf(prop_name,"%s%cHVP_%d_%d_%d%d%d_%d%d_%d_%d",out_fname,\
                     LATAN_PATH_SEP,gsink,gsrc,mom[0],mom[1],mom[2],    \
@@ -378,6 +380,94 @@ void parse_ukhadron_hvp(strbuf meas_fname, io_fmt_no fmt, void *par_v)
         }
         free(dbuf);
         mat_destroy(prop);
+    }
+    fclose(in_f);
+}
+
+void parse_ukhadron_hvpq0(strbuf meas_fname, io_fmt_no fmt, void *par_v)
+{
+    ukhadron_par *par;
+    int ibuf,diag,t;
+    int ndiag,nt;
+    double *dbuf;
+    mat *prop_re,*prop_im;
+    FILE *in_f;
+    size_t rcount;
+    strbuf out_fname,prop_name,diag_name;
+    
+    par  = (ukhadron_par *)par_v;
+    
+    switch (fmt)
+    {
+        case IO_XML:
+            sprintf(out_fname,"latan.%s.xml",basename(meas_fname));
+            break;
+        case IO_ASCII:
+            sprintf(out_fname,"latan.%s.dat",basename(meas_fname));
+            break;
+        default:
+            fprintf(stderr,"format unknown\n");
+            exit(EXIT_FAILURE);
+    }
+    in_f = fopen(meas_fname,"r");
+    if (in_f == NULL)
+    {
+        fprintf(stderr,"error: cannot open file %s\n",meas_fname);
+        abort();
+    }
+    rcount = fread(&ibuf,sizeof(int),1,in_f);
+    if (rcount != 1)
+    {
+        fprintf(stderr,"error (%s:%lx): reading diagram number failed\n",\
+                meas_fname,ftell(in_f));
+        abort();
+    }
+    ndiag = latan_conv_endianness_i(ibuf,par->in_endian);
+    for (diag=0;diag<ndiag;diag++)
+    {
+        rcount = (size_t)(fread_strbuf(diag_name,'\n',in_f));
+        if (rcount != 1)
+        {
+            fprintf(stderr,"error (%s:%lx): reading diagram name failed\n",\
+                    meas_fname,ftell(in_f));
+            abort();
+        }
+        rcount = fread(&ibuf,sizeof(int),1,in_f);
+        if (rcount != 1)
+        {
+            fprintf(stderr,"error (%s:%lx): reading time extent failed\n",\
+                    meas_fname,ftell(in_f));
+            abort();
+        }
+        nt      = latan_conv_endianness_i(ibuf,par->in_endian);
+        dbuf    = (double *)malloc(2*(size_t)(nt)*sizeof(double));
+        prop_re = mat_create((size_t)nt,1);
+        prop_im = mat_create((size_t)nt,1);
+        rcount  = fread(dbuf,sizeof(double),2*(size_t)(nt),in_f);
+        if (rcount != (size_t)(2*nt))
+        {
+            fprintf(stderr,"error (%s:%lx): reading correlator failed\n",\
+                    meas_fname,ftell(in_f));
+            abort();
+        }
+        for (t=0;t<nt;t++)
+        {
+            mat_set(prop_re,(size_t)t,0,                                \
+                    latan_conv_endianness_d(dbuf[2*t],par->in_endian));
+            mat_set(prop_im,(size_t)t,0,                                \
+                    latan_conv_endianness_d(dbuf[2*t+1],par->in_endian));
+        }
+        sprintf(prop_name,"%s%cHVPQ0_%s_RE_%d%d_%d_%d",out_fname,       \
+                LATAN_PATH_SEP,diag_name,par->quark[0],par->quark[1],\
+                par->ss[0],par->ss[1]);
+        mat_save(prop_name,'a',prop_re);
+        sprintf(prop_name,"%s%cHVPQ0_%s_IM_%d%d_%d_%d",out_fname,       \
+                LATAN_PATH_SEP,diag_name,par->quark[0],par->quark[1],\
+                par->ss[0],par->ss[1]);
+        mat_save(prop_name,'a',prop_im);
+        free(dbuf);
+        mat_destroy(prop_re);
+        mat_destroy(prop_im);
     }
     fclose(in_f);
 }
