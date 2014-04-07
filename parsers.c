@@ -177,7 +177,7 @@ void parse_ukhadron_mes(strbuf meas_fname, io_fmt_no fmt, void *par_v)
         dim[1] = (size_t)ngsink;
         dim[2] = (size_t)ngsrc;
         dbuf   = (double *)malloc(2*(size_t)(nt*ngsrc*ngsink)*sizeof(double));
-        prop   = mat_create((size_t)nt,1);
+        prop   = mat_create((size_t)nt,2);
         rcount = fread(dbuf,sizeof(double),2*(size_t)(nt*ngsrc*ngsink),in_f);
         if (rcount != (size_t)(2*nt*ngsrc*ngsink))
         {
@@ -195,6 +195,8 @@ void parse_ukhadron_mes(strbuf meas_fname, io_fmt_no fmt, void *par_v)
                 x[0] = (size_t)t;
                 ind  = coord_to_rowmaj(x,dim,3);
                 mat_set(prop,(size_t)t,0,                                     \
+                        latan_conv_endianness_d(dbuf[2*ind],par->in_endian));
+                mat_set(prop,(size_t)t,1,                                     \
                         latan_conv_endianness_d(dbuf[2*ind],par->in_endian));
             }
             sprintf(prop_name,"%s%cG%dG%d_%d%d%d_%d%d_%d_%d",out_fname,\
