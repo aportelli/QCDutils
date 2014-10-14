@@ -300,7 +300,7 @@ void parse_ukhadron_hvp(strbuf meas_fname, io_fmt_no fmt, void *par_v)
     ukhadron_par *par;
     int ibuf[10],mom[3],mom_i,gsrc,gsink,t;
     int nmom,ngsrc,ngsink,nt;
-    double *dbuf;
+    double *dbuf, dth[4];
     mat *prop;
     FILE *in_f;
     size_t rcount,ind,x[3],dim[3];
@@ -326,6 +326,18 @@ void parse_ukhadron_hvp(strbuf meas_fname, io_fmt_no fmt, void *par_v)
         fprintf(stderr,"error: cannot open file %s\n",meas_fname);
         abort();
     }
+    fread(ibuf,sizeof(int),1,in_f);
+    rcount = fread(dth,sizeof(double),4,in_f);
+    if (rcount != 4)
+    {
+        fprintf(stderr,"error (%s:%lx): reading twist angle failed\n",\
+                meas_fname,ftell(in_f));
+        abort();
+    }
+    dth[0] = 0.5*latan_conv_endianness_d(dth[0],par->in_endian);
+    dth[1] = 0.5*latan_conv_endianness_d(dth[1],par->in_endian);
+    dth[2] = 0.5*latan_conv_endianness_d(dth[2],par->in_endian);
+    dth[3] = 0.5*latan_conv_endianness_d(dth[3],par->in_endian);
     rcount = fread(ibuf,sizeof(int),1,in_f);
     if (rcount != 1)
     {
@@ -333,7 +345,7 @@ void parse_ukhadron_hvp(strbuf meas_fname, io_fmt_no fmt, void *par_v)
                 meas_fname,ftell(in_f));
         abort();
     }
-    nmom   = latan_conv_endianness_i(ibuf[0],par->in_endian);
+    nmom = latan_conv_endianness_i(ibuf[0],par->in_endian);
     for (mom_i=0;mom_i<nmom;mom_i++)
     {
         rcount = fread(ibuf,sizeof(int),8,in_f);
@@ -375,9 +387,10 @@ void parse_ukhadron_hvp(strbuf meas_fname, io_fmt_no fmt, void *par_v)
                 mat_set(prop,(size_t)t,1,                                   \
                         latan_conv_endianness_d(dbuf[2*ind+1],par->in_endian));
             }
-            sprintf(prop_name,"%s%cHVP_%d_%d_%d%d%d_%d%d_%d_%d",out_fname,\
-                    LATAN_PATH_SEP,gsink,gsrc,mom[0],mom[1],mom[2],    \
-                    par->quark[0],par->quark[1],par->ss[0],par->ss[1]);
+            sprintf(prop_name,"%s%cHVP_%d_%d_%d%d%d_%e_%e_%e_%d%d_%d_%d",
+                    out_fname,LATAN_PATH_SEP,gsink,gsrc,mom[0],mom[1],mom[2],\
+                    dth[0],dth[1],dth[2],par->quark[0],par->quark[1],        \
+                    par->ss[0],par->ss[1]);
             mat_save(prop_name,'a',prop);
         }
         free(dbuf);
@@ -530,34 +543,37 @@ void parse_ukhadron_rarekaon(strbuf meas_fname, io_fmt_no fmt, void *par_v)
             abort();
         }
         nt      = latan_conv_endianness_i(ibuf,par->in_endian);
-        dbuf    = (double *)malloc(2*(size_t)(nt)*sizeof(double));
-        prop_re = mat_create((size_t)nt,1);
-        prop_im = mat_create((size_t)nt,1);
-        rcount  = fread(dbuf,sizeof(double),2*(size_t)(nt),in_f);
-        if (rcount != (size_t)(2*nt))
+        if (nt)
         {
-            fprintf(stderr,"error (%s:%lx): reading correlator failed\n",\
-                    meas_fname,ftell(in_f));
-            abort();
+            dbuf    = (double *)malloc(2*(size_t)(nt)*sizeof(double));
+            prop_re = mat_create((size_t)nt,1);
+            prop_im = mat_create((size_t)nt,1);
+            rcount  = fread(dbuf,sizeof(double),2*(size_t)(nt),in_f);
+            if (rcount != (size_t)(2*nt))
+            {
+                fprintf(stderr,"error (%s:%lx): reading correlator failed\n",\
+                        meas_fname,ftell(in_f));
+                abort();
+            }
+            for (t=0;t<nt;t++)
+            {
+                mat_set(prop_re,(size_t)t,0,                                \
+                        latan_conv_endianness_d(dbuf[2*t],par->in_endian));
+                mat_set(prop_im,(size_t)t,0,                                \
+                        latan_conv_endianness_d(dbuf[2*t+1],par->in_endian));
+            }
+            sprintf(prop_name,"%s%cRAREK_%s_RE_%d%d_%d_%d",out_fname,       \
+                    LATAN_PATH_SEP,diag_name,par->quark[0],par->quark[1],\
+                    par->ss[0],par->ss[1]);
+            mat_save(prop_name,'a',prop_re);
+            sprintf(prop_name,"%s%cRAREK_%s_IM_%d%d_%d_%d",out_fname,       \
+                    LATAN_PATH_SEP,diag_name,par->quark[0],par->quark[1],\
+                    par->ss[0],par->ss[1]);
+            mat_save(prop_name,'a',prop_im);
+            free(dbuf);
+            mat_destroy(prop_re);
+            mat_destroy(prop_im);
         }
-        for (t=0;t<nt;t++)
-        {
-            mat_set(prop_re,(size_t)t,0,                                \
-                    latan_conv_endianness_d(dbuf[2*t],par->in_endian));
-            mat_set(prop_im,(size_t)t,0,                                \
-                    latan_conv_endianness_d(dbuf[2*t+1],par->in_endian));
-        }
-        sprintf(prop_name,"%s%cRAREK_%s_RE_%d%d_%d_%d",out_fname,       \
-                LATAN_PATH_SEP,diag_name,par->quark[0],par->quark[1],\
-                par->ss[0],par->ss[1]);
-        mat_save(prop_name,'a',prop_re);
-        sprintf(prop_name,"%s%cRAREK_%s_IM_%d%d_%d_%d",out_fname,       \
-                LATAN_PATH_SEP,diag_name,par->quark[0],par->quark[1],\
-                par->ss[0],par->ss[1]);
-        mat_save(prop_name,'a',prop_im);
-        free(dbuf);
-        mat_destroy(prop_re);
-        mat_destroy(prop_im);
     }
     fclose(in_f);
 }
