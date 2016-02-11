@@ -582,13 +582,13 @@ int main(int argc, char *argv[])
 #ifdef HAVE_MPI
         if (nproc > 1)
         {
-            if (nproc*step+proc+1 < argc)
+            if (proc*nstep+step+1 < argc)
             {
                 active = true;
-                mpi_printf("*** parameter file %s\n",argv[nproc*step+proc+1]);
-                param       = fit_param_parse(argv[nproc*step+proc+1]);
+                mpi_printf("*** parameter file %s\n",argv[proc*nstep+step+1]);
+                param       = fit_param_parse(argv[proc*nstep+step+1]);
                 param->plot = 0;
-                sprintf(prefix,"[%d] ",nproc*step+proc);
+                sprintf(prefix,"[%d] ",proc*nstep+step);
                 latan_set_use_car_ret(false);
                 latan_set_msg_prefix(prefix);
                 strbufcpy(param->save_plot,"");
@@ -617,7 +617,6 @@ int main(int argc, char *argv[])
             analysis(param);
         }
         fit_param_destroy(param);
-
     }
 
     /* finalization */
