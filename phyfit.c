@@ -559,70 +559,72 @@ int main(int argc, char *argv[])
 #endif
     
     /* argument parsing */
-    fit_param *param;
-    int proc,nproc;
+    int proc,nproc,nanalyse,nstep,step;
     bool active;
     strbuf prefix;
-    
+    fit_param *param;
     if (argc < 2)
     {
         fprintf(stderr,"usage: %s <par_file_1> [<par_file_2> ...]\n",argv[0]);
         return EXIT_FAILURE;
     }
+    nanalyse = argc - 1;
 #ifdef HAVE_MPI
     MPI_Comm_rank(MPI_COMM_WORLD,&proc);
     MPI_Comm_size(MPI_COMM_WORLD,&nproc);
-    if (nproc < argc - 1)
-    {
-        fprintf(stderr,"error: %d processes for %d parameter files\n",nproc,\
-                argc-1);
-        return EXIT_FAILURE;
-    }
-    if (nproc > 1)
-    {
-        if (proc+1 < argc)
-        {
-            active = true;
-            mpi_printf("*** parameter file %s\n",argv[proc+1]);
-            param       = fit_param_parse(argv[proc+1]);
-            param->plot = 0;
-            sprintf(prefix,"[%d] ",proc);
-            latan_set_use_car_ret(false);
-            latan_set_msg_prefix(prefix);
-            strbufcpy(param->save_plot,"");
-        }
-        else
-        {
-            active = false;
-            mpi_printf("*** inactive process\n");
-            param = NULL;
-        }
-    }
-    else
-    {
-        active = true;
-        param = fit_param_parse(argv[1]);
-    }
 #else
     proc   = 0;
     nproc  = 1;
-    param  = fit_param_parse(argv[1]);
-    active = true;
 #endif
-    
-    /* analysis */
-    param->nproc = nproc;
-    if (active)
+    nstep = nanalyse/nproc + ((nanalyse % nproc == 0) ? 0 : 1);
+    for (step=0;step<nstep;step++)
     {
-        analysis(param);
+#ifdef HAVE_MPI
+        if (nproc > 1)
+        {
+            if (nproc*step+proc+1 < argc)
+            {
+                active = true;
+                mpi_printf("*** parameter file %s\n",argv[nproc*step+proc+1]);
+                param       = fit_param_parse(argv[nproc*step+proc+1]);
+                param->plot = 0;
+                sprintf(prefix,"[%d] ",nproc*step+proc);
+                latan_set_use_car_ret(false);
+                latan_set_msg_prefix(prefix);
+                strbufcpy(param->save_plot,"");
+            }
+            else
+            {
+                active = false;
+                mpi_printf("*** inactive process\n");
+                param = NULL;
+            }
+        }
+        else
+        {
+            active = true;
+            param = fit_param_parse(argv[step+1]);
+        }
+#else
+        param  = fit_param_parse(argv[step+1]);
+        active = true;
+#endif
+        
+        /* analysis */
+        param->nproc = nproc;
+        if (active)
+        {
+            analysis(param);
+        }
+        fit_param_destroy(param);
+
     }
-    
+
     /* finalization */
     io_finish();
 #ifdef HAVE_MPI
     MPI_Finalize();
 #endif
-    fit_param_destroy(param);
     
     return EXIT_SUCCESS;
 }
