@@ -79,8 +79,8 @@ double a_error_chi2_ext(const mat *p, void *vd)
 
 double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
 {
-    double res,lo,ex,buf,M_ud,M_s,M_fvol,a,dimfac,umd,Linv,a2mud,a2ms,alpha,\
-           alpha_sa,d,Lambda;
+    double res,lo,ex,buf,M_ud,M_s,M_fvol,a,dimfac,umd,Linv,ToL,a2mud,a2ms,\
+           alpha,alpha_sa,d,Lambda;
     size_t s,bind;
     fit_param *param;
     
@@ -125,6 +125,7 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
     M_s      = mat_get(X,i_s,0)/SQ(dimfac);
     umd      = mat_get(X,i_umd,0)/SQ(dimfac);
     Linv     = mat_get(X,i_Linv,0)/dimfac;
+    ToL      = mat_get(X,i_ToL,0);
     a2mud    = SQ(a)*mat_get(X,i_ud,0)/SQ(dimfac);
     a2ms     = SQ(a)*mat_get(X,i_s,0)/SQ(dimfac);
     alpha    = mat_get(X,i_alpha,0);
@@ -166,7 +167,6 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
         buf  = 0.0;
         if (param->with_qed_fvol_monopmod)
         {
-            
             if (param->with_qed_fvol >= 1)
             {
                 buf += -0.5*QED_FVOL_KAPPA*Linv*d*pow(M_fvol,d-1.0);
@@ -176,6 +176,13 @@ double fm_phypt_taylor_func(const mat *X, const mat *p, void *vparam)
                 buf += mat_get(p,I_qedfv(0)+s,0)*SQ(Linv)*pow(M_fvol,d-2.0);
             }
             buf *= (double)param->qed_fvol_monopmod_sign;
+        }
+        else if (param->with_qed_fvol_qedtl)
+        {
+            
+            buf += -QED_FVOL_KAPPA*Linv*M_fvol*\
+                   (1.0 + 2.0*Linv/M_fvol*(1.0-0.5*C_PI*ToL/QED_FVOL_KAPPA));
+            buf += mat_get(p,I_qedfv(0)+s,0)*pow(Linv, 3.0);
         }
         else
         {

@@ -280,6 +280,7 @@ static void analysis(fit_param *param)
         mat_set(phy_pt,i_bind,0,0.0);
         mat_set(phy_pt,i_a,0,0.0);
         mat_set(phy_pt,i_Linv,0,0.0);
+        mat_set(phy_pt,i_ToL,0,0.0);
         mat_set(phy_pt,i_fvM,0,(param->with_qed_fvol) ? param->qed_fvol_mass \
                                                       : 0.0);
         param->scale_model = 1;

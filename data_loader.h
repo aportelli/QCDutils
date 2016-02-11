@@ -5,7 +5,7 @@
 #include <latan/latan_statistics.h>
 
 /* indices */
-#define N_EX_VAR 9
+#define N_EX_VAR 10
 enum
 {
     i_ud    = 0,
@@ -16,7 +16,8 @@ enum
     i_umd   = 5,
     i_alpha = 6,
     i_Linv  = 7,
-    i_fvM   = 8
+    i_ToL   = 8,
+    i_fvM   = 9
 };
 
 /* functions */

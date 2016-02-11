@@ -221,6 +221,7 @@ fit_param * fit_param_parse(const strbuf fname)
     param->with_aalpha            = 0;
     param->with_qed_fvol          = 0;
     param->with_qed_fvol_monopmod = 0;
+    param->with_qed_fvol_qedtl    = 0;
     param->qed_fvol_monopmod_sign = 1;
     param->s_with_qed_fvol        = 0;
     param->with_pade              = 0;
@@ -308,6 +309,7 @@ fit_param * fit_param_parse(const strbuf fname)
             GET_PARAM_I(param,with_aalpha);
             GET_PARAM_I(param,with_qed_fvol);
             GET_PARAM_I(param,with_qed_fvol_monopmod);
+            GET_PARAM_I(param,with_qed_fvol_qedtl);
             GET_PARAM_I(param,qed_fvol_monopmod_sign);
             GET_PARAM_I(param,s_with_qed_fvol);
             GET_PARAM_I(param,with_pade);

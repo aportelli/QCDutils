@@ -81,6 +81,7 @@ typedef struct fit_param_s
     int with_aalpha;
     int with_qed_fvol;
     int with_qed_fvol_monopmod;
+    int with_qed_fvol_qedtl;
     int qed_fvol_monopmod_sign;
     int s_with_qed_fvol;
     int with_pade;

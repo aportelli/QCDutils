@@ -142,6 +142,8 @@ void data_load(rs_sample *s_x[N_EX_VAR], rs_sample *s_q[2], fit_param *param)
                 rs_sample_set_subsamp(s_x[i_Linv],s_tmp,ens_ind,0,ens_ind,0);
                 rs_sample_set_subsamp(param->s_vol_Linv[bind],s_tmp,\
                                       vind,0,vind,0);
+                rs_sample_cst(s_tmp,((double)ens_pt->T)/((double)ens_pt->L));
+                rs_sample_set_subsamp(s_x[i_ToL],s_tmp,ens_ind,0,ens_ind,0);
                 /* lattice spacing */
                 if (IS_AN(param,AN_PHYPT)&&!IS_AN(param,AN_SCALE))
                 {
