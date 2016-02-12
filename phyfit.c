@@ -588,7 +588,7 @@ int main(int argc, char *argv[])
                 mpi_printf("*** parameter file %s\n",argv[proc*nstep+step+1]);
                 param       = fit_param_parse(argv[proc*nstep+step+1]);
                 param->plot = 0;
-                sprintf(prefix,"[%d] ",proc*nstep+step);
+                sprintf(prefix,"[%d] ",proc);
                 latan_set_use_car_ret(false);
                 latan_set_msg_prefix(prefix);
                 strbufcpy(param->save_plot,"");
