@@ -614,7 +614,7 @@ int main(int argc, char *argv[])
         if (active)
         {
             param->nproc = nproc;
-            /* analysis(param) */;
+            analysis(param);
             fit_param_destroy(param);
         }
     }
