@@ -615,8 +615,8 @@ int main(int argc, char *argv[])
         if (active)
         {
             analysis(param);
+            fit_param_destroy(param);
         }
-        fit_param_destroy(param);
     }
 
     /* finalization */
