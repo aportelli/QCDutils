@@ -611,10 +611,10 @@ int main(int argc, char *argv[])
 #endif
         
         /* analysis */
-        param->nproc = nproc;
         if (active)
         {
-            analysis(param);
+            param->nproc = nproc;
+            /* analysis(param) */;
             fit_param_destroy(param);
         }
     }
