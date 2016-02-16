@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 199506L /* strtok_r is used here */
 
 #include "parameters.h"
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -256,6 +257,11 @@ fit_param * fit_param_parse(const strbuf fname)
     param->save_all_param         = 0;
     param->s_vol_Linv             = NULL;
     param->s_vol_av               = NULL;
+    param->s_a                    = NULL;
+    param->a_err                  = NULL;
+    param->s_M_umd                = NULL;
+    param->s_ex                   = NULL;
+    param->ex_err                 = NULL;
     strbufcpy(param->analyze,"");
     strbufcpy(param->model,"");
     strbufcpy(param->s_model,"");

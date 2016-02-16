@@ -562,7 +562,7 @@ int main(int argc, char *argv[])
     int proc,nproc,nanalyse,nstep,step;
     bool active;
     strbuf prefix;
-    fit_param *param;
+    fit_param *param = NULL;
     if (argc < 2)
     {
         fprintf(stderr,"usage: %s <par_file_1> [<par_file_2> ...]\n",argv[0]);
@@ -616,6 +616,7 @@ int main(int argc, char *argv[])
             param->nproc = nproc;
             analysis(param);
             fit_param_destroy(param);
+            param = NULL;
         }
     }
 
